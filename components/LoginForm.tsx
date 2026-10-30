@@ -13,7 +13,8 @@ function go(data: unknown, next: string) {
   window.location.assign(url ?? next);
 }
 
-export function LoginForm({ methods, next }: { methods: Methods; next: string }) {
+/** `onSignedIn` runs once a sign-in has succeeded, before the browser moves on: the closed book opens there. */
+export function LoginForm({ methods, next, onSignedIn }: { methods: Methods; next: string; onSignedIn?: (email: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -40,6 +41,7 @@ export function LoginForm({ methods, next }: { methods: Methods; next: string })
       setError(copy.signInFailed);
       return;
     }
+    await onSignedIn?.(email);
     go(data, next);
   }
 
