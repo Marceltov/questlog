@@ -16,7 +16,7 @@ export default async function Home() {
           <p className="text-sm text-muted">{copy.connectHint(mcpUrl())}</p>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-3 lg:grid-cols-2">
           {runs.map((t) => (
             <li key={t.id}>
               <Link href={t.url} className="card block hover:border-accent">
