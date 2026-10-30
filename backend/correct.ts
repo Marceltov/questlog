@@ -1,0 +1,356 @@
+// Fixing what was filed: a misspelt game, a quest marked done too early, a stat read wrong off a screenshot, an item filed twice. Each
+// change names one row by its id and either sets some of its fields or removes it; all changes of one call run in one transaction.
+// Look-ups go through the gate like every other query (spoilers.ts), so another player's id is simply not found (values V2). Nothing is
+// merged unless the call says so with mergeInto, which Claude passes only after the player agreed (values V4).
+import type { Transaction } from "kysely";
+import { db, now } from "./db";
+import type { Schema } from "./db/schema";
+import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
+import { statNames } from "./games";
+import { norm } from "./names";
+import { seen } from "./spoilers";
+import {
+  ENTRY_KINDS,
+  PLAYTHROUGH_STATUSES,
+  QUEST_STATUSES,
+  SPOILER_LEVELS,
+  type EntryKind,
+  type Player,
+  type PlaythroughStatus,
+  type QuestStatus,
+  type SpoilerLevel,
+} from "./types";
+import { itemPath, playthroughPath, questPath, sessionPath } from "./urls";
+
+/** What a correction can name. */
+export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item"] as const;
+export type Target = (typeof TARGETS)[number];
+
+/** One change: the row (`what`, `id`), and either `remove` or the fields to set. A nullable field set to null is cleared. */
+export type Correction = {
+  what: Target;
+  id: string;
+  remove?: boolean;
+  /** A quest only: move its entries to this quest and remove it. */
+  mergeInto?: string;
+  title?: string;
+  platform?: string | null;
+  label?: string;
+  language?: string | null;
+  status?: string;
+  summary?: string;
+  playedOn?: string;
+  name?: string;
+  localName?: string | null;
+  giver?: string | null;
+  location?: string | null;
+  kind?: string | null;
+  text?: string;
+  spoiler?: SpoilerLevel;
+  level?: number | null;
+  values?: Record<string, number>;
+  equipped?: boolean;
+  verdict?: string | null;
+};
+
+// The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
+const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
+  game: ["title", "platform"],
+  playthrough: ["label", "language", "status"],
+  session: ["summary", "playedOn"],
+  quest: ["name", "localName", "giver", "location", "status"],
+  entry: ["kind", "text", "spoiler"],
+  snapshot: ["level", "values", "playedOn"],
+  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler"],
+};
+
+export type Corrected = {
+  what: Target;
+  id: string;
+  /** What the row is called now (its title, name or day), for reading back. */
+  name: string;
+  /** The fields that were set; empty when the row was removed. */
+  changed: string[];
+  removed: boolean;
+  /** The quest a merged quest's entries moved to. */
+  mergedInto: { id: string; name: string } | null;
+  /** The playthrough the row belongs to, for links and for reading back. */
+  playthroughId: string | null;
+  /** The row's page, or its playthrough's when it has none of its own; null for a removed playthrough or game. */
+  url: string | null;
+};
+
+type Trx = Transaction<Schema>;
+
+const text = (field: string, v: string | undefined) => {
+  const t = v?.trim();
+  if (v !== undefined && !t) throw new InvalidInputError(`${field}: can't be empty`);
+  return t;
+};
+const nullable = (v: string | null | undefined) => (v === undefined ? undefined : v?.trim() || null);
+const oneOf = <T extends string>(field: string, v: string | undefined, allowed: readonly T[]): T | undefined => {
+  if (v !== undefined && !allowed.includes(v as T)) throw new InvalidInputError(`${field}: one of ${allowed.join(", ")}`);
+  return v as T | undefined;
+};
+// Only the fields that were given, so an update leaves the others as they are.
+const given = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
+/** Applies `changes` as `p`, in order and all or none. */
+export async function correct(p: Player, changes: Correction[]): Promise<Corrected[]> {
+  if (!changes.length) throw new InvalidInputError("changes: name at least one row to fix or remove");
+  for (const c of changes) {
+    const extra = Object.keys(c).filter((k) => !["what", "id", "remove", "mergeInto", ...FIELDS[c.what]].includes(k) && c[k as keyof Correction] !== undefined);
+    if (extra.length) throw new InvalidInputError(`${c.what} ${c.id}: ${extra.join(", ")} can't be set on a ${c.what} (it takes ${FIELDS[c.what].join(", ")})`);
+    if (c.mergeInto !== undefined && c.what !== "quest") throw new InvalidInputError(`${c.what} ${c.id}: only a quest can be merged`);
+    const sets = FIELDS[c.what].some((f) => c[f] !== undefined);
+    if ((c.remove || c.mergeInto) && sets) throw new InvalidInputError(`${c.what} ${c.id}: remove or merge it, or set fields, not both`);
+    if (!c.remove && !c.mergeInto && !sets) throw new InvalidInputError(`${c.what} ${c.id}: nothing to change`);
+  }
+  const d = await db();
+  return d.transaction().execute(async (trx) => {
+    const out: Corrected[] = [];
+    for (const c of changes) out.push(await apply(trx, p, c));
+    return out;
+  });
+}
+
+function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  switch (c.what) {
+    case "game":
+      return game(trx, p, c);
+    case "playthrough":
+      return playthrough(trx, p, c);
+    case "session":
+      return session(trx, p, c);
+    case "quest":
+      return quest(trx, p, c);
+    case "entry":
+      return entry(trx, p, c);
+    case "snapshot":
+      return snapshot(trx, p, c);
+    case "item":
+      return item(trx, p, c);
+  }
+}
+
+const done = (c: Correction, name: string, playthroughId: string | null, url: string | null, mergedInto: Corrected["mergedInto"] = null): Corrected => ({
+  what: c.what,
+  id: c.id,
+  name,
+  changed: c.remove || c.mergeInto ? [] : FIELDS[c.what].filter((f) => c[f] !== undefined),
+  removed: !!(c.remove || c.mergeInto),
+  mergedInto,
+  playthroughId,
+  url,
+});
+
+async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("games"), p, "games").select(["id", "title"]).where("id", "=", c.id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No game with id ${c.id}`);
+  if (c.remove) {
+    // Its playthroughs go with it, and with them everything filed in them.
+    await seen(trx.deleteFrom("games"), p, "games").where("id", "=", c.id).execute();
+    return done(c, row.title, null, null);
+  }
+  const title = text("title", c.title);
+  if (title) {
+    const clash = await seen(trx.selectFrom("games"), p, "games").select("id").where("norm", "=", norm(title)).where("id", "!=", c.id).executeTakeFirst();
+    if (clash)
+      throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). questlog doesn't merge games: ask the player what they want`);
+  }
+  await seen(trx.updateTable("games"), p, "games")
+    .set(given({ title, norm: title && norm(title), platform: nullable(c.platform) }))
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, title ?? row.title, null, null);
+}
+
+async function playthrough(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("playthroughs"), p, "playthroughs").select(["id", "label", "game_id"]).where("id", "=", c.id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No playthrough with id ${c.id}`);
+  if (c.remove) {
+    await seen(trx.deleteFrom("playthroughs"), p, "playthroughs").where("id", "=", c.id).execute();
+    return done(c, row.label, null, null);
+  }
+  const label = text("label", c.label);
+  if (label) {
+    const clash = await seen(trx.selectFrom("playthroughs"), p, "playthroughs")
+      .select(["id", "label"])
+      .where("game_id", "=", row.game_id)
+      .where("id", "!=", c.id)
+      .execute();
+    const same = clash.find((t) => norm(t.label) === norm(label));
+    if (same) throw new AmbiguousError(`This game already has a playthrough called ${same.label} (id ${same.id}): ask the player which label to use`);
+  }
+  const status = oneOf<PlaythroughStatus>("status", c.status, PLAYTHROUGH_STATUSES);
+  await seen(trx.updateTable("playthroughs"), p, "playthroughs")
+    .set(given({ label, status, language: nullable(c.language) }))
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, label ?? row.label, c.id, playthroughPath(c.id));
+}
+
+// The day a playthrough was last played is the latest of its sessions; a session moved or removed can change it.
+async function relast(trx: Trx, p: Player, playthroughId: string) {
+  const latest = await seen(trx.selectFrom("sessions"), p, "sessions")
+    .select((eb) => eb.fn.max("played_on").as("day"))
+    .where("playthrough_id", "=", playthroughId)
+    .executeTakeFirst();
+  await seen(trx.updateTable("playthroughs"), p, "playthroughs")
+    .set({ last_played_on: (latest?.day as string | null | undefined) ?? null })
+    .where("id", "=", playthroughId)
+    .execute();
+}
+
+async function session(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("sessions"), p, "sessions").select(["id", "played_on", "playthrough_id"]).where("id", "=", c.id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No session with id ${c.id}`);
+  if (c.remove) {
+    // What was written in it goes with it: its log entries and its stat snapshot. Quests and items it started stay, without a session.
+    await seen(trx.deleteFrom("quest_entries"), p, "quest_entries", "full").where("session_id", "=", c.id).execute();
+    await seen(trx.deleteFrom("stat_snapshots"), p, "stat_snapshots").where("session_id", "=", c.id).execute();
+    await seen(trx.deleteFrom("sessions"), p, "sessions").where("id", "=", c.id).execute();
+    await relast(trx, p, row.playthrough_id);
+    return done(c, row.played_on, row.playthrough_id, playthroughPath(row.playthrough_id));
+  }
+  const summary = text("summary", c.summary);
+  await seen(trx.updateTable("sessions"), p, "sessions")
+    .set(given({ summary, played_on: c.playedOn }))
+    .where("id", "=", c.id)
+    .execute();
+  if (c.playedOn) {
+    // A snapshot is dated by its session.
+    await seen(trx.updateTable("stat_snapshots"), p, "stat_snapshots").set({ taken_on: c.playedOn }).where("session_id", "=", c.id).execute();
+    await relast(trx, p, row.playthrough_id);
+  }
+  return done(c, c.playedOn ?? row.played_on, row.playthrough_id, sessionPath(c.id));
+}
+
+async function quest(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const find = (id: string) =>
+    seen(trx.selectFrom("quests"), p, "quests", "full").select(["id", "name", "playthrough_id"]).where("id", "=", id).executeTakeFirst();
+  const row = await find(c.id);
+  if (!row) throw new NotFoundError(`No quest with id ${c.id}`);
+  if (c.mergeInto) {
+    const into = await find(c.mergeInto);
+    if (!into || into.playthrough_id !== row.playthrough_id) throw new NotFoundError(`No quest with id ${c.mergeInto} in the same playthrough`);
+    if (into.id === row.id) throw new InvalidInputError("mergeInto: a quest can't be merged into itself");
+    await seen(trx.updateTable("quest_entries"), p, "quest_entries", "full").set({ quest_id: into.id }).where("quest_id", "=", row.id).execute();
+    await seen(trx.updateTable("quests"), p, "quests", "full").set({ updated_at: now() }).where("id", "=", into.id).execute();
+    await seen(trx.deleteFrom("quests"), p, "quests", "full").where("id", "=", row.id).execute();
+    return done(c, row.name, row.playthrough_id, questPath(row.playthrough_id, into.id), { id: into.id, name: into.name });
+  }
+  if (c.remove) {
+    await seen(trx.deleteFrom("quests"), p, "quests", "full").where("id", "=", c.id).execute();
+    return done(c, row.name, row.playthrough_id, playthroughPath(row.playthrough_id));
+  }
+  const name = text("name", c.name);
+  if (name) {
+    const clash = await seen(trx.selectFrom("quests"), p, "quests", "full")
+      .select("id")
+      .where("playthrough_id", "=", row.playthrough_id)
+      .where("norm", "=", norm(name))
+      .where("id", "!=", c.id)
+      .executeTakeFirst();
+    if (clash)
+      throw new AmbiguousError(
+        `This playthrough already has a quest called ${name} (id ${clash.id}). If they are one quest, ask the player, then merge with mergeInto`,
+      );
+  }
+  const status = oneOf<QuestStatus>("status", c.status, QUEST_STATUSES);
+  await seen(trx.updateTable("quests"), p, "quests", "full")
+    .set({
+      ...given({ name, norm: name && norm(name), local_name: nullable(c.localName), giver: nullable(c.giver), location: nullable(c.location), status }),
+      updated_at: now(),
+    })
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, name ?? row.name, row.playthrough_id, questPath(row.playthrough_id, c.id));
+}
+
+async function entry(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const joined = trx.selectFrom("quest_entries").innerJoin("quests", "quests.id", "quest_entries.quest_id");
+  const row = await seen(seen(joined, p, "quest_entries", "full"), p, "quests", "full")
+    .select(["quest_entries.id", "quests.id as quest_id", "quests.name", "quests.playthrough_id"])
+    .where("quest_entries.id", "=", c.id)
+    .executeTakeFirst();
+  if (!row) throw new NotFoundError(`No quest entry with id ${c.id}`);
+  const url = questPath(row.playthrough_id, row.quest_id);
+  if (c.remove) {
+    await seen(trx.deleteFrom("quest_entries"), p, "quest_entries", "full").where("id", "=", c.id).execute();
+    return done(c, row.name, row.playthrough_id, url);
+  }
+  const kind = oneOf<EntryKind>("kind", c.kind ?? undefined, ENTRY_KINDS);
+  if (c.kind === null) throw new InvalidInputError(`kind: one of ${ENTRY_KINDS.join(", ")}`);
+  const spoiler = oneOf<SpoilerLevel>("spoiler", c.spoiler, SPOILER_LEVELS);
+  await seen(trx.updateTable("quest_entries"), p, "quest_entries", "full")
+    .set(given({ kind, text: text("text", c.text), spoiler }))
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, row.name, row.playthrough_id, url);
+}
+
+async function snapshot(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const joined = trx.selectFrom("stat_snapshots").innerJoin("playthroughs", "playthroughs.id", "stat_snapshots.playthrough_id");
+  const row = await seen(seen(joined, p, "stat_snapshots"), p, "playthroughs")
+    .select(["stat_snapshots.id", "stat_snapshots.taken_on", "stat_snapshots.stats", "stat_snapshots.playthrough_id", "playthroughs.game_id"])
+    .where("stat_snapshots.id", "=", c.id)
+    .executeTakeFirst();
+  if (!row) throw new NotFoundError(`No stat snapshot with id ${c.id}`);
+  const url = playthroughPath(row.playthrough_id);
+  if (c.remove) {
+    await seen(trx.deleteFrom("stat_snapshots"), p, "stat_snapshots").where("id", "=", c.id).execute();
+    return done(c, row.taken_on, row.playthrough_id, url);
+  }
+  let stats: string | undefined;
+  if (c.values) {
+    // A correction fixes numbers; a stat the game doesn't have yet comes in with record, which also names it.
+    const known = (await statNames(p, row.game_id, trx)).map((n) => n.key);
+    const unknown = Object.keys(c.values).filter((k) => !known.includes(k));
+    if (unknown.length) throw new InvalidInputError(`values: ${unknown.join(", ")} aren't stats of this game (it has ${known.join(", ") || "none yet"})`);
+    stats = JSON.stringify({ ...(JSON.parse(row.stats) as Record<string, number>), ...c.values });
+  }
+  await seen(trx.updateTable("stat_snapshots"), p, "stat_snapshots")
+    .set(given({ level: c.level, stats, taken_on: c.playedOn }))
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, c.playedOn ?? row.taken_on, row.playthrough_id, url);
+}
+
+async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("items"), p, "items", "full").select(["id", "name", "playthrough_id"]).where("id", "=", c.id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No item with id ${c.id}`);
+  if (c.remove) {
+    await seen(trx.deleteFrom("items"), p, "items", "full").where("id", "=", c.id).execute();
+    return done(c, row.name, row.playthrough_id, playthroughPath(row.playthrough_id));
+  }
+  const name = text("name", c.name);
+  if (name) {
+    const clash = await seen(trx.selectFrom("items"), p, "items", "full")
+      .select("id")
+      .where("playthrough_id", "=", row.playthrough_id)
+      .where("norm", "=", norm(name))
+      .where("id", "!=", c.id)
+      .executeTakeFirst();
+    if (clash)
+      throw new AmbiguousError(`This playthrough already has an item called ${name} (id ${clash.id}). If they are one item, ask the player, then remove one`);
+  }
+  const spoiler = oneOf<SpoilerLevel>("spoiler", c.spoiler, SPOILER_LEVELS);
+  await seen(trx.updateTable("items"), p, "items", "full")
+    .set({
+      ...given({
+        name,
+        norm: name && norm(name),
+        local_name: nullable(c.localName),
+        kind: nullable(c.kind),
+        location: nullable(c.location),
+        verdict: nullable(c.verdict),
+        equipped: c.equipped === undefined ? undefined : c.equipped ? 1 : 0,
+        spoiler,
+      }),
+      updated_at: now(),
+    })
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, name ?? row.name, row.playthrough_id, itemPath(row.playthrough_id, c.id));
+}

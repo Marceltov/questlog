@@ -20,6 +20,8 @@ export type QuestView = {
   nextStep: string | null;
   /** Oldest first. */
   entries: QuestEntryView[];
+  /** When it last changed, in milliseconds since the epoch. */
+  updatedAt: number;
   url: string;
 };
 
@@ -79,6 +81,7 @@ export async function questsOf(
       spoiler: x.spoiler as SpoilerLevel,
       nextStep: mine.findLast((e) => e.kind === "next")?.text ?? null,
       entries: mine,
+      updatedAt: x.updated_at,
       url: questPath(playthroughId, x.id),
     };
   });
