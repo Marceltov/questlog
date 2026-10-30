@@ -33,105 +33,107 @@ export default async function PlaythroughPage({ params, searchParams }: PageProp
         </p>
       </div>
 
-      {b.lastSession && (
-        <section>
-          <h2 className="section-title">{copy.lastSession}</h2>
-          <Link href={b.lastSession.url} className="card block hover:border-accent">
-            <span className="text-sm text-muted">{b.lastSession.playedOn}</span>
-            <p>{b.lastSession.summary}</p>
-          </Link>
-        </section>
-      )}
-
-      <section>
-        <div className="mb-2 flex items-baseline justify-between">
-          <h2 className="section-title mb-0">{copy.openQuests}</h2>
-          <Link href={reveal === "hint" ? `/p/${id}` : `/p/${id}?hints=1`} className="pill text-sm text-accent">
-            {reveal === "hint" ? copy.hideHints : copy.showHints}
-          </Link>
-        </div>
-        {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
-        {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
-      </section>
-
-      <section>
-        <h2 className="section-title">{copy.build}</h2>
-        <div className="card space-y-2">
-          {build.plan?.mainStat && <p className="font-semibold">{copy.mainStat(build.plan.mainStat)}</p>}
-          {build.plan?.summary && <p className="text-muted">{build.plan.summary}</p>}
-          {current ? (
-            <>
-              <p className="text-sm text-muted">
-                {current.takenOn}
-                {current.level !== null ? ` · ${copy.level(current.level)}` : ""}
-              </p>
-              <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                {current.stats.map((s) => (
-                  <div key={s.key} className="flex justify-between gap-2">
-                    <dt>
-                      {s.name}
-                      {s.localName && <span className="text-sm text-muted"> · {s.localName}</span>}
-                    </dt>
-                    <dd className="font-semibold tabular-nums">
-                      {s.value}
-                      {s.change ? <span className="text-accent"> {s.change > 0 ? `+${s.change}` : s.change}</span> : null}
-                      {build.plan?.targets[s.key] !== undefined && <span className="text-muted"> / {build.plan.targets[s.key]}</span>}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </>
-          ) : (
-            <p className="text-muted">{copy.noBuild}</p>
+      {/* One column on a phone; on a wide screen what is open on the left, the build, items and sessions on the right. */}
+      <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8 lg:space-y-0">
+        <div className="space-y-8">
+          {b.lastSession && (
+            <section>
+              <h2 className="section-title">{copy.lastSession}</h2>
+              <Link href={b.lastSession.url} className="card block hover:border-accent">
+                <span className="text-sm text-muted">{b.lastSession.playedOn}</span>
+                <p>{b.lastSession.summary}</p>
+              </Link>
+            </section>
+          )}
+          <section>
+            <div className="mb-2 flex items-baseline justify-between">
+              <h2 className="section-title mb-0">{copy.openQuests}</h2>
+              <Link href={reveal === "hint" ? `/p/${id}` : `/p/${id}?hints=1`} className="pill text-sm text-accent">
+                {reveal === "hint" ? copy.hideHints : copy.showHints}
+              </Link>
+            </div>
+            {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
+            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
+          </section>
+          {closed.length > 0 && (
+            <section>
+              <h2 className="section-title">{copy.closedQuests}</h2>
+              <Quests quests={closed} />
+            </section>
           )}
         </div>
-      </section>
-
-      <section>
-        <h2 className="section-title">{copy.items}</h2>
-        {items.length === 0 ? (
-          <p className="card text-muted">{copy.noItems}</p>
-        ) : (
-          <ul className="space-y-2">
-            {items.map((i) => (
-              <li key={i.id} id={`item-${i.id}`} className="card">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-semibold">
-                    {i.name}
-                    {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
-                  </span>
-                  {i.equipped && <span className="text-xs font-bold text-accent uppercase">{copy.equipped}</span>}
-                </div>
-                {(i.kind || i.location) && <p className="text-sm text-muted">{[i.kind, i.location].filter(Boolean).join(" · ")}</p>}
-                {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {closed.length > 0 && (
-        <section>
-          <h2 className="section-title">{copy.closedQuests}</h2>
-          <Quests quests={closed} />
-        </section>
-      )}
-
-      {sessions.length > 0 && (
-        <section>
-          <h2 className="section-title">{copy.sessions}</h2>
-          <ul className="card divide-y divide-rule py-1">
-            {sessions.map((s) => (
-              <li key={s.id}>
-                <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
-                  <span className="shrink-0 text-sm text-muted tabular-nums">{s.playedOn}</span>
-                  <span>{s.summary}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+        <div className="space-y-8">
+          <section>
+            <h2 className="section-title">{copy.build}</h2>
+            <div className="card space-y-2">
+              {build.plan?.mainStat && <p className="font-semibold">{copy.mainStat(build.plan.mainStat)}</p>}
+              {build.plan?.summary && <p className="text-muted">{build.plan.summary}</p>}
+              {current ? (
+                <>
+                  <p className="text-sm text-muted">
+                    {current.takenOn}
+                    {current.level !== null ? ` · ${copy.level(current.level)}` : ""}
+                  </p>
+                  <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-1">
+                    {current.stats.map((s) => (
+                      <div key={s.key} className="flex justify-between gap-2">
+                        <dt>
+                          {s.name}
+                          {s.localName && <span className="text-sm text-muted"> · {s.localName}</span>}
+                        </dt>
+                        <dd className="font-semibold tabular-nums">
+                          {s.value}
+                          {s.change ? <span className="text-accent"> {s.change > 0 ? `+${s.change}` : s.change}</span> : null}
+                          {build.plan?.targets[s.key] !== undefined && <span className="text-muted"> / {build.plan.targets[s.key]}</span>}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              ) : (
+                <p className="text-muted">{copy.noBuild}</p>
+              )}
+            </div>
+          </section>
+          <section>
+            <h2 className="section-title">{copy.items}</h2>
+            {items.length === 0 ? (
+              <p className="card text-muted">{copy.noItems}</p>
+            ) : (
+              <ul className="space-y-2">
+                {items.map((i) => (
+                  <li key={i.id} id={`item-${i.id}`} className="card">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-semibold">
+                        {i.name}
+                        {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
+                      </span>
+                      {i.equipped && <span className="text-xs font-bold text-accent uppercase">{copy.equipped}</span>}
+                    </div>
+                    {(i.kind || i.location) && <p className="text-sm text-muted">{[i.kind, i.location].filter(Boolean).join(" · ")}</p>}
+                    {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          {sessions.length > 0 && (
+            <section>
+              <h2 className="section-title">{copy.sessions}</h2>
+              <ul className="card divide-y divide-rule py-1">
+                {sessions.map((s) => (
+                  <li key={s.id}>
+                    <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
+                      <span className="shrink-0 text-sm text-muted tabular-nums">{s.playedOn}</span>
+                      <span>{s.summary}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

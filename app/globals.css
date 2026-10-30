@@ -57,6 +57,13 @@ body {
   color: var(--ink);
 }
 
+/* A wide screen is read from further away: everything a touch larger (it is all in rem). */
+@media (min-width: 64rem) {
+  html {
+    font-size: 106.25%;
+  }
+}
+
 /* The backdrop: an open almanac, by daylight or by candlelight (public/backdrop-*.svg, from scripts/backdrop.py), fixed behind a translucent
    column, with a vignette that keeps the edges quiet. A pseudo-element, not background-attachment: fixed, which phones ignore. */
 body::before {
