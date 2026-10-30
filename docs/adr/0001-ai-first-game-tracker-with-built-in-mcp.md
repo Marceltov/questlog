@@ -64,10 +64,9 @@ Chosen option: "Build our own, AI-first, modelled on freundebuch", because it ke
 * Good, because "what is open?" and "how did my stats grow?" become queries, not readings of a page.
 * Good, because spoiler safety is enforced by the server, not remembered by the assistant.
 * Good, because freundebuch's code and conventions give a working start.
-* Bad, because it is a second app to maintain next to freundebuch; shared plumbing (sign-in, OAuth, MCP) is copied, not shared, until it is worth extracting.
+* Bad, because it is a second app to maintain next to freundebuch. Sign-in and OAuth come from a shared library ([ADR 0003](0003-sign-in-through-a-typescript-mcp-login-oauth.md)); the rest of the plumbing is copied.
 * Bad, because what Claude finds on the web about items and quests may be wrong; questlog keeps the sources so the player can check.
 
 ### Open questions
 
-* Copy freundebuch's plumbing, or first extract it into a template both apps use?
 * Import the existing Trilium pages (quest log, build) as the first playthrough?
