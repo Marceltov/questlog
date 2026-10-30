@@ -139,6 +139,62 @@ body::before {
   }
 }
 
+/* The book (components/Pages.tsx): the pages side by side, one screen wide each, snapped into place by the browser, each scrolling up and
+   down on its own. The contain stops a swipe past the last page from turning into the browser's back gesture where it can; iOS Safari's
+   swipe from the very edge stays the browser's, which is why the pages keep their side gutter. */
+.pages {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pages::-webkit-scrollbar {
+  display: none;
+}
+.page {
+  flex: 0 0 100%;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  @apply px-4 pt-6 pb-20 lg:px-14;
+}
+/* The ribbon marks: one per page, like the ribbons of an almanac, the one in hand longer and in the accent. */
+.ribbons {
+  @apply glass absolute bottom-3 left-1/2 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-start gap-1.5 overflow-hidden rounded-full px-3 py-1.5;
+}
+.ribbon {
+  @apply h-3 w-2 shrink-0 rounded-b-sm bg-rule transition-[height,background-color] duration-200;
+}
+.ribbon[aria-current="page"] {
+  @apply h-5 bg-accent;
+}
+/* The arrows at the sides, for a mouse; a phone swipes. */
+.page-arrow {
+  @apply glass absolute top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-rule text-2xl leading-none text-ink hover:border-accent disabled:opacity-0;
+}
+@media (pointer: fine) {
+  .page-arrow {
+    display: flex;
+  }
+}
+/* A line of the contents: the playthrough, a dotted leader, its page number. */
+.contents-line {
+  @apply flex items-baseline gap-2 py-1;
+}
+.contents-leader {
+  @apply min-w-4 flex-1 border-b border-dotted border-muted opacity-50;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ribbon {
+    transition: none;
+  }
+}
+
 /* The sign-in page: a closed almanac on a desk (components/ClosedBook.tsx). The desk covers the open almanac of the backdrop until the
    player is in; then the cover swings open on its spine, showing its marbled inside and the title page, the desk fades, and the open
    almanac is what is left. Timings: keep OPENING_MS in ClosedBook.tsx in step. */
