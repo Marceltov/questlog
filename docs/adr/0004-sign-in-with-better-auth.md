@@ -46,6 +46,7 @@ Chosen: **Better Auth in the Next.js app, with its tables in `DATA_DIR/auth.sqli
 * **Pages:** Better Auth's `HttpOnly` session cookie; the browser holds no token.
 * **MCP (`/mcp`):** `@better-auth/mcp` with `@better-auth/cimd`; tokens are bound to `/mcp`. Dynamic client registration is on, because claude.ai registers that way.
 * **REST (`/api/v1`) for scripts:** a script signs in once through OAuth with PKCE, like an MCP client, and keeps its refresh token; its tokens are bound to `/api/v1`. A token for one surface fails on the other, as in freundebuch.
+* **Headless scripts** use API keys (`api-key` plugin, stored hashed), sent as `x-api-key` to `/api/v1`. The plugin is added when the first such script exists; questlog's first version has none.
 * **A Python backend later** checks JWTs from the `jwt` plugin against `/api/auth/jwks`, with a lifetime of 10 minutes; the pages reach it through a Next.js route that adds the token.
 
 ### Settings that differ from Better Auth's defaults
