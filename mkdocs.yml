@@ -1,0 +1,89 @@
+site_name: questlog
+site_description: A spoiler-free quest log, build tracker and item list for the games you play. You tell Claude while you play; questlog remembers, and never shows what you haven't found.
+site_url: https://questlog.marceltov.de/
+repo_url: https://github.com/Marceltov/questlog
+repo_name: Marceltov/questlog
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Marcel Bruckner. Licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>
+
+hooks:
+  - docs_hooks/roadmap.py
+
+nav:
+  - Home: index.md
+  - What questlog stands for: values.md
+  - Where questlog is going: roadmap.md
+  - Self-hosting:
+      - Configuration: self-hosting/configuration.md
+      - Connect Claude: self-hosting/connect-claude.md
+  - Reference:
+      - MCP tools: reference/mcp-tools.md
+  - Internals:
+      - How it works: internals/how-it-works.md
+      - Development: internals/development.md
+  - Decisions:
+      - AI-first game tracker with a built-in MCP: adr/0001-ai-first-game-tracker-with-built-in-mcp.md
+      - On-demand lookups, no crawling: adr/0002-on-demand-lookups-not-crawling.md
+      - Sign-in through a TypeScript mcp-login-oauth (superseded): adr/0003-sign-in-through-a-typescript-mcp-login-oauth.md
+      - Sign-in with Better Auth: adr/0004-sign-in-with-better-auth.md
+      - Spoiler levels and one gate: adr/0005-spoiler-levels-and-one-gate.md
+      - How Better Auth is wired: adr/0006-better-auth-wiring.md
+
+theme:
+  name: material
+  logo: assets/icon.svg
+  favicon: assets/icon.svg
+  font:
+    text: Atkinson Hyperlegible Next
+    code: Atkinson Hyperlegible Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.instant
+    - navigation.footer
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+extra_javascript:
+  # Pinned: Material otherwise loads the newest Mermaid 11, whose markup its styles don't all match (javascripts/mermaid.js).
+  - https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js
+  - javascripts/mermaid.js
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
