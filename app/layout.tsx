@@ -6,6 +6,8 @@ import { copy } from "@/components/copy";
 export const metadata: Metadata = {
   title: { default: copy.appName, template: `%s · ${copy.appName}` },
   description: copy.tagline,
+  // On an iPhone's home screen it opens without Safari's bars, under its own name (the manifest says the same for everyone else).
+  appleWebApp: { capable: true, title: copy.appName, statusBarStyle: "default" },
 };
 
 // Phone first: the web app is for looking things up next to the screen.

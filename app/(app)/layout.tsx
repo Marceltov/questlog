@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Follow } from "@/components/Follow";
 import { SignOutButton } from "@/components/SignOutButton";
 import { copy } from "@/components/copy";
 import { pagePlayer } from "./viewer";
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </Link>
         <SignOutButton />
       </header>
-      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+      <Follow>{children}</Follow>
     </div>
   );
 }

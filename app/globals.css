@@ -194,6 +194,38 @@ body::before {
     transition: none;
   }
 }
+/* Pull to fetch (components/Follow.tsx): the icon's bookmark ribbon comes down from under the header, in ink, ember once letting go
+   fetches. It follows the finger without easing; let go, it slides back up, and while the pull's fetch runs it hangs and sways. */
+.ribbon-pull {
+  @apply pointer-events-none absolute top-0 right-6 z-10 w-3.5 lg:right-10;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 0.4375rem), 0 100%);
+  transform-origin: top center;
+}
+.ribbon-pull-settle {
+  transition:
+    height 220ms ease-out,
+    background-color 150ms;
+}
+.ribbon-pull-wait {
+  animation: ribbon-sway 1.4s ease-in-out infinite;
+}
+@keyframes ribbon-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ribbon-pull-settle {
+    transition: none;
+  }
+  .ribbon-pull-wait {
+    animation: none;
+  }
+}
 
 /* The sign-in page: a closed almanac on a desk (components/ClosedBook.tsx). The desk covers the open almanac of the backdrop until the
    player is in; then the cover swings open on its spine, showing its marbled inside and the title page, the desk fades, and the open

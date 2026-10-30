@@ -20,6 +20,7 @@ export const copy = {
   signInFailed: "That didn't work. Check the code, or ask for a new one.",
   sendFailed: "No code could be sent. Try again in a minute.",
   signOut: "Sign out",
+  updating: "Updating",
 
   // Consent
   consentTitle: "Connect questlog",
