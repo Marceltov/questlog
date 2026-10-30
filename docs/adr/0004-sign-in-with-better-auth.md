@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-10-30
 decision-makers: Marcel Bruckner
 ---
@@ -37,20 +37,21 @@ Chosen: **Better Auth in the Next.js app, with its tables in `DATA_DIR/auth.sqli
 ### Sign-in methods
 
 * **OIDC providers**, authentik first: built-in providers (Google, Apple) and `genericOAuth` for the rest. questlog reads `QUESTLOG_OIDC_<NAME>_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` and `_LABEL` and passes the list in.
-* **Magic link and email code**, sent through `QUESTLOG_SMTP_URL` and `QUESTLOG_SMTP_FROM`. During an MCP or device sign-in the mail holds only the code, so that a sign-in someone else started can't be finished by clicking the mail (mcp-login-oauth ADR 0004).
+* **Magic link and email code**, sent through `QUESTLOG_SMTP_URL` and `QUESTLOG_SMTP_FROM`. During an MCP or script sign-in the mail holds only the code, so that a sign-in someone else started can't be finished by clicking the mail (mcp-login-oauth ADR 0004).
 * **Passkeys** (`@better-auth/passkey`), added in the settings while signed in.
-* The sign-in, consent and device pages are questlog's own React pages.
+* The sign-in and consent pages are questlog's own React pages.
 
 ### Surfaces
 
 * **Pages:** Better Auth's `HttpOnly` session cookie; the browser holds no token.
 * **MCP (`/mcp`):** `@better-auth/mcp` with `@better-auth/cimd`; tokens are bound to `/mcp`. Dynamic client registration is on, because claude.ai registers that way.
-* **REST (`/api/v1`) for scripts:** a token from the device flow (`device-authorization`), bound to `/api/v1`. A token for one surface fails on the other, as in freundebuch.
+* **REST (`/api/v1`) for scripts:** a script signs in once through OAuth with PKCE, like an MCP client, and keeps its refresh token; its tokens are bound to `/api/v1`. A token for one surface fails on the other, as in freundebuch.
 * **A Python backend later** checks JWTs from the `jwt` plugin against `/api/auth/jwks`, with a lifetime of 10 minutes; the pages reach it through a Next.js route that adds the token.
 
 ### Settings that differ from Better Auth's defaults
 
 * `storeToken: "hashed"` for magic links and `storeOTP: "hashed"` for email codes, so `auth.sqlite` holds no usable link or code.
+* No `bearer` and no `device-authorization` plugin. Better Auth keeps session tokens in plain text; without the `bearer` plugin, a token copied from `auth.sqlite` is useless, because the session cookie must carry a signature made with the secret.
 * Telemetry stays off; nothing sets `telemetry.enabled` or `BETTER_AUTH_TELEMETRY`.
 * The secret is `QUESTLOG_SECRET`, passed in as Better Auth's `secret`; Better Auth reads no other environment.
 
@@ -59,5 +60,5 @@ Chosen: **Better Auth in the Next.js app, with its tables in `DATA_DIR/auth.sqli
 * Good, because questlog gets magic links, passkeys and any OIDC provider without sign-in code of its own, and a Python backend can join later without moving users.
 * Good, because a backup or export of `questlog.sqlite` holds no sessions, tokens or passkeys.
 * Bad, because there is no foreign key from the log to the user: deleting a user relies on the hook.
-* Bad, because questlog builds its sign-in, consent and device pages itself.
+* Bad, because questlog builds its sign-in and consent pages itself.
 * Bad, because questlog follows Better Auth's upgrades.
