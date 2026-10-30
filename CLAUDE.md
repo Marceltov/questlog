@@ -6,7 +6,7 @@ questlog: a spoiler-free quest log, build tracker and item list for the games yo
 
 ## Status
 
-Design phase: there is no code yet. The design is in `docs/adr/` (0001 the app, 0002 lookups, 0003 sign-in). Sign-in comes from the TypeScript package in `Marceltov/mcp-login-oauth`, which is built first.
+Design phase: there is no code yet. The design is in `docs/adr/` (0001 the app, 0002 lookups, 0004 sign-in, which supersedes 0003). Sign-in comes from Better Auth, set up as ADR 0004 says.
 
 ## Rules
 

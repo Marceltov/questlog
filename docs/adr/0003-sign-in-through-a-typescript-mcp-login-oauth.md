@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by [ADR 0004](0004-sign-in-with-better-auth.md)
 date: 2026-10-30
 decision-makers: Marcel Bruckner
 ---
