@@ -40,9 +40,9 @@ You talk, Claude files. Everything works over MCP first, and every tool result t
 
 ### V6. Your state, not the internet's
 
-questlog keeps what is true for *your* playthrough: what you found, did and decided. Knowledge about the game (wikis, guides, builds) stays where it is; Claude looks it up and questlog keeps only its verdict for you, with the sources it used.
+questlog keeps what is true for *your* playthrough: what you found, did and decided. Knowledge about the game (wikis, guides, builds) stays where it is. questlog may look up a page about something you have found, when you or Claude ask, and keeps the facts it needs (an item's scaling, say) with a link to the page; it never mirrors a source.
 
-**Rules out:** shipping a game database, scraping wikis into questlog, presenting a guide's claim as your progress.
+**Rules out:** shipping a game database, crawling or mirroring a wiki, keeping a source's text instead of the facts and a link, looking up what you haven't found yet, presenting a guide's claim as your progress.
 
 ### V7. Self-hosting has everything
 

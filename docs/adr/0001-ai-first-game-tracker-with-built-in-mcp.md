@@ -56,6 +56,7 @@ Chosen option: "Build our own, AI-first, modelled on freundebuch", because it ke
 * `open_threads`: quests that are started and waiting on the player.
 * `item`: look up an item the player has, or compare a new one with the build.
 * `missed`: what the player may have missed; only with an explicit spoiler opt-in.
+* `lookup`: fetch facts about an item or quest the player has from a source such as a wiki ([ADR 0002](0002-on-demand-lookups-not-crawling.md)).
 * `correct`: fix or remove anything filed.
 
 ### Consequences
