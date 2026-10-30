@@ -11,19 +11,6 @@
 
 items:
   # ---- open ------------------------------------------------------------------------------------------------------------
-  - id: first-version
-    status: now
-    when: Now
-    icon: book-open-page-variant
-    title: The first version
-    summary: Sign-in, one log per player, the spoiler gate, and the tools record, briefing and open_threads.
-    links:
-      - { label: "#3", url: "https://github.com/Marceltov/questlog/issues/3" }
-      - { label: "V1", url: "https://questlog.marceltov.de/values/#v1-no-spoilers-you-didnt-ask-for" }
-      - { label: "V2", url: "https://questlog.marceltov.de/values/#v2-your-log-is-yours-alone" }
-    details: |
-      Next.js and SQLite as in freundebuch; sign-in with Better Auth in its own `auth.sqlite` (ADR 0004, ADR 0006); one gate for every read (ADR 0005); the web app to look things up on the phone; this site.
-
   - id: more-tools
     status: next
     when: Next
@@ -85,6 +72,17 @@ items:
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: first-version
+    status: done
+    date: 2026-10-30
+    icon: book-open-page-variant
+    title: The first version
+    summary: Sign-in, one log per player, the spoiler gate, the tools record, briefing and open_threads, and the image deployed with Docker Compose.
+    links:
+      - { label: "#9", url: "https://github.com/Marceltov/questlog/pull/9" }
+      - { label: "V1", url: "https://questlog.marceltov.de/values/#v1-no-spoilers-you-didnt-ask-for" }
+      - { label: "V2", url: "https://questlog.marceltov.de/values/#v2-your-log-is-yours-alone" }
+
   - id: design
     status: done
     date: 2026-10-30
