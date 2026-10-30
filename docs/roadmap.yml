@@ -49,7 +49,7 @@ items:
     title: Goals and the character
     summary: Long-term goals apart from what happened, in order, reached on their own when the stats get there, suggestions kept apart until agreed; the character is the playthrough's and can go along to NG+.
     links:
-      - { label: "PR", url: "https://github.com/Marceltov/questlog/pulls" }
+      - { label: "#26", url: "https://github.com/Marceltov/questlog/pull/26" }
       - { label: "ADR 0009", url: "https://questlog.marceltov.de/adr/0009-goals-and-the-character/" }
 
   - id: trilium-import
