@@ -28,6 +28,6 @@ questlog: a spoiler-free quest log, build tracker and item list for the games yo
 - No spoilers: every read goes through `seen()`; nothing the player hasn't found is shown unless they asked for it. A briefing never asks.
 - Code, identifiers, API, tool names/descriptions, logs, docs and the UI are English. Every UI string is in `components/copy.ts`; the sign-in mail's in `backend/auth/copy.ts`.
 - `backend/` is framework-free and the frontend imports it only through `backend/index.ts` (enforced by eslint).
-- Env vars are `QUESTLOG_*`, except `PUBLIC_URL`, `DATA_DIR`, `PORT`, `TZ`. Keep `backend/config.ts`, `.env.example`, `compose.yaml` and `docs/self-hosting/configuration.md` in step.
+- Env vars are `QUESTLOG_*`, except `PUBLIC_URL`, `DATA_DIR`, `PORT`, `TZ`. Keep `backend/config.ts`, `.env.example` and `docs/self-hosting/configuration.md` in step; `compose.yaml` reads `.env` whole (`env_file`), so a new setting doesn't touch it.
 - Architectural decisions go to `docs/adr/NNNN-*.md` (MADR). Never commit superpowers artifacts (`.superpowers/`, specs, plans).
 - `next dev` writes a "nextjs-agent-rules" block into `AGENTS.md`; it is git-ignored, don't commit it.
