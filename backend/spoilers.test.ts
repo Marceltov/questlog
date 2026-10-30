@@ -6,7 +6,7 @@ import { db } from "./db/testing";
 import { itemsOf } from "./items";
 import { questsOf } from "./quests";
 import { seen, shown } from "./spoilers";
-import { FULL, HINT, SPOILER_ITEM, seed, type Seed } from "./testing/fixtures";
+import { FULL, HINT, SPOILER_ITEM, SPOILER_SOURCE, seed, type Seed } from "./testing/fixtures";
 import { toolByName } from "./tools";
 
 let s: Seed;
@@ -102,4 +102,12 @@ test("correct reads back names and days, never the text of an entry it changed",
   const [hinted] = (await questsOf(s.a, s.liesOfP, { reveal: "hint" })).flatMap((q) => q.entries.filter((e) => e.text === HINT));
   const out = JSON.stringify(await toolByName("correct")!.run(s.a, { changes: [{ what: "entry", id: hinted.id, kind: "log" }] }));
   expect(out).not.toContain(HINT);
+});
+
+test("an item's sources stay hidden with the item; the game's sources are shown", async () => {
+  const quiet = JSON.stringify(await toolByName("item")!.run(s.a, { playthroughId: s.liesOfP }));
+  expect(quiet).not.toContain(SPOILER_SOURCE);
+  expect(quiet).toContain("Lies Wiki");
+  expect(JSON.stringify(await toolByName("briefing")!.run(s.a, { playthroughId: s.liesOfP }))).not.toContain(SPOILER_SOURCE);
+  expect(JSON.stringify(await toolByName("item")!.run(s.a, { playthroughId: s.liesOfP, reveal: "full" }))).toContain(SPOILER_SOURCE);
 });

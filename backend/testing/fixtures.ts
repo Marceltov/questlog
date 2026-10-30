@@ -36,6 +36,9 @@ export const B_FIRST = "Met Ranni at the rise, she offered me a deal. Picked up 
 export const HINT = "The workers might be near the Krat central station";
 export const FULL = "Venigni dies if you take too long";
 export const SPOILER_ITEM = "Venigni's Workshop Key";
+/** The site A trusts for Lies of P, and where the facts of A's spoiler item come from (ADR 0008). */
+export const SOURCE = "https://lies.example/wiki";
+export const SPOILER_SOURCE = "https://lies.example/wiki/Workshop_Key";
 
 /** Resets the database and records the fixture. */
 export async function seed(): Promise<Seed> {
@@ -71,6 +74,7 @@ export async function seed(): Promise<Seed> {
       ],
     },
     build: { summary: "Motivity build", mainStat: "motivity", targets: { motivity: 40 } },
+    sources: [{ url: SOURCE, title: "Lies Wiki" }],
   });
   const liesOfP = first.playthrough.id;
   const [venigni, antonia, polendina] = first.quests.map((q) => q.id);
@@ -95,7 +99,13 @@ export async function seed(): Promise<Seed> {
     stats: { level: 7, values: { vitality: 10, motivity: 15 } },
     items: [
       { name: "Puppet Saber", kind: "weapon", equipped: true, verdict: "Fits the motivity build" },
-      { name: SPOILER_ITEM, kind: "key", verdict: "Opens a room you haven't reached", spoiler: "full" },
+      {
+        name: SPOILER_ITEM,
+        kind: "key",
+        verdict: "Opens a room you haven't reached",
+        spoiler: "full",
+        sources: [{ url: SPOILER_SOURCE, facts: "Opens the workshop" }],
+      },
     ],
   });
   const eugenie = second.quests.find((q) => q.name === "Eugenie's Workshop")!.id;

@@ -55,6 +55,7 @@ export const copy = {
   items: "Items",
   noItems: "No items recorded yet.",
   equipped: "Equipped",
+  sources: "Sources",
   closedQuests: "Closed quests",
   sessions: "Sessions",
   questStatus: { open: "Open", blocked: "Blocked", done: "Done", failed: "Failed", dropped: "Dropped" } as Record<string, string>,

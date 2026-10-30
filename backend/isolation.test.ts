@@ -22,7 +22,7 @@ beforeEach(async () => {
 });
 
 // What of A's may never show up in anything B gets.
-const A_WORDS = ["Lies of P", "Venigni", "Antonia", "Polendina", "Eugenie", "Puppet Saber", "motivity", A_FIRST, A_SECOND];
+const A_WORDS = ["Lies Wiki", "lies.example", "Lies of P", "Venigni", "Antonia", "Polendina", "Eugenie", "Puppet Saber", "motivity", A_FIRST, A_SECOND];
 const clean = (x: unknown) => {
   const out = JSON.stringify(x);
   for (const w of A_WORDS) expect(out).not.toContain(w);

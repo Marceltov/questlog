@@ -29,3 +29,10 @@ export type PlaythroughStatus = (typeof PLAYTHROUGH_STATUSES)[number];
 
 /** A stat the game has, as data (values V8): `key` is how snapshots name it, `name` the English name, `localName` the game's own. */
 export type StatName = { key: string; name: string; localName: string | null };
+
+/**
+ * A page outside questlog (ADR 0008): one the player trusts for a game, or one an item's facts come from. questlog never fetches it;
+ * Claude reads it in the conversation and files `facts` (never the page's text) with the link. `on` is the day it was added.
+ */
+export type Source = { url: string; title: string | null; facts: string | null; on: string | null };
+export type SourceInput = { url: string; title?: string; facts?: string };

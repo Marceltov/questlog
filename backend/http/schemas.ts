@@ -12,6 +12,15 @@ export const ErrorJson = z
   .object({ error: z.string().describe("What went wrong, in English"), code: z.enum(ERROR_CODES) })
   .meta({ id: "Error", description: "Every error the API answers with" });
 
+export const SourceJson = z
+  .object({
+    url: z.string(),
+    title: z.string().nullable(),
+    facts: z.string().nullable().describe("What was taken from the page, for an item"),
+    on: Day.nullable().describe("When it was added"),
+  })
+  .meta({ id: "Source", description: "A page outside questlog, which questlog never fetches (ADR 0008)" });
+
 export const PlaythroughJson = z
   .object({
     id: z.string(),
@@ -19,7 +28,12 @@ export const PlaythroughJson = z
     status: z.enum(PLAYTHROUGH_STATUSES),
     language: z.string().nullable().describe("The language the game is played in, when known"),
     lastPlayedOn: Day.nullable(),
-    game: z.object({ id: z.string(), title: z.string(), platform: z.string().nullable() }),
+    game: z.object({
+      id: z.string(),
+      title: z.string(),
+      platform: z.string().nullable(),
+      sources: z.array(SourceJson).describe("The sites the player trusts for this game"),
+    }),
     url: Url,
   })
   .meta({ id: "Playthrough", description: "One run of a game" });
@@ -63,6 +77,7 @@ export const ItemJson = z
     equipped: z.boolean(),
     verdict: z.string().nullable().describe("How it fits the build"),
     spoiler: Spoiler,
+    sources: z.array(SourceJson).describe("Where its facts come from"),
     url: Url,
   })
   .meta({ id: "Item" });
@@ -155,6 +170,7 @@ export const CorrectedJson = z
 
 export const COMPONENTS = [
   ErrorJson,
+  SourceJson,
   PlaythroughJson,
   PlaythroughListJson,
   EntryJson,

@@ -6,8 +6,10 @@ import type { Transaction } from "kysely";
 import { db, now } from "./db";
 import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
+import { today } from "./dates";
 import { statNames } from "./games";
 import { norm } from "./names";
+import { mergeSources, parseSources } from "./sources";
 import { seen } from "./spoilers";
 import {
   ENTRY_KINDS,
@@ -20,7 +22,15 @@ import {
   type QuestStatus,
   type SpoilerLevel,
 } from "./types";
+import type { SourceInput } from "./types";
 import { itemPath, playthroughPath, questPath, sessionPath } from "./urls";
+
+// The new list replaces the old one; a link that stays keeps the day it was first added.
+const replaceSources = (before: string, next: SourceInput[] | undefined) => {
+  if (!next) return undefined;
+  const old = parseSources(before);
+  return JSON.stringify(mergeSources([], next, today()).map((s) => ({ ...s, on: old.find((o) => o.url === s.url)?.on ?? s.on })));
+};
 
 /** What a correction can name. */
 export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item"] as const;
@@ -51,17 +61,19 @@ export type Correction = {
   values?: Record<string, number>;
   equipped?: boolean;
   verdict?: string | null;
+  /** A game's or an item's sources, all of them: a link left out is dropped. */
+  sources?: SourceInput[];
 };
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
 const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
-  game: ["title", "platform"],
+  game: ["title", "platform", "sources"],
   playthrough: ["label", "language", "status"],
   session: ["summary", "playedOn"],
   quest: ["name", "localName", "giver", "location", "status"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn"],
-  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler"],
+  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources"],
 };
 
 export type Corrected = {
@@ -145,7 +157,7 @@ const done = (c: Correction, name: string, playthroughId: string | null, url: st
 });
 
 async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
-  const row = await seen(trx.selectFrom("games"), p, "games").select(["id", "title"]).where("id", "=", c.id).executeTakeFirst();
+  const row = await seen(trx.selectFrom("games"), p, "games").select(["id", "title", "sources"]).where("id", "=", c.id).executeTakeFirst();
   if (!row) throw new NotFoundError(`No game with id ${c.id}`);
   if (c.remove) {
     // Its playthroughs go with it, and with them everything filed in them.
@@ -159,7 +171,7 @@ async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
       throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). questlog doesn't merge games: ask the player what they want`);
   }
   await seen(trx.updateTable("games"), p, "games")
-    .set(given({ title, norm: title && norm(title), platform: nullable(c.platform) }))
+    .set(given({ title, norm: title && norm(title), platform: nullable(c.platform), sources: replaceSources(row.sources, c.sources) }))
     .where("id", "=", c.id)
     .execute();
   return done(c, title ?? row.title, null, null);
@@ -318,7 +330,10 @@ async function snapshot(trx: Trx, p: Player, c: Correction): Promise<Corrected> 
 }
 
 async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
-  const row = await seen(trx.selectFrom("items"), p, "items", "full").select(["id", "name", "playthrough_id"]).where("id", "=", c.id).executeTakeFirst();
+  const row = await seen(trx.selectFrom("items"), p, "items", "full")
+    .select(["id", "name", "playthrough_id", "sources"])
+    .where("id", "=", c.id)
+    .executeTakeFirst();
   if (!row) throw new NotFoundError(`No item with id ${c.id}`);
   if (c.remove) {
     await seen(trx.deleteFrom("items"), p, "items", "full").where("id", "=", c.id).execute();
@@ -345,6 +360,7 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         kind: nullable(c.kind),
         location: nullable(c.location),
         verdict: nullable(c.verdict),
+        sources: replaceSources(row.sources, c.sources),
         equipped: c.equipped === undefined ? undefined : c.equipped ? 1 : 0,
         spoiler,
       }),

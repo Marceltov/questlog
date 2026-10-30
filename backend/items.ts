@@ -3,7 +3,8 @@ import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
-import type { Player, SpoilerLevel } from "./types";
+import { parseSources } from "./sources";
+import type { Player, Source, SpoilerLevel } from "./types";
 import { itemPath } from "./urls";
 
 export type ItemView = {
@@ -15,6 +16,8 @@ export type ItemView = {
   equipped: boolean;
   verdict: string | null;
   spoiler: SpoilerLevel;
+  /** Where its facts come from (ADR 0008); shown with the item, so as far as the item is. */
+  sources: Source[];
   url: string;
 };
 
@@ -43,6 +46,7 @@ export async function itemsOf(
       equipped: r.equipped === 1,
       verdict: r.verdict,
       spoiler: r.spoiler as SpoilerLevel,
+      sources: parseSources(r.sources),
       url: itemPath(playthroughId, r.id),
     }));
 }

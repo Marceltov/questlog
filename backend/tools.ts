@@ -65,13 +65,25 @@ function tool<I extends z.ZodObject, O extends z.ZodObject>(t: {
 
 const Url = z.string().describe("Its page in the web app, as an absolute URL: give it to the player when they may want to look");
 
+const SourceJson = z.object({
+  url: z.string(),
+  title: z.string().nullable(),
+  facts: z.string().nullable().describe("What was taken from the page, for an item"),
+  on: Day.nullable().describe("When it was added"),
+});
+
 const PlaythroughJson = z.object({
   id: z.string(),
   label: z.string().describe("NG, NG+, or what the player calls this run"),
   status: z.enum(PLAYTHROUGH_STATUSES),
   language: z.string().nullable().describe("The language the game is played in, when known"),
   lastPlayedOn: Day.nullable(),
-  game: z.object({ id: z.string(), title: z.string(), platform: z.string().nullable() }),
+  game: z.object({
+    id: z.string(),
+    title: z.string(),
+    platform: z.string().nullable(),
+    sources: z.array(SourceJson).describe("The sites the player trusts for this game: where you look things up when they ask"),
+  }),
   url: Url,
 });
 
@@ -108,6 +120,7 @@ const ItemJson = z.object({
   localName: z.string().nullable(),
   kind: z.string().nullable(),
   verdict: z.string().nullable(),
+  sources: z.array(SourceJson).describe("Where its facts come from"),
   url: Url,
 });
 
@@ -159,6 +172,8 @@ function recordNext(r: Recorded): Next {
     );
   for (const q of r.quests.filter((x) => x.status === "done" && x.statusBefore !== "done"))
     next.push(`${q.name} is now done: say so, and if the player only advanced it, set it back to open with record.`);
+  if (r.sources)
+    next.push(`${t.game.title} has ${r.sources === 1 ? "a source" : `${r.sources} sources`} the player trusts now: look things up there when they ask.`);
   if (r.stats?.newNames.length)
     next.push(
       `New stat keys for ${t.game.title}: ${r.stats.newNames.map((n) => n.key).join(", ")}. Use these keys in every later snapshot; check that they match the game's stat screen.`,
@@ -237,6 +252,15 @@ const ItemLookupJson = z.object({
   equipped: z.array(ItemDetailJson).describe("What the player has equipped now, to compare with"),
 });
 
+// Where Claude looks things up (ADR 0008): questlog never fetches a page; it says where the player wants Claude to look, and keeps what
+// Claude found with its link.
+function lookupNext(t: PlaythroughView): string {
+  const where = t.game.sources.map((x) => (x.title ? `${x.title} (${x.url})` : x.url)).join(", ");
+  return where
+    ? `If the player wants to know more than questlog holds, look it up yourself with your web tools, on their sources for ${t.game.title}: ${where}. Only about what they have found. File the facts in your own words, never the page's text, with the link: correct (item, sources) or record (items with sources). If a source refuses you, say so and suggest another.`
+    : `questlog has no sources for ${t.game.title} yet. If the player wants to know more than questlog holds, suggest a site you know for this game, look it up there with your web tools, and ask whether to keep it as a source (record or correct with game sources). Only about what they have found; file the facts in your own words with the link.`;
+}
+
 function itemNext(t: PlaythroughView | null, name: string | undefined, items: ItemView[], reveal: string): Next {
   if (!t) return ["The player has no such playthrough yet. Ask what they are playing."];
   const next: Next = [];
@@ -247,6 +271,7 @@ function itemNext(t: PlaythroughView | null, name: string | undefined, items: It
   else
     next.push(
       "Compare with the build using these numbers, the verdicts and what the player tells you or a screenshot shows. Where your verdict draws on knowledge of the game, say so and where it comes from. A new or changed verdict goes in with correct (item, by id).",
+      lookupNext(t),
     );
   if (reveal !== "none" && items.some((i) => i.spoiler !== "none"))
     next.push("Some items here are marked as spoilers: the player asked for them; warn once before naming one.");
