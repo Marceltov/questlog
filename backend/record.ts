@@ -7,7 +7,8 @@ import { playthroughForRecord, statNames, type ResolvedPlaythrough } from "./gam
 import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
-import type { EntryKind, Player, QuestStatus, SpoilerLevel, StatName } from "./types";
+import { mergeSources, parseSources } from "./sources";
+import type { EntryKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
 
 export type QuestInput = {
@@ -29,6 +30,8 @@ export type ItemInput = {
   equipped?: boolean;
   verdict?: string;
   spoiler?: SpoilerLevel;
+  /** Pages its facts come from; merged into those it has, by link. */
+  sources?: SourceInput[];
 };
 
 export type RecordInput = {
@@ -44,6 +47,8 @@ export type RecordInput = {
   stats?: { level?: number; values: Record<string, number>; names?: { key: string; name?: string; localName?: string }[] };
   build?: { summary?: string; mainStat?: string; targets?: Record<string, number> };
   items?: ItemInput[];
+  /** Pages the player trusts for this game; merged into the game's, by link. */
+  sources?: SourceInput[];
 };
 
 export type FiledQuest = {
@@ -66,6 +71,8 @@ export type Recorded = {
   items: FiledItem[];
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
+  /** How many of the game's sources this call added or refreshed. */
+  sources: number;
 };
 
 const clean = (s: string | undefined) => s?.trim() || null;
@@ -85,6 +92,14 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       .execute();
     if (!t.lastPlayedOn || t.lastPlayedOn < playedOn)
       await seen(trx.updateTable("playthroughs"), p, "playthroughs").set({ last_played_on: playedOn }).where("id", "=", t.id).execute();
+
+    if (input.sources?.length) {
+      const game = await seen(trx.selectFrom("games"), p, "games").select("sources").where("id", "=", t.game.id).executeTakeFirstOrThrow();
+      await seen(trx.updateTable("games"), p, "games")
+        .set({ sources: JSON.stringify(mergeSources(parseSources(game.sources), input.sources, playedOn)) })
+        .where("id", "=", t.game.id)
+        .execute();
+    }
 
     // The same name twice in one call is one quest (or item): the second mention adds to the first.
     const quests: FiledQuest[] = [];
@@ -215,7 +230,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
     for (const i of input.items ?? []) {
       const name = i.name.trim();
       const existing = await seen(trx.selectFrom("items"), p, "items", "full")
-        .select(["id", "name", "equipped", "spoiler"])
+        .select(["id", "name", "equipped", "spoiler", "sources"])
         .where("playthrough_id", "=", t.id)
         .where((eb) => (i.id ? eb("id", "=", i.id) : eb("norm", "=", norm(name))))
         .executeTakeFirst();
@@ -233,6 +248,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             ...(i.kind ? { kind: i.kind.trim() } : {}),
             ...(i.location ? { location: i.location.trim() } : {}),
             ...(i.verdict ? { verdict: i.verdict.trim() } : {}),
+            ...(i.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(existing.sources), i.sources, playedOn)) } : {}),
           })
           .where("id", "=", id)
           .execute();
@@ -253,6 +269,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             equipped: equipped ? 1 : 0,
             verdict: clean(i.verdict),
             spoiler,
+            sources: JSON.stringify(mergeSources([], i.sources ?? [], playedOn)),
             created_at: at,
             updated_at: at,
           })
@@ -261,6 +278,6 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 
-    return { sessionId, url: sessionPath(sessionId), playedOn, playthrough: t, quests, items, stats, build };
+    return { sessionId, url: sessionPath(sessionId), playedOn, playthrough: t, quests, items, stats, build, sources: input.sources?.length ?? 0 };
   });
 }

@@ -123,6 +123,20 @@ const migrations: Record<string, Migration> = {
       await db.schema.createIndex("items_by_name").unique().on("items").columns(["playthrough_id", "norm"]).execute();
     },
   },
+  // Sources (ADR 0008): the pages the player trusts for a game, and the pages an item's facts come from, each a JSON list of
+  // { url, title, facts, on }. questlog never fetches them; Claude reads them in the conversation.
+  "002_sources": {
+    async up(db: Kysely<any>) {
+      await db.schema
+        .alterTable("games")
+        .addColumn("sources", "text", (c) => c.notNull().defaultTo("[]"))
+        .execute();
+      await db.schema
+        .alterTable("items")
+        .addColumn("sources", "text", (c) => c.notNull().defaultTo("[]"))
+        .execute();
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

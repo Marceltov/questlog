@@ -8,6 +8,19 @@ import { ENTRY_KINDS, PLAYTHROUGH_STATUSES, QUEST_STATUSES, SPOILER_LEVELS } fro
 export const Spoiler = z.enum(SPOILER_LEVELS);
 export const Day = z.string().regex(DAY, "a day as YYYY-MM-DD");
 
+export const SourceInput = z.object({
+  url: z
+    .string()
+    .regex(/^https?:\/\/\S+$/, "an http or https URL")
+    .describe("The page"),
+  title: z.string().optional().describe("What it is: the site's name, or the page's title"),
+  facts: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe("For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text"),
+});
+
 export const EntryInput = z.object({
   kind: z.enum(ENTRY_KINDS).describe("log: what the player did or found out; next: the next step, in vague words; decision: a choice the player made"),
   text: z.string().min(1),
@@ -88,10 +101,15 @@ export const RecordInput = z.object({
         equipped: z.boolean().optional(),
         verdict: z.string().optional().describe("How it fits the build, with where you know it from"),
         spoiler: Spoiler.optional().describe("Default none. hint or full when the verdict names what the player hasn't reached"),
+        sources: z.array(SourceInput).optional().describe("The pages you took its facts from, with the facts; merged by link into those it has"),
       }),
     )
     .optional()
     .describe("Items the player found, equipped or put away"),
+  sources: z
+    .array(SourceInput)
+    .optional()
+    .describe("Sites the player trusts for this game (a wiki, a guide), where you look things up when they ask; merged by link"),
 });
 
 export const Nullable = (s: z.ZodString, what: string) => s.nullable().optional().describe(`${what}; null clears it`);
@@ -130,4 +148,8 @@ export const ChangeInput = z.object({
   values: z.record(z.string(), z.number()).optional().describe("snapshot: the stats to fix, by key; the others stay"),
   equipped: z.boolean().optional().describe("item"),
   verdict: Nullable(z.string(), "item: how it fits the build, with where you know it from"),
+  sources: z
+    .array(SourceInput)
+    .optional()
+    .describe("game: the sites the player trusts; item: where its facts come from. The whole list: a link left out is dropped"),
 });

@@ -24,12 +24,13 @@ nav:
       - Development: internals/development.md
   - Decisions:
       - AI-first game tracker with a built-in MCP: adr/0001-ai-first-game-tracker-with-built-in-mcp.md
-      - On-demand lookups, no crawling: adr/0002-on-demand-lookups-not-crawling.md
+      - On-demand lookups, no crawling (superseded): adr/0002-on-demand-lookups-not-crawling.md
       - Sign-in through a TypeScript mcp-login-oauth (superseded): adr/0003-sign-in-through-a-typescript-mcp-login-oauth.md
       - Sign-in with Better Auth: adr/0004-sign-in-with-better-auth.md
       - Spoiler levels and one gate: adr/0005-spoiler-levels-and-one-gate.md
       - How Better Auth is wired: adr/0006-better-auth-wiring.md
       - The REST API's tokens: adr/0007-rest-api-tokens.md
+      - Claude looks things up: adr/0008-claude-looks-things-up.md
 
 theme:
   name: material

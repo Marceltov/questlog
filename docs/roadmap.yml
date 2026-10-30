@@ -21,16 +21,6 @@ items:
       - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
-  - id: lookups
-    status: later
-    when: Later
-    icon: web
-    title: Lookups on demand
-    summary: Facts about an item you found, fetched from one page when you ask and kept with the link, never a mirror.
-    links:
-      - { label: "#7", url: "https://github.com/Marceltov/questlog/issues/7" }
-      - { label: "V6", url: "https://questlog.marceltov.de/values/#v6-your-state-not-the-internets" }
-
   - id: trilium-import
     status: later
     when: Later
@@ -42,6 +32,17 @@ items:
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: lookups
+    status: done
+    date: 2026-10-30
+    icon: web
+    title: Claude looks things up
+    summary: questlog keeps the sites you trust for a game and the facts Claude found there, with their links; Claude does the reading, questlog never fetches.
+    links:
+      - { label: "#22", url: "https://github.com/Marceltov/questlog/pull/22" }
+      - { label: "ADR 0008", url: "https://questlog.marceltov.de/adr/0008-claude-looks-things-up/" }
+      - { label: "V6", url: "https://questlog.marceltov.de/values/#v6-your-state-not-the-internets" }
+
   - id: rest-api
     status: done
     date: 2026-10-30

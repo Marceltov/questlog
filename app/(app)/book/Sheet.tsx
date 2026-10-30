@@ -2,6 +2,15 @@ import Link from "next/link";
 import { buildOf, itemsOf, questsOf, sessionsOf, type Player, type PlaythroughView, type QuestView } from "@/backend";
 import { copy } from "@/components/copy";
 
+// A link's site, for a source without a title.
+const siteOf = (url: string) => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+};
+
 // One playthrough's page of the book: where the player is, then everything else. Hints show only after the player asks on this page,
 // behind a warning (values V1); full spoilers never do here.
 export async function Sheet({ player: p, playthrough: t, reveal }: { player: Player; playthrough: PlaythroughView; reveal: "none" | "hint" }) {
@@ -25,6 +34,19 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           {t.label} · {copy.status[t.status]}
           {t.game.platform ? ` · ${t.game.platform}` : ""}
         </p>
+        {t.game.sources.length > 0 && (
+          <p className="mt-1 text-sm text-muted">
+            {copy.sources}:{" "}
+            {t.game.sources.map((x, n) => (
+              <span key={x.url}>
+                {n > 0 && " · "}
+                <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                  {x.title ?? siteOf(x.url)}
+                </a>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
 
       {/* One column on a phone; on a wide screen what is open on the left, the build, items and sessions on the right. */}
@@ -106,6 +128,19 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                     </div>
                     {(i.kind || i.location) && <p className="text-sm text-muted">{[i.kind, i.location].filter(Boolean).join(" · ")}</p>}
                     {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
+                    {i.sources.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-sm text-muted">
+                        {i.sources.map((x) => (
+                          <li key={x.url}>
+                            {x.facts && <span>{x.facts} · </span>}
+                            <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                              {x.title ?? siteOf(x.url)}
+                            </a>
+                            {x.on && <span className="tabular-nums"> · {x.on}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by [ADR 0008](0008-claude-looks-things-up.md)
 date: 2026-10-30
 decision-makers: Marcel Bruckner
 ---

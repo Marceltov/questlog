@@ -6,7 +6,8 @@ import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
-import type { Player, PlaythroughStatus, StatName } from "./types";
+import { parseSources } from "./sources";
+import type { Player, PlaythroughStatus, Source, StatName } from "./types";
 import { playthroughPath } from "./urls";
 
 type Db = Kysely<Schema> | Transaction<Schema>;
@@ -17,7 +18,8 @@ export type PlaythroughView = {
   status: PlaythroughStatus;
   language: string | null;
   lastPlayedOn: string | null;
-  game: { id: string; title: string; platform: string | null };
+  /** `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. */
+  game: { id: string; title: string; platform: string | null; sources: Source[] };
   url: string;
 };
 
@@ -30,6 +32,7 @@ const columns = [
   "games.id as game_id",
   "games.title",
   "games.platform",
+  "games.sources",
 ] as const;
 
 type Row = {
@@ -41,6 +44,7 @@ type Row = {
   game_id: string;
   title: string;
   platform: string | null;
+  sources: string;
 };
 
 const view = (r: Row): PlaythroughView => ({
@@ -49,7 +53,7 @@ const view = (r: Row): PlaythroughView => ({
   status: r.status as PlaythroughStatus,
   language: r.language,
   lastPlayedOn: r.last_played_on,
-  game: { id: r.game_id, title: r.title, platform: r.platform },
+  game: { id: r.game_id, title: r.title, platform: r.platform, sources: parseSources(r.sources) },
   url: playthroughPath(r.id),
 });
 

@@ -316,3 +316,39 @@ test("missed with nothing hidden or left behind says so", async () => {
   const out = await run("missed", s.b, { reveal: "full" });
   expect(next(out)).toMatch(/nothing hidden or left behind in Elden Ring NG/);
 });
+
+test("record keeps the game's sources and an item's facts with their links; item points Claude at the sources", async () => {
+  const out = await run("record", s.a, {
+    playthroughId: s.liesOfP,
+    playedOn: "2026-10-23",
+    summary: "x",
+    transcript: "Looked up the saber.",
+    sources: [
+      { url: "https://guides.example/lies-of-p", title: "Guides" },
+      { url: "https://lies.example/wiki/", title: "Lies Wiki (new)" },
+    ],
+    items: [{ name: "Puppet Saber", sources: [{ url: "https://lies.example/wiki/Puppet_Saber", facts: "Motivity C, Technique C" }] }],
+  });
+  expect(next(out)).toMatch(/Lies of P has 2 sources the player trusts now/);
+  const t = await getPlaythrough(s.a, s.liesOfP);
+  // The same link (a trailing slash aside) is refreshed, not added twice.
+  expect(t.game.sources.map((x) => [x.title, x.on])).toEqual([
+    ["Lies Wiki (new)", "2026-10-23"],
+    ["Guides", "2026-10-23"],
+  ]);
+  const saber = (await itemsOf(s.a, s.liesOfP, { name: "saber" }))[0];
+  expect(saber.sources).toEqual([{ url: "https://lies.example/wiki/Puppet_Saber", title: null, facts: "Motivity C, Technique C", on: "2026-10-23" }]);
+  const looked = await run("item", s.a, { name: "saber" });
+  expect(next(looked)).toMatch(/look it up yourself with your web tools, on their sources for Lies of P: Lies Wiki \(new\)/);
+  expect(next(looked)).toMatch(/never the page's text/);
+});
+
+test("without sources, item asks Claude to suggest one; correct replaces a game's sources", async () => {
+  expect(next(await run("item", s.b, {}))).toMatch(/no sources for Elden Ring yet.*suggest a site/);
+  const game = (await getPlaythrough(s.a, s.liesOfP)).game.id;
+  await run("correct", s.a, { changes: [{ what: "game", id: game, sources: [{ url: "https://other.example", title: "Other" }] }] });
+  expect((await getPlaythrough(s.a, s.liesOfP)).game.sources.map((x) => x.title)).toEqual(["Other"]);
+  await expect(run("record", s.a, { playthroughId: s.liesOfP, summary: "x", transcript: "x", sources: [{ url: "ftp://nope" }] })).rejects.toBeInstanceOf(
+    InvalidInputError,
+  );
+});

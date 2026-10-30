@@ -870,10 +870,62 @@
                             "hint",
                             "full"
                           ]
+                        },
+                        "sources": {
+                          "description": "The pages you took its facts from, with the facts; merged by link into those it has",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^https?:\\/\\/\\S+$",
+                                "description": "The page"
+                              },
+                              "title": {
+                                "description": "What it is: the site's name, or the page's title",
+                                "type": "string"
+                              },
+                              "facts": {
+                                "description": "For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text",
+                                "type": "string",
+                                "maxLength": 2000
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ]
+                          }
                         }
                       },
                       "required": [
                         "name"
+                      ]
+                    }
+                  },
+                  "sources": {
+                    "description": "Sites the player trusts for this game (a wiki, a guide), where you look things up when they ask; merged by link",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "pattern": "^https?:\\/\\/\\S+$",
+                          "description": "The page"
+                        },
+                        "title": {
+                          "description": "What it is: the site's name, or the page's title",
+                          "type": "string"
+                        },
+                        "facts": {
+                          "description": "For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text",
+                          "type": "string",
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "url"
                       ]
                     }
                   }
@@ -1105,6 +1157,32 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "sources": {
+                          "description": "game: the sites the player trusts; item: where its facts come from. The whole list: a link left out is dropped",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^https?:\\/\\/\\S+$",
+                                "description": "The page"
+                              },
+                              "title": {
+                                "description": "What it is: the site's name, or the page's title",
+                                "type": "string"
+                              },
+                              "facts": {
+                                "description": "For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text",
+                                "type": "string",
+                                "maxLength": 2000
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ]
+                          }
                         }
                       },
                       "required": [
@@ -1244,6 +1322,47 @@
         "additionalProperties": false,
         "description": "Every error the API answers with"
       },
+      "Source": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "facts": {
+            "description": "What was taken from the page, for an item",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it was added"
+          }
+        },
+        "required": [
+          "url",
+          "title",
+          "facts",
+          "on"
+        ],
+        "additionalProperties": false,
+        "description": "A page outside questlog, which questlog never fetches (ADR 0008)"
+      },
       "Playthrough": {
         "type": "object",
         "properties": {
@@ -1294,12 +1413,20 @@
                   "string",
                   "null"
                 ]
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Source"
+                },
+                "description": "The sites the player trusts for this game"
               }
             },
             "required": [
               "id",
               "title",
-              "platform"
+              "platform",
+              "sources"
             ],
             "additionalProperties": false
           },
@@ -1525,6 +1652,13 @@
               "full"
             ]
           },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Where its facts come from"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -1539,6 +1673,7 @@
           "equipped",
           "verdict",
           "spoiler",
+          "sources",
           "url"
         ],
         "additionalProperties": false
@@ -2060,12 +2195,20 @@
                       "string",
                       "null"
                     ]
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Source"
+                    },
+                    "description": "The sites the player trusts for this game"
                   }
                 },
                 "required": [
                   "id",
                   "title",
-                  "platform"
+                  "platform",
+                  "sources"
                 ],
                 "additionalProperties": false
               },
