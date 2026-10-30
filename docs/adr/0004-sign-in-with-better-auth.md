@@ -10,7 +10,7 @@ Supersedes [ADR 0003](0003-sign-in-through-a-typescript-mcp-login-oauth.md).
 
 ## Context and Problem Statement
 
-ADR 0003 chose a TypeScript mcp-login-oauth for questlog's sign-in. Then the wish list grew: magic links, passkeys, several OIDC providers, the web pages' own session, scripts calling the API, and a Python backend behind the UI later. mcp-login-oauth's [ADR 0004](https://github.com/Marceltov/mcp-login-oauth/blob/main/docs/adr/0004-web-apps-sign-in-with-better-auth.md) decided that apps with a web UI sign in with [Better Auth](https://better-auth.com) instead, and that the library stays the OAuth server for form-login MCP servers. How does questlog set Better Auth up?
+ADR 0003 chose a TypeScript mcp-login-oauth for questlog's sign-in. Then the wish list grew: magic links, passkeys, several OIDC providers, the web pages' own session, scripts calling the API, and a Python backend behind the UI later. mcp-login-oauth became Python only, the OAuth server for form-login FastMCP servers, and TypeScript apps sign in with [Better Auth](https://better-auth.com) instead ([TypeScript: use Better Auth](https://marceltov.github.io/mcp-login-oauth/typescript/), and _Sign-in_ in Marcel's [engineering conventions](https://marceltov.github.io/engineering-conventions/architecture/sign-in/)). How does questlog set Better Auth up?
 
 ## Decision Drivers
 
@@ -37,7 +37,7 @@ Chosen: **Better Auth in the Next.js app, with its tables in `DATA_DIR/auth.sqli
 ### Sign-in methods
 
 * **OIDC providers**, authentik first: built-in providers (Google, Apple) and `genericOAuth` for the rest. questlog reads `QUESTLOG_OIDC_<NAME>_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` and `_LABEL` and passes the list in.
-* **Magic link and email code**, sent through `QUESTLOG_SMTP_URL` and `QUESTLOG_SMTP_FROM`. During an MCP or script sign-in the mail holds only the code, so that a sign-in someone else started can't be finished by clicking the mail (mcp-login-oauth ADR 0004).
+* **Magic link and email code**, sent through `QUESTLOG_SMTP_URL` and `QUESTLOG_SMTP_FROM`. During an MCP or script sign-in the mail holds only the code, so that a sign-in someone else started can't be finished by clicking the mail.
 * **Passkeys** (`@better-auth/passkey`), added in the settings while signed in.
 * The sign-in and consent pages are questlog's own React pages.
 
