@@ -15,7 +15,8 @@ Marcel plays long Soulslikes (Lies of P on the Switch 2, earlier Dark Souls, Eld
 * Capture is by talking to Claude (and sharing screenshots), never by forms.
 * Structured questions ("what is still open?", "how did my Technique grow?", "does this weapon fit my build?") must be answered reliably.
 * No spoilers: the tool must never show what the player hasn't found (values V1).
-* Works for any game, not just Lies of P (V7).
+* Works for any game, not just Lies of P (V8).
+* Each player's log is theirs alone, enforced by the server (V2).
 * One small thing to run in the homelab, with one data volume.
 
 ## Considered Options
@@ -34,6 +35,8 @@ Chosen option: "Build our own, AI-first, modelled on freundebuch", because it ke
 * **Patterns from freundebuch's ADRs:** every tool result carries `next` (freundebuch ADR 0010); a play **session** is its own record holding the transcript, and everything filed from it points to it (ADR 0015); a shared screenshot is read, filed as text and deleted (ADR 0014).
 * **Spoiler gate:** every quest, item and note has a spoiler level; one function decides what a read returns, like freundebuch's `visible()`. "Did I miss anything?" is its own tool and needs an explicit spoiler opt-in.
 * **Language:** code, API, tool names and docs in English; the UI in English first, with room for other languages. Game terms keep their localized names next to the English ones.
+* **One log per player, not per household** (decided by Marcel, 2026-10-30): everyone who can sign in has their own games, playthroughs and state, and nobody sees another player's log. This differs from freundebuch, where a household shares one book. Every read is scoped to the signed-in player, in the same query layer as the spoiler gate.
+* **Sign-in through any OIDC provider:** authentik first, as in freundebuch, but configured as a generic OpenID Connect client so another provider can be used later without code changes.
 
 ### Domain (first sketch)
 
@@ -65,6 +68,5 @@ Chosen option: "Build our own, AI-first, modelled on freundebuch", because it ke
 
 ### Open questions
 
-* One player per instance, or a household like freundebuch, each with their own games?
 * Copy freundebuch's plumbing, or first extract it into a template both apps use?
 * Import the existing Trilium pages (quest log, build) as the first playthrough?

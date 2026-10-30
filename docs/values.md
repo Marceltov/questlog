@@ -12,13 +12,19 @@ questlog shows you only what you have already found. Every quest, item and note 
 
 **Rules out:** listing quests, items, bosses or areas you haven't reached; "next step" hints that name a boss, an outcome or a story event; a completion percentage that reveals how much is left; reads that skip the spoiler check.
 
-### V2. Your progress, your words
+### V2. Your log is yours alone
+
+Everyone who signs in has their own games, playthroughs and progress. Nobody else on the same instance sees them: not in a list, a count, a briefing or anything Claude says to them.
+
+**Rules out:** shared or household logs by default, an admin view into other players' logs, leaderboards or statistics across players, reads that aren't scoped to the signed-in player.
+
+### V3. Your progress, your words
 
 What you tell Claude is kept as your words: each play session keeps its transcript, next to the quest entries, stat snapshots and items filed from it. A screenshot you share is kept only until Claude has read it: then only what it shows stays, as text and numbers.
 
 **Rules out:** keeping screenshots after they are read, a summary in place of what you said, progress Claude invented ("probably did X").
 
-### V3. You decide what is filed
+### V4. You decide what is filed
 
 Claude files what you tell it and asks when it isn't sure: which quest you mean, whether you finished something or only started it, which choice you made. A guess never becomes a log entry on its own.
 
@@ -26,25 +32,25 @@ Claude files what you tell it and asks when it isn't sure: which quest you mean,
 
 ## What you can rely on
 
-### V4. Claude first
+### V5. Claude first
 
 You talk, Claude files. Everything works over MCP first, and every tool result tells Claude what to do next; the REST API and the web app follow. The web app is for looking things up on the phone next to the screen.
 
 **Rules out:** a feature only the web app has, an MCP tool that lags behind the API, forms as the main way to capture.
 
-### V5. Your state, not the internet's
+### V6. Your state, not the internet's
 
 questlog keeps what is true for *your* playthrough: what you found, did and decided. Knowledge about the game (wikis, guides, builds) stays where it is; Claude looks it up and questlog keeps only its verdict for you, with the sources it used.
 
 **Rules out:** shipping a game database, scraping wikis into questlog, presenting a guide's claim as your progress.
 
-### V6. Self-hosting has everything
+### V7. Self-hosting has everything
 
 questlog runs as one container on your own server, with one SQLite file. Every feature is there and nothing calls home. The code is AGPL-3.0: anyone may run it, and a changed version run as a service stays open.
 
 **Rules out:** features only a hosted version has, telemetry, analytics or third-party scripts, a storage format only questlog can read.
 
-### V7. Any game, any language
+### V8. Any game, any language
 
 questlog is not built for one game. Stats, item types and quest states are data, not code, so a new game needs no release. The UI is English first; the game's own language (German stat names, say) is kept next to the English one.
 
@@ -52,4 +58,4 @@ questlog is not built for one game. Stats, item types and quest states are data,
 
 ## Changing this page
 
-The points keep their numbers, so that reviews and issues citing them stay right. A change to this page needs the maintainer's approval and says why in its pull request; a change that weakens V1 to V3 is a change to what questlog is.
+The points keep their numbers, so that reviews and issues citing them stay right. A change to this page needs the maintainer's approval and says why in its pull request; a change that weakens V1 to V4 is a change to what questlog is.
