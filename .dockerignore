@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.github
+.superpowers
+docs
+docs_hooks
+site
+*.md
+.env*
+*.tsbuildinfo
+data

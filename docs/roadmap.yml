@@ -1,0 +1,85 @@
+# The roadmap, as data. docs_hooks/roadmap.py (from engineering-conventions, which has it from passageway) renders it as the timeline on
+# the roadmap page.
+#
+# Open entries (status now, next, later or decide) are shown first, in the order of this file, each with a `when` label and `details`.
+# Done entries are shown below them, newest date first (the order of this file breaks ties), each with a `date` and a link to its pull
+# request or release.
+#
+# To finish a step: set `status: done`, replace `when` with `date: YYYY-MM-DD`, add the link to its pull request, and move it to the
+# top of the done entries. `icon` is the name of a Material Design icon (https://pictogrammers.com/library/mdi/).
+# `details` is a small subset of markdown: paragraphs, "- " lists, **bold**, `code` and [links](https://...).
+
+items:
+  # ---- open ------------------------------------------------------------------------------------------------------------
+  - id: first-version
+    status: now
+    when: Now
+    icon: book-open-page-variant
+    title: The first version
+    summary: Sign-in, one log per player, the spoiler gate, and the tools record, briefing and open_threads.
+    links:
+      - { label: "#3", url: "https://github.com/Marceltov/questlog/issues/3" }
+      - { label: "V1", url: "https://questlog.marceltov.de/values/#v1-no-spoilers-you-didnt-ask-for" }
+      - { label: "V2", url: "https://questlog.marceltov.de/values/#v2-your-log-is-yours-alone" }
+    details: |
+      Next.js and SQLite as in freundebuch; sign-in with Better Auth in its own `auth.sqlite` (ADR 0004, ADR 0006); one gate for every read (ADR 0005); the web app to look things up on the phone; this site.
+
+  - id: more-tools
+    status: next
+    when: Next
+    icon: tools
+    title: item, correct and missed
+    summary: Compare an item with the build, fix what was filed, and a list of what you may have missed, only when you ask.
+    links:
+      - { label: "#4", url: "https://github.com/Marceltov/questlog/issues/4" }
+      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
+
+  - id: rest-api
+    status: next
+    when: Next
+    icon: api
+    title: The REST API
+    summary: /api/v1 over the same domain, with tokens bound to it, and the OpenAPI description generated from its route table.
+    links:
+      - { label: "#5", url: "https://github.com/Marceltov/questlog/issues/5" }
+      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
+
+  - id: passkeys
+    status: later
+    when: Later
+    icon: key-variant
+    title: Passkeys and magic links
+    summary: More ways to sign in, set up while signed in; a mail still holds only a code during an MCP sign-in.
+    links:
+      - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
+      - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
+
+  - id: lookups
+    status: later
+    when: Later
+    icon: web
+    title: Lookups on demand
+    summary: Facts about an item you found, fetched from one page when you ask and kept with the link, never a mirror.
+    links:
+      - { label: "#7", url: "https://github.com/Marceltov/questlog/issues/7" }
+      - { label: "V6", url: "https://questlog.marceltov.de/values/#v6-your-state-not-the-internets" }
+
+  - id: trilium-import
+    status: later
+    when: Later
+    icon: import
+    title: The Lies of P log from Trilium
+    summary: The quest log and build pages Claude kept in Trilium, filed as the first playthrough.
+    links:
+      - { label: "#8", url: "https://github.com/Marceltov/questlog/issues/8" }
+      - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
+
+  # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: design
+    status: done
+    date: 2026-10-30
+    icon: compass-outline
+    title: Values and the first decisions
+    summary: What questlog stands for, and ADRs for the app, lookups and sign-in.
+    links:
+      - { label: "#1", url: "https://github.com/Marceltov/questlog/pull/1" }

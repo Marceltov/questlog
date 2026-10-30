@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* The quest journal: warm paper, night ink, and ember as the one accent, the colour of a lantern kept for the way back. Dark mode is the
+   same journal by lamplight. */
+:root {
+  --paper: #f6f2ea;
+  --surface: #fffdf8;
+  --surface-2: #ece6da;
+  --ink: #1e2230;
+  --muted: #645f6e;
+  --rule: #ded6c6;
+  --accent: #b4532a;
+  --on-accent: #ffffff;
+  --hint: #8a6d1d;
+  --error: #b42318;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #16171d;
+    --surface: #1f2028;
+    --surface-2: #2a2b35;
+    --ink: #ece6da;
+    --muted: #a39d93;
+    --rule: #34353f;
+    --accent: #f0955a;
+    --on-accent: #16171d;
+    --hint: #e3c06a;
+    --error: #ff8a80;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-hint: var(--hint);
+  --color-error: var(--error);
+  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-lg border border-rule bg-surface px-3 py-2 text-ink outline-none focus:border-accent;
+  }
+  .button-primary {
+    @apply rounded-lg bg-accent px-4 py-2 font-semibold text-on-accent disabled:opacity-60;
+  }
+  .button-secondary {
+    @apply rounded-lg border border-rule bg-surface px-4 py-2 font-semibold text-ink hover:border-accent disabled:opacity-60;
+  }
+  .card {
+    @apply rounded-xl border border-rule bg-surface p-4;
+  }
+  .section-title {
+    @apply mb-2 text-xs font-bold tracking-widest text-muted uppercase;
+  }
+}

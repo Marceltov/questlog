@@ -1,0 +1,35 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+/build
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# env files; the example is committed
+.env*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# local data and scratch
+/data/
+/.superpowers/
+/docs/superpowers/
+
+# `next dev` writes its agent rules here; not committed
+AGENTS.md
+
+# mkdocs build output
+/site/
+docs_hooks/__pycache__/
