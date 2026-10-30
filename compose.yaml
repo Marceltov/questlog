@@ -1,24 +1,12 @@
+# What a server runs: the image CI published, and every setting from .env (a filled-in copy of .env.example). Nothing is built
+# here; see "Deploying with Docker Compose" in Marceltov/engineering-conventions.
 services:
   questlog:
     image: ghcr.io/marceltov/questlog:main
-    build: .
     restart: unless-stopped
     ports:
       - "3000:3000"
-    # Set values in .env (see .env.example). Empty means the default.
-    environment:
-      PUBLIC_URL: ${PUBLIC_URL:-}
-      QUESTLOG_SECRET: ${QUESTLOG_SECRET:-}
-      QUESTLOG_SIGNUP_ALLOW: ${QUESTLOG_SIGNUP_ALLOW:-}
-      QUESTLOG_SMTP_URL: ${QUESTLOG_SMTP_URL:-}
-      QUESTLOG_SMTP_FROM: ${QUESTLOG_SMTP_FROM:-}
-      # One block per OpenID Connect provider; the name (AUTHENTIK here) is yours to choose. Add more the same way.
-      QUESTLOG_OIDC_AUTHENTIK_ISSUER: ${QUESTLOG_OIDC_AUTHENTIK_ISSUER:-}
-      QUESTLOG_OIDC_AUTHENTIK_CLIENT_ID: ${QUESTLOG_OIDC_AUTHENTIK_CLIENT_ID:-}
-      QUESTLOG_OIDC_AUTHENTIK_CLIENT_SECRET: ${QUESTLOG_OIDC_AUTHENTIK_CLIENT_SECRET:-}
-      QUESTLOG_OIDC_AUTHENTIK_LABEL: ${QUESTLOG_OIDC_AUTHENTIK_LABEL:-}
-      QUESTLOG_LOG_LEVEL: ${QUESTLOG_LOG_LEVEL:-}
-      TZ: ${TZ:-Europe/Berlin}
+    env_file: .env
     volumes:
       - questlog-data:/data
 
