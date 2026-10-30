@@ -16,12 +16,13 @@ export { mcpResource as mcpUrl, safeNext } from "./urls";
 // player asked on the page.
 export { briefing, type Briefing } from "./briefing";
 export { buildOf, type BuildView } from "./builds";
+export { codexOf, type CodexView } from "./codex";
 export { getPlaythrough, listPlaythroughs, type PlaythroughView } from "./games";
 export { itemsOf, type ItemView } from "./items";
 export { questsOf, type QuestView } from "./quests";
 export { getSession, sessionsOf, type SessionSummary, type SessionView } from "./sessions";
 export { NotFoundError } from "./errors";
-export { OPEN_STATUSES, SPOILER_LEVELS, type Player, type QuestStatus, type SpoilerLevel } from "./types";
+export { CODEX_KINDS, ITEM_KINDS, OPEN_STATUSES, SPOILER_LEVELS, type Player, type QuestStatus, type SpoilerLevel } from "./types";
 
 // The health probe asks the database a trivial question; opening it (and migrating) is part of answering.
 setDbProbe(async () => sql`select 1`.execute(await db()));

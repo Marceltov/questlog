@@ -90,7 +90,32 @@ export interface Schema {
     verdict: string | null;
     spoiler: string;
     sources: Json;
+    quantity: number | null;
+    attributes: Json;
     created_at: number;
     updated_at: number;
   };
+  codex: {
+    id: string;
+    player_id: string;
+    playthrough_id: string;
+    session_id: string | null;
+    kind: string;
+    name: string;
+    norm: string;
+    local_name: string | null;
+    location: string | null;
+    status: string;
+    attempts: number | null;
+    beaten_on: string | null;
+    weaknesses: Json;
+    resistances: Json;
+    strategy: string | null;
+    notes: string | null;
+    spoiler: string;
+    sources: Json;
+    created_at: number;
+    updated_at: number;
+  };
+  item_uses: { item_id: string; codex_id: string; player_id: string; note: string | null; created_at: number };
 }

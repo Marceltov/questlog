@@ -35,6 +35,20 @@ export type GoalKind = (typeof GOAL_KINDS)[number];
 export const GOAL_STATUSES = ["open", "reached", "dropped"] as const;
 export type GoalStatus = (typeof GOAL_STATUSES)[number];
 
+/** What the codex keeps (ADR 0010): the bosses, enemies, NPCs and places the player met. */
+export const CODEX_KINDS = ["boss", "enemy", "npc", "place"] as const;
+export type CodexKind = (typeof CODEX_KINDS)[number];
+
+/** `met`: seen, met, reached. `beaten`: a boss or enemy defeated. `gone`: an NPC dead or left, a boss skipped, a place shut. */
+export const CODEX_STATUSES = ["met", "beaten", "gone"] as const;
+export type CodexStatus = (typeof CODEX_STATUSES)[number];
+
+/** The kinds the inventory groups by, in this order; an item's kind is free text in the game's terms, and anything else goes last. */
+export const ITEM_KINDS = ["weapon", "blade", "handle", "armour", "amulet", "consumable", "material", "collectible", "key"] as const;
+
+/** An item's numbers as the game shows them, by the game's names: { "Physical ATK": 119, "Technique": "C" }. */
+export type Attributes = Record<string, string | number>;
+
 export const PLAYTHROUGH_STATUSES = ["playing", "finished", "dropped"] as const;
 export type PlaythroughStatus = (typeof PLAYTHROUGH_STATUSES)[number];
 

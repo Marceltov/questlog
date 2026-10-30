@@ -207,6 +207,55 @@ const migrations: Record<string, Migration> = {
       }
     },
   },
+  // The tracker (ADR 0010). The inventory: an item's quantity and its numbers as data ({ key: value }, named as the game names them). The
+  // codex: the bosses, enemies, NPCs and places the player met, with weaknesses, resistances and a strategy. What an item is good
+  // against links the two.
+  "004_tracker": {
+    async up(db: Kysely<any>) {
+      const player = (c: any) => c.notNull();
+      const session = (c: any) => c.references("sessions.id").onDelete("set null");
+      const playthrough = (c: any) => c.notNull().references("playthroughs.id").onDelete("cascade");
+      await db.schema.alterTable("items").addColumn("quantity", "integer").execute();
+      await db.schema
+        .alterTable("items")
+        .addColumn("attributes", "text", (c) => c.notNull().defaultTo("{}"))
+        .execute();
+      await db.schema
+        .createTable("codex")
+        .addColumn("id", "text", (c) => c.primaryKey())
+        .addColumn("player_id", "text", player)
+        .addColumn("playthrough_id", "text", playthrough)
+        .addColumn("session_id", "text", session)
+        .addColumn("kind", "text", (c) => c.notNull().check(oneOf("kind", ["boss", "enemy", "npc", "place"])))
+        .addColumn("name", "text", (c) => c.notNull())
+        .addColumn("norm", "text", (c) => c.notNull())
+        .addColumn("local_name", "text")
+        .addColumn("location", "text")
+        .addColumn("status", "text", (c) => c.notNull().check(oneOf("status", ["met", "beaten", "gone"])))
+        .addColumn("attempts", "integer")
+        .addColumn("beaten_on", "text")
+        .addColumn("weaknesses", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("resistances", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("strategy", "text")
+        .addColumn("notes", "text")
+        .addColumn("spoiler", "text", (c) => c.notNull().check(oneOf("spoiler", SPOILER)))
+        .addColumn("sources", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .addColumn("updated_at", "bigint", (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex("codex_by_name").unique().on("codex").columns(["playthrough_id", "kind", "norm"]).execute();
+      await db.schema
+        .createTable("item_uses")
+        .addColumn("item_id", "text", (c) => c.notNull().references("items.id").onDelete("cascade"))
+        .addColumn("codex_id", "text", (c) => c.notNull().references("codex.id").onDelete("cascade"))
+        .addColumn("player_id", "text", player)
+        .addColumn("note", "text")
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .addPrimaryKeyConstraint("item_uses_pk", ["item_id", "codex_id"])
+        .execute();
+      await db.schema.createIndex("item_uses_by_codex").on("item_uses").columns(["codex_id"]).execute();
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

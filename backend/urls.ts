@@ -8,6 +8,8 @@ export const playthroughPath = (id: string) => `/p/${id}`;
 export const sessionPath = (id: string) => `/s/${id}`;
 /** A quest's row on its playthrough's page. */
 export const questPath = (playthroughId: string, id: string) => `${playthroughPath(playthroughId)}#quest-${id}`;
+/** A codex entry's row on its playthrough's page. */
+export const codexPath = (playthroughId: string, id: string) => `${playthroughPath(playthroughId)}#codex-${id}`;
 /** An item's row on its playthrough's page. */
 export const itemPath = (playthroughId: string, id: string) => `${playthroughPath(playthroughId)}#item-${id}`;
 

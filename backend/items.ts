@@ -1,10 +1,12 @@
-// Reading items: what the player found, where, whether it is equipped, and Claude's verdict, as far as the read may show (spoilers.ts).
+// Reading items, the player's inventory: what they found, how many, its numbers, where, whether it is equipped, what it is good against
+// (ADR 0010) and Claude's verdict, as far as the read may show (spoilers.ts).
+import { usesOf } from "./codex";
 import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { parseSources } from "./sources";
-import type { Player, Source, SpoilerLevel } from "./types";
+import type { Attributes, CodexKind, Player, Source, SpoilerLevel } from "./types";
 import { itemPath } from "./urls";
 
 export type ItemView = {
@@ -12,6 +14,12 @@ export type ItemView = {
   name: string;
   localName: string | null;
   kind: string | null;
+  /** How many the player has, for what comes in numbers; null when it isn't counted. */
+  quantity: number | null;
+  /** Its numbers as the game shows them, by the game's names. */
+  attributes: Attributes;
+  /** The codex entries it is good against. */
+  against: { codex: { id: string; name: string; kind: CodexKind; url: string }; note: string | null }[];
   location: string | null;
   equipped: boolean;
   verdict: string | null;
@@ -35,18 +43,26 @@ export async function itemsOf(
   const rows = await q.orderBy("equipped", "desc").orderBy("updated_at", "desc").execute();
   // A search within what came through the gate, in the norm form, so "puppet saber" finds "Puppet Saber" and "Saebel" finds "Säbel".
   const name = opts.name ? norm(opts.name) : "";
-  return rows
-    .filter((r) => !name || norm(r.name).includes(name) || (r.local_name && norm(r.local_name).includes(name)))
-    .map((r) => ({
-      id: r.id,
-      name: r.name,
-      localName: r.local_name,
-      kind: r.kind,
-      location: r.location,
-      equipped: r.equipped === 1,
-      verdict: r.verdict,
-      spoiler: r.spoiler as SpoilerLevel,
-      sources: parseSources(r.sources),
-      url: itemPath(playthroughId, r.id),
-    }));
+  const found = rows.filter((r) => !name || norm(r.name).includes(name) || (r.local_name && norm(r.local_name).includes(name)));
+  const uses = await usesOf(
+    await db(),
+    p,
+    found.map((r) => r.id),
+    opts.reveal ?? "none",
+  );
+  return found.map((r) => ({
+    id: r.id,
+    name: r.name,
+    localName: r.local_name,
+    kind: r.kind,
+    quantity: r.quantity,
+    attributes: JSON.parse(r.attributes) as Attributes,
+    against: uses.filter((u) => u.itemId === r.id).map(({ codex, note }) => ({ codex, note })),
+    location: r.location,
+    equipped: r.equipped === 1,
+    verdict: r.verdict,
+    spoiler: r.spoiler as SpoilerLevel,
+    sources: parseSources(r.sources),
+    url: itemPath(playthroughId, r.id),
+  }));
 }

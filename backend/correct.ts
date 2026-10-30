@@ -8,16 +8,20 @@ import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { today } from "./dates";
 import { statNames } from "./games";
+import { writeUses } from "./codex";
 import { goalLabel, reachGoals } from "./goals";
 import { norm } from "./names";
 import { mergeSources, parseSources } from "./sources";
 import { seen } from "./spoilers";
 import {
+  CODEX_STATUSES,
   ENTRY_KINDS,
   GOAL_STATUSES,
   PLAYTHROUGH_STATUSES,
   QUEST_STATUSES,
   SPOILER_LEVELS,
+  type Attributes,
+  type CodexStatus,
   type EntryKind,
   type GoalKind,
   type GoalStatus,
@@ -27,7 +31,7 @@ import {
   type SpoilerLevel,
 } from "./types";
 import type { SourceInput } from "./types";
-import { itemPath, playthroughPath, questPath, sessionPath } from "./urls";
+import { codexPath, itemPath, playthroughPath, questPath, sessionPath } from "./urls";
 
 // The new list replaces the old one; a link that stays keeps the day it was first added.
 const replaceSources = (before: string, next: SourceInput[] | undefined) => {
@@ -37,7 +41,7 @@ const replaceSources = (before: string, next: SourceInput[] | undefined) => {
 };
 
 /** What a correction can name. */
-export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal"] as const;
+export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal", "codex"] as const;
 export type Target = (typeof TARGETS)[number];
 
 /** One change: the row (`what`, `id`), and either `remove` or the fields to set. A nullable field set to null is cleared. */
@@ -77,6 +81,18 @@ export type Correction = {
   suggested?: boolean;
   /** A goal's place: 1 is first. */
   rank?: number;
+  /** An item's count; null when it isn't counted. */
+  quantity?: number | null;
+  /** An item's numbers, all of them: a key left out is dropped. */
+  attributes?: Attributes;
+  /** What an item is good against, all of it: a link left out is dropped. */
+  against?: { target: string; note?: string }[];
+  /** A codex entry's. */
+  attempts?: number | null;
+  weaknesses?: string[];
+  resistances?: string[];
+  strategy?: string | null;
+  notes?: string | null;
 };
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
@@ -87,7 +103,8 @@ const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
   quest: ["name", "localName", "giver", "location", "status"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn"],
-  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources"],
+  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources", "quantity", "attributes", "against"],
+  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "notes", "spoiler", "sources"],
   goal: ["target", "text", "status", "suggested", "rank", "spoiler"],
 };
 
@@ -119,6 +136,11 @@ const oneOf = <T extends string>(field: string, v: string | undefined, allowed: 
   if (v !== undefined && !allowed.includes(v as T)) throw new InvalidInputError(`${field}: one of ${allowed.join(", ")}`);
   return v as T | undefined;
 };
+const count = (field: string, v: number | null | undefined) => {
+  if (v !== undefined && v !== null && (!Number.isInteger(v) || v < 0)) throw new InvalidInputError(`${field}: a count, 0 or more`);
+  return v;
+};
+const strings = (v: string[] | undefined) => (v === undefined ? undefined : JSON.stringify(v.map((x) => x.trim()).filter(Boolean)));
 // Only the fields that were given, so an update leaves the others as they are.
 const given = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
@@ -159,6 +181,8 @@ function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
       return item(trx, p, c);
     case "goal":
       return goal(trx, p, c);
+    case "codex":
+      return codex(trx, p, c);
   }
 }
 
@@ -390,11 +414,17 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         sources: replaceSources(row.sources, c.sources),
         equipped: c.equipped === undefined ? undefined : c.equipped ? 1 : 0,
         spoiler,
+        quantity: count("quantity", c.quantity),
+        attributes: c.attributes === undefined ? undefined : JSON.stringify(c.attributes),
       }),
       updated_at: now(),
     })
     .where("id", "=", c.id)
     .execute();
+  if (c.against) {
+    await seen(trx.deleteFrom("item_uses"), p, "item_uses").where("item_id", "=", c.id).execute();
+    await writeUses(trx, p, row.playthrough_id, c.id, c.against);
+  }
   return done(c, name ?? row.name, row.playthrough_id, itemPath(row.playthrough_id, c.id));
 }
 
@@ -451,4 +481,53 @@ async function goal(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   // A target lowered (or a goal opened again) may be met already.
   await reachGoals(trx, p, row.playthrough_id);
   return done(c, label(c.target ?? row.target, c.text ?? row.text), row.playthrough_id, url);
+}
+
+async function codex(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("codex"), p, "codex", "full")
+    .select(["id", "name", "kind", "playthrough_id", "sources", "beaten_on"])
+    .where("id", "=", c.id)
+    .executeTakeFirst();
+  if (!row) throw new NotFoundError(`No codex entry with id ${c.id}`);
+  const url = codexPath(row.playthrough_id, c.id);
+  if (c.remove) {
+    await seen(trx.deleteFrom("codex"), p, "codex", "full").where("id", "=", c.id).execute();
+    return done(c, row.name, row.playthrough_id, playthroughPath(row.playthrough_id));
+  }
+  const name = text("name", c.name);
+  if (name) {
+    const clash = await seen(trx.selectFrom("codex"), p, "codex", "full")
+      .select("id")
+      .where("playthrough_id", "=", row.playthrough_id)
+      .where("kind", "=", row.kind)
+      .where("norm", "=", norm(name))
+      .where("id", "!=", c.id)
+      .executeTakeFirst();
+    if (clash)
+      throw new AmbiguousError(`The codex already has a ${row.kind} called ${name} (id ${clash.id}). If they are one, ask the player, then remove one`);
+  }
+  const status = oneOf<CodexStatus>("status", c.status, CODEX_STATUSES);
+  const spoiler = oneOf<SpoilerLevel>("spoiler", c.spoiler, SPOILER_LEVELS);
+  await seen(trx.updateTable("codex"), p, "codex", "full")
+    .set({
+      ...given({
+        name,
+        norm: name && norm(name),
+        local_name: nullable(c.localName),
+        location: nullable(c.location),
+        status,
+        beaten_on: status === undefined ? undefined : status === "beaten" ? (row.beaten_on ?? today()) : null,
+        attempts: count("attempts", c.attempts),
+        weaknesses: strings(c.weaknesses),
+        resistances: strings(c.resistances),
+        strategy: nullable(c.strategy),
+        notes: nullable(c.notes),
+        spoiler,
+        sources: replaceSources(row.sources, c.sources),
+      }),
+      updated_at: now(),
+    })
+    .where("id", "=", c.id)
+    .execute();
+  return done(c, name ?? row.name, row.playthrough_id, url);
 }

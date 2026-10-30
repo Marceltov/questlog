@@ -1,9 +1,10 @@
 // Filing a play session: the transcript as the player said it (values V3), and what was filed from it: quest entries, a stat snapshot,
-// the build plan, goals, items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
+// the build plan, goals, the codex (bosses, enemies, NPCs, places) and items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
 // in the playthrough, never by a guess (values V4).
 import { db, newId, now } from "./db";
 import { today } from "./dates";
 import { playthroughForRecord, statNames, type ResolvedPlaythrough } from "./games";
+import { writeCodex, writeUses, type CodexInput, type FiledCodex } from "./codex";
 import { carryGoals, goalLabel, reachGoals, writeGoals, type FiledGoal, type GoalInput } from "./goals";
 import type { Transaction } from "kysely";
 import type { Schema } from "./db/schema";
@@ -11,7 +12,7 @@ import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
-import type { EntryKind, GoalKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
+import type { Attributes, EntryKind, GoalKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
 
 export type QuestInput = {
@@ -35,6 +36,12 @@ export type ItemInput = {
   spoiler?: SpoilerLevel;
   /** Pages its facts come from; merged into those it has, by link. */
   sources?: SourceInput[];
+  /** How many the player has now. */
+  quantity?: number;
+  /** Its numbers, by the game's names; merged into those it has. */
+  attributes?: Attributes;
+  /** Codex entries it is good against, by id or exact name, with how. */
+  against?: { target: string; note?: string }[];
 };
 
 export type RecordInput = {
@@ -51,6 +58,8 @@ export type RecordInput = {
   /** `targets` is short for stat goals of the player's: { vigor: 20 }. */
   build?: { summary?: string; mainStat?: string; targets?: Record<string, number> };
   goals?: GoalInput[];
+  /** Bosses, enemies, NPCs and places met or learned about in this session. */
+  codex?: CodexInput[];
   /** Who the player plays in this run; only the fields given change. */
   character?: { name?: string; class?: string; localClass?: string };
   /** For a new playthrough (NG+): the run to take the character, the build plan and the open goals from. */
@@ -81,6 +90,7 @@ export type Recorded = {
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
   goals: FiledGoal[];
+  codex: FiledCodex[];
   /** Labels of the goals this session's snapshot got to. */
   reached: string[];
   character: boolean;
@@ -289,11 +299,14 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       build = true;
     }
 
+    const codex = input.codex?.length ? await writeCodex(trx, p, t.id, sessionId, playedOn, input.codex) : [];
+
     const items: FiledItem[] = [];
     for (const i of input.items ?? []) {
+      if (i.quantity !== undefined && (!Number.isInteger(i.quantity) || i.quantity < 0)) throw new InvalidInputError("items: quantity is a count, 0 or more");
       const name = i.name.trim();
       const existing = await seen(trx.selectFrom("items"), p, "items", "full")
-        .select(["id", "name", "equipped", "spoiler", "sources"])
+        .select(["id", "name", "equipped", "spoiler", "sources", "attributes"])
         .where("playthrough_id", "=", t.id)
         .where((eb) => (i.id ? eb("id", "=", i.id) : eb("norm", "=", norm(name))))
         .executeTakeFirst();
@@ -312,6 +325,8 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             ...(i.location ? { location: i.location.trim() } : {}),
             ...(i.verdict ? { verdict: i.verdict.trim() } : {}),
             ...(i.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(existing.sources), i.sources, playedOn)) } : {}),
+            ...(i.quantity !== undefined ? { quantity: i.quantity } : {}),
+            ...(i.attributes ? { attributes: JSON.stringify({ ...(JSON.parse(existing.attributes) as Attributes), ...i.attributes }) } : {}),
           })
           .where("id", "=", id)
           .execute();
@@ -333,11 +348,14 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             verdict: clean(i.verdict),
             spoiler,
             sources: JSON.stringify(mergeSources([], i.sources ?? [], playedOn)),
+            quantity: i.quantity ?? null,
+            attributes: JSON.stringify(i.attributes ?? {}),
             created_at: at,
             updated_at: at,
           })
           .execute();
       }
+      if (i.against?.length) await writeUses(trx, p, t.id, id, i.against);
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 
@@ -365,6 +383,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       stats,
       build: build || goals.length > 0,
       goals,
+      codex,
       reached,
       character: !!character || carried !== null,
       carried,

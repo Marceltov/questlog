@@ -377,6 +377,112 @@
         }
       }
     },
+    "/playthroughs/{id}/codex": {
+      "get": {
+        "operationId": "listCodex",
+        "summary": "A playthrough's codex: bosses, enemies, NPCs and places",
+        "description": "With weaknesses, resistances, the strategy and the player's items that are good against each. The same as the MCP tool codex.",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Only bosses, enemies, NPCs or places",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "boss",
+                "enemy",
+                "npc",
+                "place"
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "description": "Only entries whose name, or name in the game's language, contains it",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "description": "Default none: only what the player found. hint or full only when the player asked for spoilers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "hint",
+                "full"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bosses first, what is still in the way first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Codex"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/playthroughs/{id}/build": {
       "get": {
         "operationId": "getBuild",
@@ -922,7 +1028,7 @@
                     "type": "string"
                   },
                   "items": {
-                    "description": "Items the player found, equipped or put away",
+                    "description": "The player's inventory: items they found, used up, equipped or put away",
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -937,8 +1043,47 @@
                           "type": "string"
                         },
                         "kind": {
-                          "description": "weapon, handle, blade, amulet, …, in the game's terms",
+                          "description": "One of weapon, blade, handle, armour, amulet, consumable, material, collectible, key where it fits (the inventory groups by it), else the game's term",
                           "type": "string"
+                        },
+                        "quantity": {
+                          "description": "How many the player has now, for consumables, materials and collectibles",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "description": "Its numbers as the game shows them, by the game's names, from a screenshot or what the player says: { \"Physical ATK\": 119, \"Technique\": \"C\", \"Weight\": 11.4 }"
+                        },
+                        "against": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "target": {
+                                "type": "string",
+                                "description": "A codex entry (boss, enemy, NPC): its id or exact name"
+                              },
+                              "note": {
+                                "description": "How it helps: fire against a weak spot, throw before the second phase",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "target"
+                            ]
+                          },
+                          "description": "What the item is good against"
                         },
                         "location": {
                           "description": "Where it was found",
@@ -962,6 +1107,116 @@
                         },
                         "sources": {
                           "description": "The pages you took its facts from, with the facts; merged by link into those it has",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string",
+                                "pattern": "^https?:\\/\\/\\S+$",
+                                "description": "The page"
+                              },
+                              "title": {
+                                "description": "What it is: the site's name, or the page's title",
+                                "type": "string"
+                              },
+                              "facts": {
+                                "description": "For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text",
+                                "type": "string",
+                                "maxLength": 2000
+                              }
+                            },
+                            "required": [
+                              "url"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  },
+                  "codex": {
+                    "description": "Bosses, enemies, NPCs and places the player met in this session, or what they learned about them: weaknesses, a strategy, a boss beaten",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "description": "An existing entry's id, from codex or briefing",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "description": "For a new entry: boss, enemy (a regular foe), npc or place",
+                          "type": "string",
+                          "enum": [
+                            "boss",
+                            "enemy",
+                            "npc",
+                            "place"
+                          ]
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Its name; an exact match of the same kind updates that entry"
+                        },
+                        "localName": {
+                          "description": "Its name in the game's own language",
+                          "type": "string"
+                        },
+                        "location": {
+                          "description": "Where the player met it",
+                          "type": "string"
+                        },
+                        "status": {
+                          "description": "met (default for a new one), beaten for a boss or enemy the player defeated, gone for an NPC dead or left, or a boss skipped",
+                          "type": "string",
+                          "enum": [
+                            "met",
+                            "beaten",
+                            "gone"
+                          ]
+                        },
+                        "attempts": {
+                          "description": "A boss: the player's tries so far, as they count them",
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "weaknesses": {
+                          "description": "What hurts it (fire, electric blitz, a weak spot); added to those it has",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "resistances": {
+                          "description": "What it shrugs off; added to those it has",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "strategy": {
+                          "description": "How to go about it, as the player found or decided; from a guide, with sources and a spoiler level",
+                          "type": "string"
+                        },
+                        "notes": {
+                          "description": "Anything else: an NPC's wares or wishes, a place's rest point and shortcuts",
+                          "type": "string"
+                        },
+                        "spoiler": {
+                          "description": "Default none: what the player met. hint or full for what comes from your knowledge or a guide and gives away more",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "hint",
+                            "full"
+                          ]
+                        },
+                        "sources": {
+                          "description": "The pages its weaknesses or strategy come from, with the facts; merged by link",
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -1118,9 +1373,10 @@
                             "entry",
                             "snapshot",
                             "item",
-                            "goal"
+                            "goal",
+                            "codex"
                           ],
-                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item or goal"
+                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal or codex (a boss, enemy, NPC or place)"
                         },
                         "id": {
                           "type": "string",
@@ -1157,7 +1413,7 @@
                           ]
                         },
                         "status": {
-                          "description": "playthrough: playing, finished, dropped. quest: open, blocked, done, failed, dropped; done only when the player said they finished it. goal: open, reached, dropped",
+                          "description": "playthrough: playing, finished, dropped. quest: open, blocked, done, failed, dropped; done only when the player said they finished it. goal: open, reached, dropped. codex: met, beaten, gone",
                           "type": "string"
                         },
                         "summary": {
@@ -1170,11 +1426,11 @@
                           "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
                         },
                         "name": {
-                          "description": "quest or item",
+                          "description": "quest, item or codex",
                           "type": "string"
                         },
                         "localName": {
-                          "description": "quest or item: the name in the game's own language; null clears it",
+                          "description": "quest, item or codex: the name in the game's own language; null clears it",
                           "type": [
                             "string",
                             "null"
@@ -1188,14 +1444,14 @@
                           ]
                         },
                         "location": {
-                          "description": "quest: where it started; item: where it was found; null clears it",
+                          "description": "quest: where it started; item: where it was found; codex: where the player met it; null clears it",
                           "type": [
                             "string",
                             "null"
                           ]
                         },
                         "kind": {
-                          "description": "entry: log, next, decision. item: weapon, handle, amulet, … in the game's terms; null clears it",
+                          "description": "entry: log, next, decision. item: weapon, blade, handle, armour, amulet, consumable, material, collectible, key, or the game's term; null clears it",
                           "type": [
                             "string",
                             "null"
@@ -1206,7 +1462,7 @@
                           "type": "string"
                         },
                         "spoiler": {
-                          "description": "entry, item or goal: none once the player has found what it names",
+                          "description": "entry, item, goal or codex: none once the player has found what it names",
                           "type": "string",
                           "enum": [
                             "none",
@@ -1249,7 +1505,7 @@
                           ]
                         },
                         "sources": {
-                          "description": "game: the sites the player trusts; item: where its facts come from. The whole list: a link left out is dropped",
+                          "description": "game: the sites the player trusts; item or codex: where its facts come from. The whole list: a link left out is dropped",
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -1308,6 +1564,93 @@
                           "type": "integer",
                           "minimum": 1,
                           "maximum": 9007199254740991
+                        },
+                        "quantity": {
+                          "description": "item: how many; null when it isn't counted",
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "attributes": {
+                          "description": "item: its numbers, all of them: a key left out is dropped",
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          }
+                        },
+                        "against": {
+                          "description": "item: what it is good against, all of it: a link left out is dropped",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "target": {
+                                "type": "string",
+                                "description": "A codex entry (boss, enemy, NPC): its id or exact name"
+                              },
+                              "note": {
+                                "description": "How it helps: fire against a weak spot, throw before the second phase",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "target"
+                            ]
+                          }
+                        },
+                        "attempts": {
+                          "description": "codex (boss): the tries so far",
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "weaknesses": {
+                          "description": "codex: all of them",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "resistances": {
+                          "description": "codex: all of them",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "strategy": {
+                          "description": "codex; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notes": {
+                          "description": "codex; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -1791,6 +2134,77 @@
               "null"
             ]
           },
+          "quantity": {
+            "description": "How many the player has; null when it isn't counted",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "attributes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "description": "Its numbers, by the game's names"
+          },
+          "against": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "codex": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "boss",
+                        "enemy",
+                        "npc",
+                        "place"
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Its page in the web app, as an absolute URL"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "url"
+                  ],
+                  "additionalProperties": false
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "codex",
+                "note"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Codex entries it is good against"
+          },
           "location": {
             "description": "Where it was found",
             "type": [
@@ -1833,6 +2247,9 @@
           "name",
           "localName",
           "kind",
+          "quantity",
+          "attributes",
+          "against",
           "location",
           "equipped",
           "verdict",
@@ -1855,6 +2272,199 @@
         },
         "required": [
           "items"
+        ],
+        "additionalProperties": false
+      },
+      "CodexEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "boss",
+              "enemy",
+              "npc",
+              "place"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "localName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "description": "Where the player met it",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "met",
+              "beaten",
+              "gone"
+            ]
+          },
+          "attempts": {
+            "description": "A boss: the player's tries so far",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "beatenOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "weaknesses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "resistances": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "strategy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spoiler": {
+            "type": "string",
+            "enum": [
+              "none",
+              "hint",
+              "full"
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Where its weaknesses and strategy come from"
+          },
+          "counters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "quantity": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Its page in the web app, as an absolute URL"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "quantity",
+                    "url"
+                  ],
+                  "additionalProperties": false
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "item",
+                "note"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The player's items that are good against it"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "localName",
+          "location",
+          "status",
+          "attempts",
+          "beatenOn",
+          "weaknesses",
+          "resistances",
+          "strategy",
+          "notes",
+          "spoiler",
+          "sources",
+          "counters",
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "A boss, enemy, NPC or place the player met (ADR 0010)"
+      },
+      "Codex": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodexEntry"
+            },
+            "description": "Bosses, then enemies, NPCs and places; what is still in the way first"
+          }
+        },
+        "required": [
+          "entries"
         ],
         "additionalProperties": false
       },
@@ -2324,6 +2934,13 @@
               "$ref": "#/components/schemas/Item"
             }
           },
+          "bosses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CodexEntry"
+            },
+            "description": "Bosses met and not beaten yet"
+          },
           "others": {
             "type": "array",
             "items": {
@@ -2338,6 +2955,7 @@
           "openQuests",
           "build",
           "equipped",
+          "bosses",
           "others"
         ],
         "additionalProperties": false,
@@ -2786,6 +3404,54 @@
             },
             "description": "Goals the session's snapshot got to"
           },
+          "codex": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "boss",
+                    "enemy",
+                    "npc",
+                    "place"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "met",
+                    "beaten",
+                    "gone"
+                  ]
+                },
+                "created": {
+                  "type": "boolean"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Its page in the web app, as an absolute URL"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name",
+                "status",
+                "created",
+                "url"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The codex entries the session filed or changed"
+          },
           "character": {
             "type": "boolean",
             "description": "Whether the character changed"
@@ -2809,6 +3475,7 @@
           "build",
           "goals",
           "reached",
+          "codex",
           "character",
           "carried"
         ],
@@ -2833,7 +3500,8 @@
                     "entry",
                     "snapshot",
                     "item",
-                    "goal"
+                    "goal",
+                    "codex"
                   ]
                 },
                 "id": {

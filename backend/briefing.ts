@@ -2,6 +2,7 @@
 // for spoilers (values V1): it shows only what the player found and told.
 import { buildOf, type SnapshotView } from "./builds";
 import type { GoalView } from "./goals";
+import { codexOf, type CodexView } from "./codex";
 import { findPlaythrough, listPlaythroughs, type PlaythroughRef, type PlaythroughView } from "./games";
 import { itemsOf, type ItemView } from "./items";
 import { questsOf, type QuestView } from "./quests";
@@ -21,6 +22,8 @@ export type Briefing = {
     current: SnapshotView | null;
   };
   equipped: ItemView[];
+  /** Bosses met and not beaten yet. */
+  bosses: CodexView[];
   /** The player's other playthroughs, most recently played first. */
   others: PlaythroughView[];
 };
@@ -28,12 +31,13 @@ export type Briefing = {
 export async function briefing(p: Player, ref: PlaythroughRef = {}): Promise<Briefing> {
   const t = await findPlaythrough(p, ref);
   const others = (await listPlaythroughs(p)).filter((x) => x.id !== t?.id);
-  if (!t) return { playthrough: null, lastSession: null, openQuests: [], build: { plan: null, goals: [], current: null }, equipped: [], others };
-  const [sessions, quests, build, equipped] = await Promise.all([
+  if (!t) return { playthrough: null, lastSession: null, openQuests: [], build: { plan: null, goals: [], current: null }, equipped: [], bosses: [], others };
+  const [sessions, quests, build, equipped, bosses] = await Promise.all([
     sessionsOf(p, t.id, 1),
     questsOf(p, t.id, { statuses: OPEN_STATUSES, reveal: "none" }),
     buildOf(p, t.id, 1),
     itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+    codexOf(p, t.id, { kind: "boss", statuses: ["met"], reveal: "none" }),
   ]);
   return {
     playthrough: t,
@@ -41,6 +45,7 @@ export async function briefing(p: Player, ref: PlaythroughRef = {}): Promise<Bri
     openQuests: [...quests.filter((q) => q.status === "open"), ...quests.filter((q) => q.status === "blocked")],
     build: { plan: build.plan, goals: build.goals, current: build.snapshots[0] ?? null },
     equipped,
+    bosses,
     others,
   };
 }

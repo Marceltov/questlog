@@ -4,6 +4,7 @@
 import * as z from "zod";
 import { briefing } from "../briefing";
 import { buildOf } from "../builds";
+import { codexOf } from "../codex";
 import { correct } from "../correct";
 import { getPlaythrough, listPlaythroughs } from "../games";
 import { itemsOf } from "../items";
@@ -12,12 +13,13 @@ import { questsOf } from "../quests";
 import { record } from "../record";
 import { ChangeInput, RecordInput, Spoiler } from "../schemas";
 import { getSession, sessionsOf } from "../sessions";
-import { QUEST_STATUSES } from "../types";
+import { CODEX_KINDS, QUEST_STATUSES } from "../types";
 import { API_PREFIX, apiResource } from "../urls";
 import { createDispatcher, op, type AnyOp, type ResponseSpec } from "./dispatch";
 import {
   BriefingJson,
   BuildJson,
+  CodexListJson,
   COMPONENTS,
   CorrectedJson,
   ErrorJson,
@@ -105,6 +107,24 @@ const OPS: AnyOp[] = [
   }).handle(async ({ player, params, query }) => ({
     status: 200,
     body: { items: await itemsOf(player, params.id, { name: query.name, equippedOnly: query.equipped === "true", reveal: query.reveal }) },
+  })),
+  op({
+    method: "GET",
+    path: `${API_PREFIX}/playthroughs/{id}/codex`,
+    operationId: "listCodex",
+    summary: "A playthrough's codex: bosses, enemies, NPCs and places",
+    description: "With weaknesses, resistances, the strategy and the player's items that are good against each. The same as the MCP tool codex.",
+    tags: ["Playthroughs"],
+    params: { id: Id },
+    query: z.object({
+      kind: z.enum(CODEX_KINDS).optional().describe("Only bosses, enemies, NPCs or places"),
+      name: z.string().optional().describe("Only entries whose name, or name in the game's language, contains it"),
+      reveal: RevealQuery,
+    }),
+    responses: { 200: { description: "Bosses first, what is still in the way first", schema: CodexListJson }, 400: E400, 401: E401, 404: E404 },
+  }).handle(async ({ player, params, query }) => ({
+    status: 200,
+    body: { entries: await codexOf(player, params.id, { kind: query.kind, name: query.name, reveal: query.reveal }) },
   })),
   op({
     method: "GET",
