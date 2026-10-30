@@ -10,7 +10,7 @@ Supersedes [ADR 0003](0003-sign-in-through-a-typescript-mcp-login-oauth.md).
 
 ## Context and Problem Statement
 
-ADR 0003 chose a TypeScript mcp-login-oauth for questlog's sign-in. Then the wish list grew: magic links, passkeys, several OIDC providers, the web pages' own session, scripts calling the API, and a Python backend behind the UI later. mcp-login-oauth became Python only, the OAuth server for form-login FastMCP servers, and TypeScript apps sign in with [Better Auth](https://better-auth.com) instead ([TypeScript: use Better Auth](https://marceltov.github.io/mcp-login-oauth/typescript/), and _Sign-in_ in Marcel's [engineering conventions](https://marceltov.github.io/engineering-conventions/architecture/sign-in/)). How does questlog set Better Auth up?
+ADR 0003 chose a TypeScript mcp-login-oauth for questlog's sign-in. Then the wish list grew: magic links, passkeys, several OIDC providers, the web pages' own session, scripts calling the API, and a Python backend behind the UI later. mcp-login-oauth became Python only, the OAuth server for form-login FastMCP servers, and TypeScript apps sign in with [Better Auth](https://better-auth.com) instead ([Coming from TypeScript](https://mcp-login-oauth.marceltov.de/typescript/), and _Sign-in_ in Marcel's [engineering conventions](https://engineering-conventions.marceltov.de/architecture/sign-in/)). How does questlog set Better Auth up?
 
 ## Decision Drivers
 
