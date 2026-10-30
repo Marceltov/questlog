@@ -8,15 +8,19 @@ import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { today } from "./dates";
 import { statNames } from "./games";
+import { goalLabel, reachGoals } from "./goals";
 import { norm } from "./names";
 import { mergeSources, parseSources } from "./sources";
 import { seen } from "./spoilers";
 import {
   ENTRY_KINDS,
+  GOAL_STATUSES,
   PLAYTHROUGH_STATUSES,
   QUEST_STATUSES,
   SPOILER_LEVELS,
   type EntryKind,
+  type GoalKind,
+  type GoalStatus,
   type Player,
   type PlaythroughStatus,
   type QuestStatus,
@@ -33,7 +37,7 @@ const replaceSources = (before: string, next: SourceInput[] | undefined) => {
 };
 
 /** What a correction can name. */
-export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item"] as const;
+export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal"] as const;
 export type Target = (typeof TARGETS)[number];
 
 /** One change: the row (`what`, `id`), and either `remove` or the fields to set. A nullable field set to null is cleared. */
@@ -63,17 +67,28 @@ export type Correction = {
   verdict?: string | null;
   /** A game's or an item's sources, all of them: a link left out is dropped. */
   sources?: SourceInput[];
+  /** A playthrough's character. */
+  characterName?: string | null;
+  characterClass?: string | null;
+  characterLocalClass?: string | null;
+  /** A goal's value (stat) or level. */
+  target?: number;
+  /** A goal: false once the player agreed to a suggestion. */
+  suggested?: boolean;
+  /** A goal's place: 1 is first. */
+  rank?: number;
 };
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
 const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
   game: ["title", "platform", "sources"],
-  playthrough: ["label", "language", "status"],
+  playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass"],
   session: ["summary", "playedOn"],
   quest: ["name", "localName", "giver", "location", "status"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn"],
   item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources"],
+  goal: ["target", "text", "status", "suggested", "rank", "spoiler"],
 };
 
 export type Corrected = {
@@ -142,6 +157,8 @@ function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
       return snapshot(trx, p, c);
     case "item":
       return item(trx, p, c);
+    case "goal":
+      return goal(trx, p, c);
   }
 }
 
@@ -196,7 +213,16 @@ async function playthrough(trx: Trx, p: Player, c: Correction): Promise<Correcte
   }
   const status = oneOf<PlaythroughStatus>("status", c.status, PLAYTHROUGH_STATUSES);
   await seen(trx.updateTable("playthroughs"), p, "playthroughs")
-    .set(given({ label, status, language: nullable(c.language) }))
+    .set(
+      given({
+        label,
+        status,
+        language: nullable(c.language),
+        character_name: nullable(c.characterName),
+        character_class: nullable(c.characterClass),
+        character_local_class: nullable(c.characterLocalClass),
+      }),
+    )
     .where("id", "=", c.id)
     .execute();
   return done(c, label ?? row.label, c.id, playthroughPath(c.id));
@@ -326,6 +352,7 @@ async function snapshot(trx: Trx, p: Player, c: Correction): Promise<Corrected> 
     .set(given({ level: c.level, stats, taken_on: c.playedOn }))
     .where("id", "=", c.id)
     .execute();
+  await reachGoals(trx, p, row.playthrough_id);
   return done(c, c.playedOn ?? row.taken_on, row.playthrough_id, url);
 }
 
@@ -369,4 +396,59 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
     .where("id", "=", c.id)
     .execute();
   return done(c, name ?? row.name, row.playthrough_id, itemPath(row.playthrough_id, c.id));
+}
+
+async function goal(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const joined = trx.selectFrom("goals").innerJoin("playthroughs", "playthroughs.id", "goals.playthrough_id");
+  const row = await seen(seen(joined, p, "goals", "full"), p, "playthroughs")
+    .select([
+      "goals.id",
+      "goals.kind",
+      "goals.stat",
+      "goals.target",
+      "goals.text",
+      "goals.status",
+      "goals.reached_on",
+      "goals.playthrough_id",
+      "playthroughs.game_id",
+    ])
+    .where("goals.id", "=", c.id)
+    .executeTakeFirst();
+  if (!row) throw new NotFoundError(`No goal with id ${c.id}`);
+  const url = playthroughPath(row.playthrough_id);
+  const names = await statNames(p, row.game_id, trx);
+  const label = (target: number | null, txt: string | null) =>
+    goalLabel({
+      kind: row.kind as GoalKind,
+      stat: row.stat ? (names.find((n) => n.key === row.stat) ?? { key: row.stat, name: row.stat, localName: null }) : null,
+      target,
+      item: null,
+      text: txt,
+    });
+  if (c.remove) {
+    await seen(trx.deleteFrom("goals"), p, "goals", "full").where("id", "=", c.id).execute();
+    return done(c, label(row.target, row.text), row.playthrough_id, url);
+  }
+  if (c.target !== undefined && row.kind !== "stat" && row.kind !== "level") throw new InvalidInputError("target: only a stat or level goal has one");
+  if (c.rank !== undefined && (!Number.isInteger(c.rank) || c.rank < 1)) throw new InvalidInputError("rank: 1 or more");
+  const status = oneOf<GoalStatus>("status", c.status, GOAL_STATUSES);
+  const spoiler = oneOf<SpoilerLevel>("spoiler", c.spoiler, SPOILER_LEVELS);
+  await seen(trx.updateTable("goals"), p, "goals", "full")
+    .set({
+      ...given({
+        target: c.target,
+        text: text("text", c.text),
+        status,
+        suggested: c.suggested === undefined ? undefined : c.suggested ? 1 : 0,
+        rank: c.rank,
+        spoiler,
+        reached_on: status === undefined ? undefined : status === "reached" ? (row.reached_on ?? today()) : null,
+      }),
+      updated_at: now(),
+    })
+    .where("id", "=", c.id)
+    .execute();
+  // A target lowered (or a goal opened again) may be met already.
+  await reachGoals(trx, p, row.playthrough_id);
+  return done(c, label(c.target ?? row.target, c.text ?? row.text), row.playthrough_id, url);
 }

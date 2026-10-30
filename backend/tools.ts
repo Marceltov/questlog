@@ -14,7 +14,8 @@ import { missed, STALE_AFTER, type Missed } from "./missed";
 import { questsOf, type QuestView } from "./quests";
 import { record, type Recorded } from "./record";
 import { ChangeInput, Day, RecordInput, Spoiler } from "./schemas";
-import { ENTRY_KINDS, OPEN_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, type Player } from "./types";
+import { goalLabel, type GoalView } from "./goals";
+import { ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, OPEN_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, type Player } from "./types";
 
 export type Tool = {
   name: string;
@@ -78,6 +79,10 @@ const PlaythroughJson = z.object({
   status: z.enum(PLAYTHROUGH_STATUSES),
   language: z.string().nullable().describe("The language the game is played in, when known"),
   lastPlayedOn: Day.nullable(),
+  character: z
+    .object({ name: z.string().nullable(), class: z.string().nullable(), localClass: z.string().nullable().describe("The class in the game's own language") })
+    .nullable()
+    .describe("Who the player plays in this run; null until filed"),
   game: z.object({
     id: z.string(),
     title: z.string(),
@@ -130,7 +135,27 @@ const ItemDetailJson = ItemJson.extend({
   spoiler: Spoiler.describe("none for what the player found; hint or full only when this call asked for them"),
 });
 
-const PlanJson = z.object({ summary: z.string().nullable(), mainStat: z.string().nullable(), targets: z.record(z.string(), z.number()) });
+const PlanJson = z.object({
+  summary: z.string().nullable(),
+  mainStat: z.string().nullable(),
+  targets: z.record(z.string(), z.number()).describe("The player's stat goals, by stat (the open one, else the last reached)"),
+});
+
+const GoalJson = z.object({
+  id: z.string().describe("For record (goals with id) or correct"),
+  kind: z.enum(GOAL_KINDS),
+  label: z.string().describe("The goal in a few words: Vigor 20, level 40, an item and what to do with it, or the note"),
+  stat: z.string().nullable().describe("A stat goal's key"),
+  target: z.number().nullable(),
+  current: z.number().nullable().describe("Where the latest snapshot is, for a stat or level goal"),
+  item: z.object({ id: z.string(), name: z.string(), url: Url }).nullable(),
+  text: z.string().nullable().describe("A note goal's goal, or why"),
+  rank: z.number().describe("1 is first"),
+  status: z.enum(GOAL_STATUSES),
+  suggested: z.boolean().describe("Proposed by you or a guide; the player hasn't agreed yet"),
+  reachedOn: Day.nullable(),
+});
+const goalJson = (g: GoalView): z.input<typeof GoalJson> => ({ ...g, label: goalLabel(g), stat: g.stat?.key ?? null });
 const SnapshotJson = z.object({ id: z.string().describe("For correct"), takenOn: Day, level: z.number().nullable(), stats: z.array(StatJson) });
 
 const playthroughJson = (t: PlaythroughView): z.input<typeof PlaythroughJson> => t;
@@ -145,7 +170,12 @@ const RecordedJson = z.object({
   quests: z.array(z.object({ id: z.string(), name: z.string(), status: z.enum(QUEST_STATUSES), created: z.boolean(), url: Url })),
   items: z.array(z.object({ id: z.string(), name: z.string(), created: z.boolean(), equipped: z.boolean(), url: Url })),
   stats: z.object({ id: z.string(), level: z.number().nullable(), newNames: z.array(z.string()).describe("Stat keys this game hadn't had") }).nullable(),
-  build: z.boolean().describe("Whether the build plan changed"),
+  build: z.boolean().describe("Whether the build plan or its goals changed"),
+  goals: z
+    .array(z.object({ id: z.string(), label: z.string(), status: z.enum(GOAL_STATUSES), suggested: z.boolean(), created: z.boolean() }))
+    .describe("The goals this call set or changed"),
+  reached: z.array(z.string()).describe("Goals this session's snapshot got to"),
+  carried: z.number().nullable().describe("Open goals taken along from carryFrom; null when nothing was carried"),
 });
 
 function recordNext(r: Recorded): Next {
@@ -174,6 +204,16 @@ function recordNext(r: Recorded): Next {
     next.push(`${q.name} is now done: say so, and if the player only advanced it, set it back to open with record.`);
   if (r.sources)
     next.push(`${t.game.title} has ${r.sources === 1 ? "a source" : `${r.sources} sources`} the player trusts now: look things up there when they ask.`);
+  if (r.reached.length) next.push(`Goals reached with this snapshot: ${r.reached.join(", ")}. Tell the player, and name what comes next in their plan.`);
+  const suggested = r.goals.filter((g) => g.suggested && g.status === "open");
+  if (suggested.length)
+    next.push(
+      `Filed as suggestions, not the player's yet: ${suggested.map((g) => g.label).join(", ")}. Ask whether they agree; if so, record goals with each id and suggested false.`,
+    );
+  if (r.carried !== null)
+    next.push(
+      `Taken along from the earlier playthrough: the character, the build plan and ${r.carried} open goal${r.carried === 1 ? "" : "s"}. Read them back and ask which still hold.`,
+    );
   if (r.stats?.newNames.length)
     next.push(
       `New stat keys for ${t.game.title}: ${r.stats.newNames.map((n) => n.key).join(", ")}. Use these keys in every later snapshot; check that they match the game's stat screen.`,
@@ -194,7 +234,11 @@ const BriefingJson = z.object({
   playthrough: PlaythroughJson.nullable().describe("Null when the player has no playthrough yet (of that game)"),
   lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), url: Url }).nullable(),
   openQuests: z.array(QuestJson.extend({ lastLog: EntryJson.nullable() })).describe("Open first, then blocked"),
-  build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable().describe("The latest snapshot") }),
+  build: z.object({
+    plan: PlanJson.nullable(),
+    goals: z.array(GoalJson).describe("Open goals first, by rank (the player's, then suggestions), then the reached ones"),
+    current: SnapshotJson.nullable().describe("The latest snapshot"),
+  }),
   equipped: z.array(ItemJson),
   others: z.array(PlaythroughJson).describe("The player's other playthroughs, most recently played first"),
 });
@@ -217,6 +261,14 @@ function briefingNext(b: Briefing): Next {
       : `Nothing has been recorded in ${t.game.title} ${t.label} yet: ask what happened so far and file it with record.`,
   );
   if (b.openQuests.length) next.push(NO_ADDING);
+  const open = b.build.goals.filter((g) => g.status === "open");
+  const mine = open.filter((g) => !g.suggested);
+  if (mine.length)
+    next.push(
+      `The player's plan, in order: ${mine.map((g) => (g.current !== null && g.target !== null ? `${goalLabel(g)} (now ${g.current})` : goalLabel(g))).join("; ")}. Say what comes next.`,
+    );
+  const proposed = open.filter((g) => g.suggested);
+  if (proposed.length) next.push(`Suggested, not agreed yet: ${proposed.map((g) => goalLabel(g)).join("; ")}. Mention them as suggestions, after the plan.`);
   const blocked = b.openQuests.filter((q) => q.status === "blocked");
   if (blocked.length)
     next.push(`${blocked.map((q) => q.name).join(", ")} wait${blocked.length === 1 ? "s" : ""} on the game, not the player: mention them last.`);
@@ -248,7 +300,11 @@ const ItemLookupJson = z.object({
   playthrough: PlaythroughJson.nullable(),
   reveal: Spoiler.describe("What this call was allowed to show"),
   items: z.array(ItemDetailJson).describe("The player's items whose name contains the one asked for (all of them without a name), equipped first"),
-  build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable().describe("The latest snapshot") }),
+  build: z.object({
+    plan: PlanJson.nullable(),
+    goals: z.array(GoalJson).describe("Open goals first, by rank, then the reached ones"),
+    current: SnapshotJson.nullable().describe("The latest snapshot"),
+  }),
   equipped: z.array(ItemDetailJson).describe("What the player has equipped now, to compare with"),
 });
 
@@ -348,7 +404,7 @@ export const TOOLS: Tool[] = [
   tool({
     name: "record",
     description:
-      "File one play session: the player's words verbatim as transcript, then what was learned from it, split into quests (with log entries, next steps and decisions), a stat snapshot, the build plan and items. Before filing, call briefing for the playthrough and reuse the ids of quests and items that are already there. Ask the player when you aren't sure which quest they mean, whether they finished something or only started it, or which choice they made: never file a guess.",
+      "File one play session: the player's words verbatim as transcript, then what was learned from it, split into quests (with log entries, next steps and decisions), a stat snapshot, the build plan with its goals, the character and items. Before filing, call briefing for the playthrough and reuse the ids of quests and items that are already there. Ask the player when you aren't sure which quest they mean, whether they finished something or only started it, or which choice they made: never file a guess.",
     input: RecordInput,
     output: RecordedJson,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
@@ -362,6 +418,9 @@ export const TOOLS: Tool[] = [
         items: r.items,
         stats: r.stats && { id: r.stats.id, level: r.stats.level, newNames: r.stats.newNames.map((n) => n.key) },
         build: r.build,
+        goals: r.goals,
+        reached: r.reached,
+        carried: r.carried,
       };
       return ok(RecordedJson, body, recordNext(r));
     },
@@ -378,6 +437,7 @@ export const TOOLS: Tool[] = [
       const body = {
         ...b,
         openQuests: b.openQuests.map((q) => ({ ...questJson(q), lastLog: q.entries.findLast((e) => e.kind === "log") ?? null })),
+        build: { ...b.build, goals: b.build.goals.map(goalJson) },
         equipped: b.equipped,
       };
       return ok(BriefingJson, body, briefingNext(b));
@@ -414,13 +474,23 @@ export const TOOLS: Tool[] = [
     handler: async (p, { reveal = "none", name, ...ref }) => {
       const t = await findPlaythrough(p, ref);
       if (!t)
-        return ok(ItemLookupJson, { playthrough: null, reveal, items: [], build: { plan: null, current: null }, equipped: [] }, itemNext(t, name, [], reveal));
+        return ok(
+          ItemLookupJson,
+          { playthrough: null, reveal, items: [], build: { plan: null, goals: [], current: null }, equipped: [] },
+          itemNext(t, name, [], reveal),
+        );
       const [items, build, equipped] = await Promise.all([
         itemsOf(p, t.id, { name, reveal }),
         buildOf(p, t.id, 1),
         itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
       ]);
-      const body = { playthrough: t, reveal, items, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
+      const body = {
+        playthrough: t,
+        reveal,
+        items,
+        build: { plan: build.plan, goals: build.goals.map(goalJson), current: build.snapshots[0] ?? null },
+        equipped,
+      };
       return ok(ItemLookupJson, body, itemNext(t, name, items, reveal));
     },
   }),

@@ -16,6 +16,9 @@ export interface Schema {
     language: string | null;
     status: string;
     last_played_on: string | null;
+    character_name: string | null;
+    character_class: string | null;
+    character_local_class: string | null;
     created_at: number;
   };
   sessions: { id: string; player_id: string; playthrough_id: string; played_on: string; summary: string; transcript: string; created_at: number };
@@ -45,6 +48,24 @@ export interface Schema {
     created_at: number;
   };
   build_plans: { playthrough_id: string; player_id: string; summary: string | null; main_stat: string | null; targets: Json; updated_at: number };
+  goals: {
+    id: string;
+    player_id: string;
+    playthrough_id: string;
+    session_id: string | null;
+    kind: string;
+    stat: string | null;
+    target: number | null;
+    item_id: string | null;
+    text: string | null;
+    rank: number;
+    status: string;
+    suggested: Flag;
+    spoiler: string;
+    reached_on: string | null;
+    created_at: number;
+    updated_at: number;
+  };
   stat_snapshots: {
     id: string;
     player_id: string;

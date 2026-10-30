@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { TARGETS } from "./correct";
 import { DAY } from "./dates";
-import { ENTRY_KINDS, PLAYTHROUGH_STATUSES, QUEST_STATUSES, SPOILER_LEVELS } from "./types";
+import { ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, SPOILER_LEVELS } from "./types";
 
 export const Spoiler = z.enum(SPOILER_LEVELS);
 export const Day = z.string().regex(DAY, "a day as YYYY-MM-DD");
@@ -27,6 +27,28 @@ export const EntryInput = z.object({
   spoiler: Spoiler.optional().describe(
     "Default none: what the player found or told. hint when the text names a place, person or item the player hasn't reached; full when it names a boss, an outcome or a story event. A next step from your own knowledge of the game is at least hint",
   ),
+});
+
+export const GoalInput = z.object({
+  id: z.string().optional().describe("An existing goal's id, from briefing, to change it (accept a suggestion, re-rank, mark reached or dropped)"),
+  kind: z
+    .enum(GOAL_KINDS)
+    .optional()
+    .describe("For a new goal. stat: a stat to a value; level: a character level; item: something to do with an item; note: anything else"),
+  stat: z.string().optional().describe("stat: the stat's key, as snapshots name it"),
+  target: z.number().optional().describe("stat: the value; level: the level. A new target for the same stat replaces the open goal (the old one is dropped)"),
+  item: z.string().optional().describe("item: the item's id or exact name in this playthrough"),
+  text: z.string().optional().describe("note: the goal itself. Any goal: why, in the player's terms"),
+  suggested: z
+    .boolean()
+    .optional()
+    .describe("true for a goal you or a guide propose and the player hasn't agreed to yet. Default false: the player decided it"),
+  status: z
+    .enum(GOAL_STATUSES)
+    .optional()
+    .describe("reached for an item or note goal the player finished (stat and level goals get there on their own), dropped when given up"),
+  spoiler: Spoiler.optional().describe("Default none. hint or full when the goal names a place, item or outcome the player hasn't reached"),
+  rank: z.number().int().min(1).optional().describe("Its place in the order, 1 first. Default: last; a replacing goal keeps the old one's place"),
 });
 
 export const RecordInput = z.object({
@@ -86,10 +108,28 @@ export const RecordInput = z.object({
     .object({
       summary: z.string().optional(),
       mainStat: z.string().optional().describe("The stat key the build is built around"),
-      targets: z.record(z.string(), z.number()).optional(),
+      targets: z.record(z.string(), z.number()).optional().describe("Short for stat goals the player decided: { vigor: 20 }. For order or a reason, use goals"),
     })
     .optional()
     .describe("The build plan, when the player set or changed it"),
+  goals: z
+    .array(GoalInput)
+    .optional()
+    .describe("Long-term goals the player set or changed in this session, in order; and ones you suggest, marked suggested, until they agree"),
+  character: z
+    .object({
+      name: z.string().optional(),
+      class: z.string().optional().describe("The starting class, origin or combat memory, in English"),
+      localClass: z.string().optional().describe("The class's name in the game's own language"),
+    })
+    .optional()
+    .describe("Who the player plays in this playthrough, when they say or a screenshot shows it"),
+  carryFrom: z
+    .string()
+    .optional()
+    .describe(
+      "Starting a new playthrough (NG+) with game and label: the playthrough to take the character, build plan and open goals from. Only when the player wants it",
+    ),
   items: z
     .array(
       z.object({
@@ -115,7 +155,7 @@ export const RecordInput = z.object({
 export const Nullable = (s: z.ZodString, what: string) => s.nullable().optional().describe(`${what}; null clears it`);
 
 export const ChangeInput = z.object({
-  what: z.enum(TARGETS).describe("The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats) or item"),
+  what: z.enum(TARGETS).describe("The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item or goal"),
   id: z.string().describe("Its id, as briefing, open_threads, item or record returned it"),
   remove: z
     .boolean()
@@ -134,7 +174,9 @@ export const ChangeInput = z.object({
   status: z
     .string()
     .optional()
-    .describe(`playthrough: ${PLAYTHROUGH_STATUSES.join(", ")}. quest: ${QUEST_STATUSES.join(", ")}; done only when the player said they finished it`),
+    .describe(
+      `playthrough: ${PLAYTHROUGH_STATUSES.join(", ")}. quest: ${QUEST_STATUSES.join(", ")}; done only when the player said they finished it. goal: ${GOAL_STATUSES.join(", ")}`,
+    ),
   summary: z.string().optional().describe("session"),
   playedOn: Day.optional().describe("session (its snapshot moves with it) or snapshot: the day"),
   name: z.string().optional().describe("quest or item"),
@@ -142,8 +184,8 @@ export const ChangeInput = z.object({
   giver: Nullable(z.string(), "quest"),
   location: Nullable(z.string(), "quest: where it started; item: where it was found"),
   kind: Nullable(z.string(), `entry: ${ENTRY_KINDS.join(", ")}. item: weapon, handle, amulet, … in the game's terms`),
-  text: z.string().optional().describe("entry"),
-  spoiler: Spoiler.optional().describe("entry or item: none once the player has found what it names"),
+  text: z.string().optional().describe("entry; goal: the note, or why"),
+  spoiler: Spoiler.optional().describe("entry, item or goal: none once the player has found what it names"),
   level: z.number().int().nullable().optional().describe("snapshot"),
   values: z.record(z.string(), z.number()).optional().describe("snapshot: the stats to fix, by key; the others stay"),
   equipped: z.boolean().optional().describe("item"),
@@ -152,4 +194,10 @@ export const ChangeInput = z.object({
     .array(SourceInput)
     .optional()
     .describe("game: the sites the player trusts; item: where its facts come from. The whole list: a link left out is dropped"),
+  characterName: Nullable(z.string(), "playthrough: the character's name"),
+  characterClass: Nullable(z.string(), "playthrough: the character's class, in English"),
+  characterLocalClass: Nullable(z.string(), "playthrough: the class in the game's own language"),
+  target: z.number().optional().describe("goal (stat or level): the new value"),
+  suggested: z.boolean().optional().describe("goal: false once the player agreed to a suggestion"),
+  rank: z.number().int().min(1).optional().describe("goal: its place in the order, 1 first"),
 });

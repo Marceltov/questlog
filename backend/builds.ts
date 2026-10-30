@@ -1,19 +1,23 @@
-// The build of a playthrough: the plan (main stat, targets) and the dated stat snapshots, each stat named as the game names it (V8).
+// The build of a playthrough: the plan (main stat, summary), the goals (ADR 0009) and the dated stat snapshots, each stat named as the
+// game names it (V8). The plan's targets are its stat goals, the player's own, open or reached, by stat.
 import { db } from "./db";
 import { getPlaythrough, statNames } from "./games";
+import { goalsOf, type GoalView } from "./goals";
 import { seen } from "./spoilers";
-import type { Player, StatName } from "./types";
+import type { Player, SpoilerLevel, StatName } from "./types";
 
 export type StatValue = StatName & { value: number; /** Since the snapshot before; null for the first. */ change: number | null };
 export type SnapshotView = { id: string; takenOn: string; level: number | null; stats: StatValue[] };
 export type BuildView = {
   plan: { summary: string | null; mainStat: string | null; targets: Record<string, number> } | null;
+  /** Open by rank, then reached; dropped ones only in the full history (goalsOf). */
+  goals: GoalView[];
   /** Newest first. */
   snapshots: SnapshotView[];
 };
 
 /** The build of one of the player's playthroughs, with at most `limit` snapshots. */
-export async function buildOf(p: Player, playthroughId: string, limit = 20): Promise<BuildView> {
+export async function buildOf(p: Player, playthroughId: string, limit = 20, reveal: SpoilerLevel = "none"): Promise<BuildView> {
   const t = await getPlaythrough(p, playthroughId); // NotFoundError for another player's
   const d = await db();
   const plan = await seen(d.selectFrom("build_plans"), p, "build_plans").selectAll().where("playthrough_id", "=", playthroughId).executeTakeFirst();
@@ -38,8 +42,13 @@ export async function buildOf(p: Player, playthroughId: string, limit = 20): Pro
       stats: keys.map((k) => ({ ...named(k), value: r.values[k], change: before && k in before ? r.values[k] - before[k] : null })),
     };
   });
+  const goals = await goalsOf(p, playthroughId, { reveal, statuses: ["open", "reached"] });
+  // The open goal for a stat wins over one reached before it (Vitality 20 reached, then 25).
+  const targets: Record<string, number> = {};
+  for (const g of [...goals].reverse()) if (g.kind === "stat" && g.stat && g.target !== null && !g.suggested) targets[g.stat.key] = g.target;
   return {
-    plan: plan ? { summary: plan.summary, mainStat: plan.main_stat, targets: JSON.parse(plan.targets) as Record<string, number> } : null,
+    plan: plan || Object.keys(targets).length ? { summary: plan?.summary ?? null, mainStat: plan?.main_stat ?? null, targets } : null,
+    goals,
     snapshots,
   };
 }

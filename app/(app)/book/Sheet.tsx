@@ -34,6 +34,12 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           {t.label} · {copy.status[t.status]}
           {t.game.platform ? ` · ${t.game.platform}` : ""}
         </p>
+        {t.character && (
+          <p className="mt-1">
+            {[t.character.name, t.character.class].filter(Boolean).join(", ")}
+            {t.character.localClass && <span className="text-sm text-muted"> · {t.character.localClass}</span>}
+          </p>
+        )}
         {t.game.sources.length > 0 && (
           <p className="mt-1 text-sm text-muted">
             {copy.sources}:{" "}
@@ -79,6 +85,57 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           )}
         </div>
         <div className="space-y-8">
+          <section>
+            <h3 className="section-title">{copy.goals}</h3>
+            {build.goals.length === 0 ? (
+              <p className="card text-muted">{copy.noGoals}</p>
+            ) : (
+              // The plan is a sequence: the open goals in their order, then what was reached, quieter.
+              <ol className="card space-y-3">
+                {build.goals.map((g) => {
+                  const measured = g.target !== null && g.current !== null;
+                  const share = measured ? Math.min(1, g.current! / g.target!) : g.status === "reached" ? 1 : 0;
+                  return (
+                    <li key={g.id} className={`goal ${g.status === "reached" ? "goal-reached" : ""} ${g.suggested ? "goal-suggested" : ""}`}>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="font-semibold">
+                          {g.kind === "stat" && g.stat ? (
+                            <>
+                              {g.stat.name} {g.target}
+                              {g.stat.localName && <span className="text-sm font-normal text-muted"> · {g.stat.localName}</span>}
+                            </>
+                          ) : g.kind === "level" ? (
+                            copy.level(g.target ?? 0)
+                          ) : g.item ? (
+                            <a href={g.item.url} className="text-accent">
+                              {g.item.name}
+                            </a>
+                          ) : (
+                            g.text
+                          )}
+                        </span>
+                        <span className="shrink-0 text-sm text-muted tabular-nums">
+                          {g.status === "reached" && g.reachedOn
+                            ? copy.reachedOn(g.reachedOn)
+                            : g.suggested
+                              ? copy.suggested
+                              : measured
+                                ? copy.goalProgress(g.current!, g.target!)
+                                : ""}
+                        </span>
+                      </div>
+                      {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
+                      {(measured || g.status === "reached") && (
+                        <div className="goal-track" role="presentation">
+                          <div className="goal-fill" style={{ width: `${share * 100}%` }} />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
           <section>
             <h3 className="section-title">{copy.build}</h3>
             <div className="card space-y-2">
