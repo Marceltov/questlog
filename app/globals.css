@@ -13,6 +13,8 @@
   --on-accent: #ffffff;
   --hint: #8a6d1d;
   --error: #b42318;
+  --vignette: rgb(60 40 25 / 0.25);
+  --column: rgb(246 242 234 / 0.74);
   color-scheme: light;
 }
 
@@ -28,6 +30,8 @@
     --on-accent: #16171d;
     --hint: #e3c06a;
     --error: #ff8a80;
+    --vignette: rgb(0 0 0 / 0.5);
+    --column: rgb(22 23 29 / 0.7);
     color-scheme: dark;
   }
 }
@@ -51,6 +55,27 @@ body {
   color: var(--ink);
 }
 
+/* The backdrop: a town and mountains of no game in particular, at dawn or by night (public/backdrop-*.svg), fixed behind a translucent
+   column, with a vignette that keeps the edges quiet. A pseudo-element, not background-attachment: fixed, which phones ignore. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 35%, transparent 40%, var(--vignette) 100%),
+    url("/backdrop-light.svg") center bottom / cover no-repeat,
+    var(--paper);
+}
+@media (prefers-color-scheme: dark) {
+  body::before {
+    background:
+      radial-gradient(ellipse at 50% 35%, transparent 40%, var(--vignette) 100%),
+      url("/backdrop-dark.svg") center bottom / cover no-repeat,
+      var(--paper);
+  }
+}
+
 @layer components {
   .field {
     @apply w-full rounded-lg border border-rule bg-surface px-3 py-2 text-ink outline-none focus:border-accent;
@@ -63,6 +88,16 @@ body {
   }
   .card {
     @apply rounded-xl border border-rule bg-surface p-4;
+  }
+  /* The content column over the backdrop: on a phone the scene shows through more, since the column is all there is. */
+  .column {
+    background: var(--column);
+    @apply border-x border-rule backdrop-blur-sm;
+  }
+  @media (min-width: 40rem) {
+    .column {
+      background: color-mix(in srgb, var(--column), var(--paper) 50%);
+    }
   }
   .section-title {
     @apply mb-2 text-xs font-bold tracking-widest text-muted uppercase;

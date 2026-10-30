@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Every page needs a session. Exempt: the sign-in (/login) and consent pages, /health, and /mcp, /api/* and /.well-known/*, which check
 // credentials themselves: redirecting them to /login would turn a client's 401 into a success-looking 307. Only the cookie's presence is
 // checked here (the proxy doesn't ask the database); pages get the player from playerFromHeaders, which checks the session.
-const EXEMPT = /^\/(login|consent|health|mcp|favicon\.ico|icon\.svg)$|^\/(api|\.well-known|_next)\//;
+const EXEMPT = /^\/(login|consent|health|mcp|favicon\.ico|icon\.svg|backdrop-(dark|light)\.svg)$|^\/(api|\.well-known|_next)\//;
 
 export function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;

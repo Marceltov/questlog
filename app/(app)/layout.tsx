@@ -6,7 +6,7 @@ import { pagePlayer } from "./viewer";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   await pagePlayer();
   return (
-    <div className="mx-auto min-h-dvh max-w-2xl px-4 pb-16">
+    <div className="column mx-auto min-h-dvh max-w-2xl px-4 pb-16">
       <header className="flex items-center justify-between border-b border-rule py-3">
         <Link href="/" className="flex items-center gap-2 font-bold">
           {/* eslint-disable-next-line @next/next/no-img-element -- the app's own icon, no optimizer */}
