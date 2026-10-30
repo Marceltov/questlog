@@ -4,6 +4,8 @@ export const copy = {
   tagline: "A spoiler-free quest log for the games you play.",
 
   // Sign-in
+  almanac: "An almanac of your playthroughs",
+  keptBy: (email: string) => `Kept by ${email}`,
   signInTitle: "Sign in to questlog",
   signInLead: "Your quest log, build and items, as you told them to Claude.",
   emailLabel: "Email",

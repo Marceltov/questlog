@@ -34,6 +34,16 @@ items:
       - { label: "#4", url: "https://github.com/Marceltov/questlog/issues/4" }
       - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
 
+  - id: page-turns
+    status: next
+    when: Next
+    icon: book-open-page-variant-outline
+    title: Turn pages
+    summary: One page per playthrough, swiped sideways on the phone, with a contents page first.
+    links:
+      - { label: "#12", url: "https://github.com/Marceltov/questlog/issues/12" }
+      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
+
   - id: rest-api
     status: next
     when: Next
