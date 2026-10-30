@@ -30,8 +30,11 @@ export const copy = {
   unknownClient: "An app",
   consentFailed: "That didn't work. Start the connection again from the app.",
 
-  // Home
-  homeTitle: "Your games",
+  // The book: a contents page, then a page per playthrough
+  contents: "Contents",
+  previousPage: "Previous page",
+  nextPage: "Next page",
+  pages: "Pages",
   nothingYet: "Nothing recorded yet.",
   connectHint: (url: string) => `Add ${url} to Claude as a custom connector, then tell Claude what you are playing.`,
   lastPlayed: (day: string) => `Last played ${day}`,
