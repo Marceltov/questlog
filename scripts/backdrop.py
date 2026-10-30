@@ -1,6 +1,6 @@
 """Generates public/backdrop-dark.svg and public/backdrop-light.svg: an open almanac, by daylight and by candlelight. Faint sepia ink on
 aged pages (a star chart, moon phases, a compass rose, ruled lines) and an ember ribbon. Deterministic: run
-`python3 scripts/backdrop.py public docs/assets` after changing it (the app and the docs site), and commit the SVGs."""
+`python3 scripts/backdrop.py public` after changing it, and commit the SVGs."""
 
 import math
 import random
@@ -166,6 +166,5 @@ def svg(mode):
 
 
 for name in PALETTES:
-    for out_dir in sys.argv[1:]:
-        with open(f"{out_dir}/backdrop-{name}.svg", "w") as f:
-            f.write(svg(name))
+    with open(f"{sys.argv[1]}/backdrop-{name}.svg", "w") as f:
+        f.write(svg(name))
