@@ -39,7 +39,7 @@ flowchart LR
   asked -- no --> hidden
 ```
 
-A briefing never asks for more than `none`; `open_threads` and the playthrough page do only when the player asked.
+A briefing never asks for more than `none`; `open_threads`, `item`, `missed` and the playthrough page do only when the player asked, and `missed` can't be called without asking. `correct` looks up the row it changes through the gate too, so another player's id is not found.
 
 ## Data
 

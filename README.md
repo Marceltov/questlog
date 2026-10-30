@@ -6,7 +6,7 @@ Capture happens through a built-in MCP endpoint (`/mcp`), so there is nothing to
 
 Next.js and SQLite, one container, one file of data. Licensed AGPL-3.0-only.
 
-> **Status:** first version. Sign-in, one log per player, the spoiler gate and the MCP tools `record`, `briefing` and `open_threads`. Setup, the tools and the decisions behind them are on the docs site: [questlog.marceltov.de](https://questlog.marceltov.de/).
+> **Status:** first version. Sign-in, one log per player, the spoiler gate and the MCP tools `record`, `briefing`, `open_threads`, `item`, `correct` and `missed`. Setup, the tools and the decisions behind them are on the docs site: [questlog.marceltov.de](https://questlog.marceltov.de/).
 
 ## What it tracks
 

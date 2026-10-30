@@ -87,3 +87,19 @@ test("a quest the player tells of is stored as found, whatever a caller sends", 
   const levels = await d.selectFrom("quests").select("spoiler").distinct().execute();
   expect(levels).toEqual([{ spoiler: "none" }]);
 });
+
+test("item shows spoiler items only when asked, and missed only at the level asked", async () => {
+  const quiet = JSON.stringify(await toolByName("item")!.run(s.a, { playthroughId: s.liesOfP }));
+  expect(quiet).not.toContain(SPOILER_ITEM);
+  expect(JSON.stringify(await toolByName("item")!.run(s.a, { playthroughId: s.liesOfP, reveal: "full" }))).toContain(SPOILER_ITEM);
+  const hint = JSON.stringify(await toolByName("missed")!.run(s.a, { playthroughId: s.liesOfP, reveal: "hint" }));
+  expect(hint).toContain(HINT);
+  expect(hint).not.toContain(FULL);
+  expect(hint).not.toContain(SPOILER_ITEM);
+});
+
+test("correct reads back names and days, never the text of an entry it changed", async () => {
+  const [hinted] = (await questsOf(s.a, s.liesOfP, { reveal: "hint" })).flatMap((q) => q.entries.filter((e) => e.text === HINT));
+  const out = JSON.stringify(await toolByName("correct")!.run(s.a, { changes: [{ what: "entry", id: hinted.id, kind: "log" }] }));
+  expect(out).not.toContain(HINT);
+});

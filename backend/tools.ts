@@ -5,12 +5,16 @@
 // found or another player's log.
 import * as z from "zod";
 import { briefing, type Briefing } from "./briefing";
+import { buildOf } from "./builds";
+import { correct, TARGETS, type Corrected } from "./correct";
 import { DAY } from "./dates";
 import { InvalidInputError } from "./errors";
 import { findPlaythrough, type PlaythroughView } from "./games";
+import { itemsOf, type ItemView } from "./items";
+import { missed, STALE_AFTER, type Missed } from "./missed";
 import { questsOf, type QuestView } from "./quests";
 import { record, type Recorded } from "./record";
-import { ENTRY_KINDS, OPEN_STATUSES, QUEST_STATUSES, SPOILER_LEVELS, type Player } from "./types";
+import { ENTRY_KINDS, OPEN_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, SPOILER_LEVELS, type Player } from "./types";
 
 export type Tool = {
   name: string;
@@ -66,7 +70,7 @@ const Url = z.string().describe("Its page in the web app, as an absolute URL: gi
 const PlaythroughJson = z.object({
   id: z.string(),
   label: z.string().describe("NG, NG+, or what the player calls this run"),
-  status: z.enum(["playing", "finished", "dropped"]),
+  status: z.enum(PLAYTHROUGH_STATUSES),
   language: z.string().nullable().describe("The language the game is played in, when known"),
   lastPlayedOn: Day.nullable(),
   game: z.object({ id: z.string(), title: z.string(), platform: z.string().nullable() }),
@@ -74,6 +78,7 @@ const PlaythroughJson = z.object({
 });
 
 const EntryJson = z.object({
+  id: z.string().describe("For correct"),
   kind: z.enum(ENTRY_KINDS),
   text: z.string(),
   spoiler: Spoiler.describe("none for what the player found; hint or full only when this call asked for them"),
@@ -107,6 +112,15 @@ const ItemJson = z.object({
   verdict: z.string().nullable(),
   url: Url,
 });
+
+const ItemDetailJson = ItemJson.extend({
+  location: z.string().nullable().describe("Where it was found"),
+  equipped: z.boolean(),
+  spoiler: Spoiler.describe("none for what the player found; hint or full only when this call asked for them"),
+});
+
+const PlanJson = z.object({ summary: z.string().nullable(), mainStat: z.string().nullable(), targets: z.record(z.string(), z.number()) });
+const SnapshotJson = z.object({ id: z.string().describe("For correct"), takenOn: Day, level: z.number().nullable(), stats: z.array(StatJson) });
 
 const playthroughJson = (t: PlaythroughView): z.input<typeof PlaythroughJson> => t;
 const questJson = (q: QuestView): z.input<typeof QuestJson> => q;
@@ -253,13 +267,7 @@ const BriefingJson = z.object({
   playthrough: PlaythroughJson.nullable().describe("Null when the player has no playthrough yet (of that game)"),
   lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), url: Url }).nullable(),
   openQuests: z.array(QuestJson.extend({ lastLog: EntryJson.nullable() })).describe("Open first, then blocked"),
-  build: z.object({
-    plan: z.object({ summary: z.string().nullable(), mainStat: z.string().nullable(), targets: z.record(z.string(), z.number()) }).nullable(),
-    current: z
-      .object({ takenOn: Day, level: z.number().nullable(), stats: z.array(StatJson) })
-      .nullable()
-      .describe("The latest snapshot"),
-  }),
+  build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable().describe("The latest snapshot") }),
   equipped: z.array(ItemJson),
   others: z.array(PlaythroughJson).describe("The player's other playthroughs, most recently played first"),
 });
@@ -306,6 +314,134 @@ const threadsNext = (t: PlaythroughView | null, reveal: string, quests: QuestVie
     );
   return next;
 };
+
+// ---- item -----------------------------------------------------------------------------------------------------------------------
+
+const ItemLookupJson = z.object({
+  playthrough: PlaythroughJson.nullable(),
+  reveal: Spoiler.describe("What this call was allowed to show"),
+  items: z.array(ItemDetailJson).describe("The player's items whose name contains the one asked for (all of them without a name), equipped first"),
+  build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable().describe("The latest snapshot") }),
+  equipped: z.array(ItemDetailJson).describe("What the player has equipped now, to compare with"),
+});
+
+function itemNext(t: PlaythroughView | null, name: string | undefined, items: ItemView[], reveal: string): Next {
+  if (!t) return ["The player has no such playthrough yet. Ask what they are playing."];
+  const next: Next = [];
+  if (name && !items.length)
+    next.push(
+      `The player hasn't filed an item called ${name} in ${t.game.title} ${t.label}. If they just found it, file it with record (items). Don't describe it from your own knowledge of the game unless they ask.`,
+    );
+  else
+    next.push(
+      "Compare with the build using these numbers, the verdicts and what the player tells you or a screenshot shows. Where your verdict draws on knowledge of the game, say so and where it comes from. A new or changed verdict goes in with correct (item, by id).",
+    );
+  if (reveal !== "none" && items.some((i) => i.spoiler !== "none"))
+    next.push("Some items here are marked as spoilers: the player asked for them; warn once before naming one.");
+  return next;
+}
+
+// ---- correct --------------------------------------------------------------------------------------------------------------------
+
+const Nullable = (s: z.ZodString, what: string) => s.nullable().optional().describe(`${what}; null clears it`);
+
+const ChangeInput = z.object({
+  what: z.enum(TARGETS).describe("The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats) or item"),
+  id: z.string().describe("Its id, as briefing, open_threads, item or record returned it"),
+  remove: z
+    .boolean()
+    .optional()
+    .describe(
+      "Remove it. A game or playthrough takes everything filed in it along; a session its log entries and its snapshot; a quest its entries. Only when the player said so",
+    ),
+  mergeInto: z
+    .string()
+    .optional()
+    .describe("A quest only: the id of the quest it really is. Its entries move there and it is removed. Only after the player agreed"),
+  title: z.string().optional().describe("game"),
+  platform: Nullable(z.string(), "game"),
+  label: z.string().optional().describe("playthrough: NG, NG+, …"),
+  language: Nullable(z.string(), "playthrough"),
+  status: z
+    .string()
+    .optional()
+    .describe(`playthrough: ${PLAYTHROUGH_STATUSES.join(", ")}. quest: ${QUEST_STATUSES.join(", ")}; done only when the player said they finished it`),
+  summary: z.string().optional().describe("session"),
+  playedOn: Day.optional().describe("session (its snapshot moves with it) or snapshot: the day"),
+  name: z.string().optional().describe("quest or item"),
+  localName: Nullable(z.string(), "quest or item: the name in the game's own language"),
+  giver: Nullable(z.string(), "quest"),
+  location: Nullable(z.string(), "quest: where it started; item: where it was found"),
+  kind: Nullable(z.string(), `entry: ${ENTRY_KINDS.join(", ")}. item: weapon, handle, amulet, … in the game's terms`),
+  text: z.string().optional().describe("entry"),
+  spoiler: Spoiler.optional().describe("entry or item: none once the player has found what it names"),
+  level: z.number().int().nullable().optional().describe("snapshot"),
+  values: z.record(z.string(), z.number()).optional().describe("snapshot: the stats to fix, by key; the others stay"),
+  equipped: z.boolean().optional().describe("item"),
+  verdict: Nullable(z.string(), "item: how it fits the build, with where you know it from"),
+});
+
+const CorrectedJson = z.object({
+  changes: z.array(
+    z.object({
+      what: z.enum(TARGETS),
+      id: z.string(),
+      name: z.string().describe("What it is called now: a title, a name or a day"),
+      changed: z.array(z.string()).describe("The fields that were set"),
+      removed: z.boolean(),
+      mergedInto: z.object({ id: z.string(), name: z.string() }).nullable(),
+      url: Url.nullable().describe("Its page in the web app, or its playthrough's; null when the playthrough or game went with it"),
+    }),
+  ),
+});
+
+function correctNext(cs: Corrected[]): Next {
+  const next: Next = [`Read back what changed, in a sentence per change, with its link: ${cs.map(describe).join("; ")}.`];
+  if (cs.some((c) => c.removed && !c.mergedInto))
+    next.push("A removal can't be undone. If one was a mistake, tell the player at once and file it again with record from what they say.");
+  const done = cs.filter((c) => c.what === "quest" && c.changed.includes("status"));
+  if (done.length) next.push("If a quest's new status is a guess, ask the player before you go on.");
+  return next;
+}
+
+const describe = (c: Corrected) =>
+  c.mergedInto
+    ? `quest ${c.name} merged into ${c.mergedInto.name}`
+    : c.removed
+      ? `${c.what} ${c.name} removed${c.what === "game" || c.what === "playthrough" ? " with everything filed in it" : ""}`
+      : `${c.what} ${c.name}: ${c.changed.join(", ")}`;
+
+// ---- missed ---------------------------------------------------------------------------------------------------------------------
+
+const MissedJson = z.object({
+  playthrough: PlaythroughJson.nullable(),
+  reveal: z.enum(["hint", "full"]),
+  hidden: z
+    .array(QuestJson.extend({ hidden: z.array(EntryJson).describe("Only the entries above none") }))
+    .describe("Open quests with hints or spoilers filed for them"),
+  hiddenItems: z.array(ItemDetailJson).describe("Items marked as hints or spoilers"),
+  leftBehind: z.array(QuestJson).describe(`Open quests the player hasn't touched in the last ${STALE_AFTER} sessions: their own words, no spoilers`),
+});
+
+function missedNext(m: Missed): Next {
+  if (!m.playthrough) return ["The player has no such playthrough yet. Ask what they are playing."];
+  const next: Next = [];
+  const t = m.playthrough;
+  if (m.leftBehind.length)
+    next.push(
+      `Threads left behind, in the player's own words (no spoilers): ${m.leftBehind.map((q) => q.name).join(", ")}. Name these first, with their links.`,
+    );
+  if (m.hidden.length || m.hiddenItems.length)
+    next.push(
+      `The rest gives away more than the player found (${m.reveal === "hint" ? "hints" : "hints and full spoilers"}). Read out only what they asked about, one quest at a time, and stop when they say so.`,
+    );
+  if (!m.leftBehind.length && !m.hidden.length && !m.hiddenItems.length)
+    next.push(`questlog has nothing hidden or left behind in ${t.game.title} ${t.label}. Tell the player.`);
+  next.push(
+    `questlog knows only the player's own log, not the game. If they want more, you may answer from your own knowledge, as they asked for ${m.reveal === "hint" ? "hints" : "spoilers"}: say it is your knowledge, not their log, and stay at that level (a hint names a place or a person, never an outcome). File it only if they ask, marked ${m.reveal}.`,
+  );
+  return next;
+}
 
 // ---- The table ------------------------------------------------------------------------------------------------------------------
 
@@ -363,6 +499,57 @@ export const TOOLS: Tool[] = [
       const quests = t ? await questsOf(p, t.id, { statuses: OPEN_STATUSES, reveal }) : [];
       const ordered = [...quests.filter((q) => q.status === "open"), ...quests.filter((q) => q.status === "blocked")];
       return ok(ThreadsJson, { playthrough: t, reveal, quests: ordered }, threadsNext(t, reveal, ordered));
+    },
+  }),
+  tool({
+    name: "item",
+    description:
+      "Look up the player's items: one by name (part of it is enough, in English or the game's language), or all of them without a name, with the build plan, the latest stats and what is equipped, to compare a new find with. Call it when the player asks about an item they have or whether a new one fits their build.",
+    input: z.object({
+      ...PlaythroughRefInput,
+      name: z.string().optional().describe("The item's name, or part of it"),
+      reveal: Spoiler.optional().describe("Default none. hint or full only when the player asked for spoilers just now"),
+    }),
+    output: ItemLookupJson,
+    annotations: { readOnlyHint: true },
+    handler: async (p, { reveal = "none", name, ...ref }) => {
+      const t = await findPlaythrough(p, ref);
+      if (!t)
+        return ok(ItemLookupJson, { playthrough: null, reveal, items: [], build: { plan: null, current: null }, equipped: [] }, itemNext(t, name, [], reveal));
+      const [items, build, equipped] = await Promise.all([
+        itemsOf(p, t.id, { name, reveal }),
+        buildOf(p, t.id, 1),
+        itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+      ]);
+      const body = { playthrough: t, reveal, items, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
+      return ok(ItemLookupJson, body, itemNext(t, name, items, reveal));
+    },
+  }),
+  tool({
+    name: "correct",
+    description:
+      "Fix or remove what was filed: a game's title, a playthrough's label or status (finished, dropped), a session's day, a quest's name or status, a log entry, a stat snapshot, an item. Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
+    input: z.object({ changes: z.array(ChangeInput).min(1).max(50) }),
+    output: CorrectedJson,
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
+    handler: async (p, { changes }) => {
+      const cs = await correct(p, changes);
+      return ok(CorrectedJson, { changes: cs }, correctNext(cs));
+    },
+  }),
+  tool({
+    name: "missed",
+    description:
+      'What the player may have missed in a playthrough: open quests they left behind, and the hints and spoilers filed for them that other reads leave out. Only when the player asks ("did I miss anything?"), and only after you warned them that the answer may give things away and they still want it. Never on your own, never in a briefing.',
+    input: z.object({
+      ...PlaythroughRefInput,
+      reveal: z.enum(["hint", "full"]).describe("What the player agreed to: hint (places and people, no outcomes) or full (everything)"),
+    }),
+    output: MissedJson,
+    annotations: { readOnlyHint: true },
+    handler: async (p, { reveal, ...ref }) => {
+      const m = await missed(p, ref, reveal);
+      return ok(MissedJson, m, missedNext(m));
     },
   }),
 ];

@@ -72,10 +72,34 @@ test("A game's stat names are its player's", async () => {
 
 test("every tool, as B, returns nothing of A's: with A's ids it is not found, without ids it is B's own", async () => {
   for (const t of TOOLS.filter((x) => x.annotations.readOnlyHint)) {
-    await expect(t.run(s.b, { playthroughId: s.liesOfP })).rejects.toBeInstanceOf(NotFoundError);
-    clean(await t.run(s.b, {}));
-    clean(await t.run(s.b, { game: "Lies of P" }));
+    // missed reads only when asked; ask for everything, so nothing is held back by the spoiler gate here.
+    const ask = t.name === "missed" ? { reveal: "full" } : t.name === "item" ? { reveal: "full", name: "" } : {};
+    await expect(t.run(s.b, { ...ask, playthroughId: s.liesOfP })).rejects.toBeInstanceOf(NotFoundError);
+    clean(await t.run(s.b, ask));
+    clean(await t.run(s.b, { ...ask, game: "Lies of P" }));
   }
+  const named = await toolByName("item")!.run(s.b, { name: "Puppet Saber" });
+  expect(named.items).toEqual([]);
+});
+
+test("B can't correct or remove anything of A's: every target with A's id is not found, and A's log is as it was", async () => {
+  const brief = await briefing(s.a, { playthroughId: s.liesOfP });
+  const before = JSON.stringify([brief, await questsOf(s.a, s.liesOfP, { reveal: "full" }), await itemsOf(s.a, s.liesOfP, { reveal: "full" })]);
+  const item = (await itemsOf(s.a, s.liesOfP))[0].id;
+  const entry = brief.openQuests[0].entries[0].id;
+  const targets = [
+    { what: "game", id: brief.playthrough!.game.id },
+    { what: "playthrough", id: s.liesOfP },
+    { what: "session", id: s.first },
+    { what: "quest", id: s.venigni },
+    { what: "entry", id: entry },
+    { what: "snapshot", id: brief.build.current!.id },
+    { what: "item", id: item },
+  ];
+  for (const t of targets) await expect(toolByName("correct")!.run(s.b, { changes: [{ ...t, remove: true }] })).rejects.toBeInstanceOf(NotFoundError);
+  await expect(toolByName("correct")!.run(s.b, { changes: [{ what: "quest", id: s.ranni, mergeInto: s.venigni }] })).rejects.toBeInstanceOf(NotFoundError);
+  const after = await briefing(s.a, { playthroughId: s.liesOfP });
+  expect(JSON.stringify([after, await questsOf(s.a, s.liesOfP, { reveal: "full" }), await itemsOf(s.a, s.liesOfP, { reveal: "full" })])).toBe(before);
 });
 
 test("B can't record into A's playthrough or A's quests; the same title makes B a game of B's own", async () => {

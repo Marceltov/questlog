@@ -21,3 +21,27 @@ Files one play session: the player's words verbatim as `transcript`, a `summary`
 ## open_threads
 
 The quests that are open or waiting on the game, each with its whole log. `reveal` is `none` unless the player asked for hints in this conversation; `hint` adds hints, `full` everything. With a `reveal`, `next` tells Claude to warn before reading them out.
+
+## item
+
+The player's items in one playthrough: one by `name` (part of it is enough, in English or the game's own language), or all of them, with the build plan, the latest stats and what is equipped, so Claude can say whether a new find fits. Items marked as spoilers show only with a `reveal`. A name the player hasn't filed returns nothing, and `next` asks Claude to file it with `record` rather than describe it from its own knowledge.
+
+## correct
+
+Fixes or removes what was filed, in `changes`: each names one row by `what` (`game`, `playthrough`, `session`, `quest`, `entry`, `snapshot`, `item`) and `id`, and either sets some of its fields or `remove`s it. All changes of one call apply together or not at all.
+
+- **What each takes:** a game its `title` and `platform`; a playthrough its `label`, `language` and `status` (`playing`, `finished`, `dropped`); a session its `summary` and `playedOn` (its stat snapshot moves with it); a quest its `name`, `localName`, `giver`, `location` and `status`; an entry its `kind`, `text` and `spoiler`; a snapshot its `level`, `values` (only the stats named change) and `playedOn`; an item its `name`, `localName`, `kind`, `location`, `equipped`, `verdict` and `spoiler`. Any other field is refused; a nullable field set to `null` is cleared.
+- **Removing:** a game or a playthrough takes everything filed in it along; a session its log entries and its snapshot, while the quests and items it started stay; a quest its entries.
+- **Merging:** two quests are never merged unless asked: `mergeInto` on a quest moves its entries to the quest it really is and removes it, and Claude passes it only after the player agreed. A rename to a name another quest, item, game or playthrough already has is refused.
+
+The ids come from `briefing`, `open_threads`, `item` and `record`. `next` asks Claude to read back each change and says that a removal can't be undone.
+
+## missed
+
+"Did I miss anything?", only when the player asks, after Claude warned them, and at the level they agreed to: `reveal` is required, `hint` or `full`. questlog knows only the player's own log (values V6), so it returns:
+
+- **`leftBehind`:** open quests that haven't changed in the playthrough's last three sessions, in the player's own words.
+- **`hidden`:** the open quests' entries above `none`, the hints and spoilers Claude filed that other reads leave out.
+- **`hiddenItems`:** the items marked as hints or spoilers.
+
+`next` has Claude name the threads left behind first, read out the rest one quest at a time, and, if the player wants more than their log holds, say that what follows is Claude's own knowledge of the game, at the level they asked for.
