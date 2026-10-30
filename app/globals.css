@@ -57,7 +57,7 @@ body {
   color: var(--ink);
 }
 
-/* The backdrop: an open almanac, by daylight or by candlelight (public/backdrop-*.svg, from scripts/backdrop.py; the docs site has the same), fixed behind a translucent
+/* The backdrop: an open almanac, by daylight or by candlelight (public/backdrop-*.svg, from scripts/backdrop.py), fixed behind a translucent
    column, with a vignette that keeps the edges quiet. A pseudo-element, not background-attachment: fixed, which phones ignore. */
 body::before {
   content: "";
