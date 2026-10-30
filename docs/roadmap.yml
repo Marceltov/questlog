@@ -21,17 +21,17 @@ items:
       - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
+  # ---- done ------------------------------------------------------------------------------------------------------------
   - id: trilium-import
-    status: later
-    when: Later
+    status: done
+    date: 2026-10-30
     icon: import
     title: The Lies of P log from Trilium
-    summary: The quest log and build pages Claude kept in Trilium, filed as the first playthrough.
+    summary: The quest log, build and mechanics pages Claude kept in Trilium, filed through record as the first playthrough, each page word for word as a session's transcript.
     links:
       - { label: "#8", url: "https://github.com/Marceltov/questlog/issues/8" }
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
-  # ---- done ------------------------------------------------------------------------------------------------------------
   - id: lookups
     status: done
     date: 2026-10-30
