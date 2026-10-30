@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-10-30
 decision-makers: Marcel Bruckner
 ---
@@ -56,7 +56,10 @@ Chosen options: a TypeScript mcp-login-oauth that keeps its data in its own SQLi
 * Bad, because user deletion needs an explicit `revokeUser` call instead of a foreign key.
 * Bad, because freundebuch and notefeed lose their current logins when they migrate: connected clients sign in once more.
 
-### Open questions
+### Repository and distribution
 
-* Repository: the TypeScript library in the same repository as the Python one (folders `python/` and `typescript/`, sharing ADRs and test cases), or a repository of its own? The shared repository keeps the two in step; a separate one is simpler to publish.
-* Package name and distribution: pinned git tag first, as the Python library, then npm.
+Decided by Marcel, 2026-10-30:
+
+* **Same repository as the Python library**, [Marceltov/mcp-login-oauth](https://github.com/Marceltov/mcp-login-oauth), so both share the ADRs and the test cases. The Python package stays at the root, where its four users pin it; the TypeScript package goes into `typescript/`.
+* **Tags:** Python keeps `v0.x.y`; TypeScript releases are tagged `ts-v0.x.y`.
+* **Distribution:** npm can't install a package from a subfolder of a git repository ([npm/npm#2974](https://github.com/npm/npm/issues/2974), [npm/cli#513](https://github.com/npm/cli/issues/513)). On a `ts-v*` tag, CI runs `npm pack` and attaches the tarball to the GitHub release; apps depend on that tarball's URL, pinned like the Python tag. Publishing to npm can follow later.

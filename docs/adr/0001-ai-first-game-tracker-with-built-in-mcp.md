@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 date: 2026-10-30
 decision-makers: Marcel Bruckner
 ---
@@ -67,6 +67,6 @@ Chosen option: "Build our own, AI-first, modelled on freundebuch", because it ke
 * Bad, because it is a second app to maintain next to freundebuch. Sign-in and OAuth come from a shared library ([ADR 0003](0003-sign-in-through-a-typescript-mcp-login-oauth.md)); the rest of the plumbing is copied.
 * Bad, because what Claude finds on the web about items and quests may be wrong; questlog keeps the sources so the player can check.
 
-### Open questions
+### Later
 
-* Import the existing Trilium pages (quest log, build) as the first playthrough?
+* Import the existing Trilium pages (Lies of P quest log and build) as the first playthrough, once questlog can record them (decided by Marcel, 2026-10-30).

@@ -6,7 +6,7 @@ questlog: a spoiler-free quest log, build tracker and item list for the games yo
 
 ## Status
 
-Design phase: there is no code yet. The design is in `docs/adr/0001-ai-first-game-tracker-with-built-in-mcp.md`.
+Design phase: there is no code yet. The design is in `docs/adr/` (0001 the app, 0002 lookups, 0003 sign-in). Sign-in comes from the TypeScript package in `Marceltov/mcp-login-oauth`, which is built first.
 
 ## Rules
 
