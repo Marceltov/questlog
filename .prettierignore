@@ -1,0 +1,7 @@
+# Marceltov/engineering-conventions: code/formatting.md.
+# MkDocs Markdown: Python-Markdown needs nested lists and admonition bodies indented by four spaces, which Prettier rewrites.
+docs/**/*.md
+site/
+# questlog's own: the lock file and build output.
+package-lock.json
+.next/

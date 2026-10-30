@@ -1,0 +1,50 @@
+{
+  "name": "questlog",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@better-auth/cimd": "1.7.14",
+    "@better-auth/mcp": "1.7.14",
+    "@better-auth/oauth-provider": "1.7.14",
+    "@modelcontextprotocol/server": "2.3.1",
+    "better-auth": "1.7.14",
+    "better-sqlite3": "^13.0.3",
+    "kysely": "^0.29.7",
+    "lucide-react": "^1.65.0",
+    "next": "16.4.3",
+    "nodemailer": "^10.3.1",
+    "pino": "^10.4.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22",
+    "@types/nodemailer": "^8",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "eslint-config-prettier": "^10",
+    "prettier": "^3",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.12"
+  }
+}
