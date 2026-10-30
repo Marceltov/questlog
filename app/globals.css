@@ -14,7 +14,8 @@
   --hint: #8a6d1d;
   --error: #b42318;
   --vignette: rgb(60 40 25 / 0.25);
-  --column: rgb(246 242 234 / 0.74);
+  --column: rgb(246 242 234 / 0.88);
+  --glass: rgb(255 253 248 / 0.84);
   color-scheme: light;
 }
 
@@ -31,7 +32,8 @@
     --hint: #e3c06a;
     --error: #ff8a80;
     --vignette: rgb(0 0 0 / 0.5);
-    --column: rgb(22 23 29 / 0.7);
+    --column: rgb(22 23 29 / 0.86);
+    --glass: rgb(31 32 40 / 0.8);
     color-scheme: dark;
   }
 }
@@ -76,6 +78,30 @@ body::before {
   }
 }
 
+/* On a narrow screen the scene is cropped to a strip of it: take the strip with the moon and the tallest spires. */
+@media (max-width: 40rem) {
+  body::before {
+    background-position:
+      center,
+      72% bottom,
+      center;
+  }
+}
+
+/* Frosted glass: everything with text on it, so the backdrop shows around and through it and the text stays readable. */
+@utility glass {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+}
+/* A small label or link on the backdrop. */
+@utility pill {
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+}
+
 @layer components {
   .field {
     @apply w-full rounded-lg border border-rule bg-surface px-3 py-2 text-ink outline-none focus:border-accent;
@@ -87,19 +113,21 @@ body::before {
     @apply rounded-lg border border-rule bg-surface px-4 py-2 font-semibold text-ink hover:border-accent disabled:opacity-60;
   }
   .card {
-    @apply rounded-xl border border-rule bg-surface p-4;
+    @apply glass rounded-xl border border-rule p-4;
   }
-  /* The content column over the backdrop: on a phone the scene shows through more, since the column is all there is. */
-  .column {
-    background: var(--column);
-    @apply border-x border-rule backdrop-blur-sm;
-  }
-  @media (min-width: 40rem) {
-    .column {
-      background: color-mix(in srgb, var(--column), var(--paper) 50%);
-    }
+  /* A heading block: the page's title and what it says under it. */
+  .plate {
+    @apply glass rounded-xl px-4 py-3;
   }
   .section-title {
-    @apply mb-2 text-xs font-bold tracking-widest text-muted uppercase;
+    @apply pill mb-2 text-xs font-bold tracking-widest text-muted uppercase;
+  }
+  /* The content column: on a phone there is none, so the scene shows between the cards; on a wider screen it sits between the backdrop's
+     two halves. */
+  @media (min-width: 40rem) {
+    .column {
+      background: var(--column);
+      @apply border-x border-rule backdrop-blur-sm;
+    }
   }
 }

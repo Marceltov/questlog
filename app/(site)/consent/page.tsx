@@ -17,7 +17,7 @@ export default async function ConsentPage({ searchParams }: PageProps<"/consent"
   const name = (typeof client_id === "string" && (await clientName(h, client_id))) || copy.unknownClient;
   return (
     <main className="mx-auto max-w-sm px-4 py-16">
-      <div className="column rounded-2xl border-y p-6">
+      <div className="card rounded-2xl p-6">
         <h1 className="text-2xl font-bold">{copy.consentTitle}</h1>
         <p className="mt-3">{copy.consentLead(name)}</p>
         <p className="mt-2 mb-8 text-sm text-muted">{copy.consentWho(who)}</p>

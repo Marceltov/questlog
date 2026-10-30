@@ -9,7 +9,7 @@ export default async function Home() {
   const runs = await listPlaythroughs(await pagePlayer());
   return (
     <>
-      <h1 className="mb-4 text-2xl font-bold">{copy.homeTitle}</h1>
+      <h1 className="plate mb-4 text-2xl font-bold">{copy.homeTitle}</h1>
       {runs.length === 0 ? (
         <div className="card space-y-2">
           <p>{copy.nothingYet}</p>

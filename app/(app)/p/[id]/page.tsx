@@ -25,7 +25,7 @@ export default async function PlaythroughPage({ params, searchParams }: PageProp
   const current = build.snapshots[0];
   return (
     <div className="space-y-8">
-      <div>
+      <div className="plate">
         <h1 className="text-2xl font-bold">{t.game.title}</h1>
         <p className="text-muted">
           {t.label} · {copy.status[t.status]}
@@ -46,12 +46,12 @@ export default async function PlaythroughPage({ params, searchParams }: PageProp
       <section>
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="section-title mb-0">{copy.openQuests}</h2>
-          <Link href={reveal === "hint" ? `/p/${id}` : `/p/${id}?hints=1`} className="text-sm text-accent">
+          <Link href={reveal === "hint" ? `/p/${id}` : `/p/${id}?hints=1`} className="pill text-sm text-accent">
             {reveal === "hint" ? copy.hideHints : copy.showHints}
           </Link>
         </div>
-        {reveal === "hint" && <p className="mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
-        {open.length === 0 ? <p className="text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
+        {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
+        {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
       </section>
 
       <section>
@@ -90,7 +90,7 @@ export default async function PlaythroughPage({ params, searchParams }: PageProp
       <section>
         <h2 className="section-title">{copy.items}</h2>
         {items.length === 0 ? (
-          <p className="text-muted">{copy.noItems}</p>
+          <p className="card text-muted">{copy.noItems}</p>
         ) : (
           <ul className="space-y-2">
             {items.map((i) => (
@@ -120,7 +120,7 @@ export default async function PlaythroughPage({ params, searchParams }: PageProp
       {sessions.length > 0 && (
         <section>
           <h2 className="section-title">{copy.sessions}</h2>
-          <ul className="divide-y divide-rule">
+          <ul className="card divide-y divide-rule py-1">
             {sessions.map((s) => (
               <li key={s.id}>
                 <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
