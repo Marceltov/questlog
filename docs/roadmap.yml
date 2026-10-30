@@ -11,16 +11,6 @@
 
 items:
   # ---- open ------------------------------------------------------------------------------------------------------------
-  - id: page-turns
-    status: next
-    when: Next
-    icon: book-open-page-variant-outline
-    title: Turn pages
-    summary: One page per playthrough, swiped sideways on the phone, with a contents page first.
-    links:
-      - { label: "#12", url: "https://github.com/Marceltov/questlog/issues/12" }
-      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
-
   - id: rest-api
     status: next
     when: Next
@@ -62,6 +52,16 @@ items:
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: page-turns
+    status: done
+    date: 2026-10-30
+    icon: book-open-page-variant-outline
+    title: Turn pages
+    summary: One page per playthrough, swiped sideways on the phone, with a contents page first.
+    links:
+      - { label: "#20", url: "https://github.com/Marceltov/questlog/pull/20" }
+      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
+
   - id: more-tools
     status: done
     date: 2026-10-30
