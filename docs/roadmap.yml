@@ -11,16 +11,6 @@
 
 items:
   # ---- open ------------------------------------------------------------------------------------------------------------
-  - id: rest-api
-    status: next
-    when: Next
-    icon: api
-    title: The REST API
-    summary: /api/v1 over the same domain, with tokens bound to it, and the OpenAPI description generated from its route table.
-    links:
-      - { label: "#5", url: "https://github.com/Marceltov/questlog/issues/5" }
-      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
-
   - id: passkeys
     status: later
     when: Later
@@ -52,6 +42,17 @@ items:
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: rest-api
+    status: done
+    date: 2026-10-30
+    icon: api
+    title: The REST API
+    summary: /api/v1 over the same domain, with tokens bound to it, and the OpenAPI description generated from its route table.
+    links:
+      - { label: "#21", url: "https://github.com/Marceltov/questlog/pull/21" }
+      - { label: "ADR 0007", url: "https://questlog.marceltov.de/adr/0007-rest-api-tokens/" }
+      - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
+
   - id: page-turns
     status: done
     date: 2026-10-30
