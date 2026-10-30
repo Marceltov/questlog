@@ -57,7 +57,7 @@ body {
   color: var(--ink);
 }
 
-/* The backdrop: a town and mountains of no game in particular, at dawn or by night (public/backdrop-*.svg), fixed behind a translucent
+/* The backdrop: an open almanac, by daylight or by candlelight (public/backdrop-*.svg, from scripts/backdrop.py), fixed behind a translucent
    column, with a vignette that keeps the edges quiet. A pseudo-element, not background-attachment: fixed, which phones ignore. */
 body::before {
   content: "";
@@ -66,24 +66,24 @@ body::before {
   z-index: -1;
   background:
     radial-gradient(ellipse at 50% 35%, transparent 40%, var(--vignette) 100%),
-    url("/backdrop-light.svg") center bottom / cover no-repeat,
+    url("/backdrop-light.svg") center / cover no-repeat,
     var(--paper);
 }
 @media (prefers-color-scheme: dark) {
   body::before {
     background:
       radial-gradient(ellipse at 50% 35%, transparent 40%, var(--vignette) 100%),
-      url("/backdrop-dark.svg") center bottom / cover no-repeat,
+      url("/backdrop-dark.svg") center / cover no-repeat,
       var(--paper);
   }
 }
 
-/* On a narrow screen the scene is cropped to a strip of it: take the strip with the moon and the tallest spires. */
+/* On a narrow screen the book is cropped to a strip of it: take the strip with the moon phases and the ribbon. */
 @media (max-width: 40rem) {
   body::before {
     background-position:
       center,
-      72% bottom,
+      72% center,
       center;
   }
 }
