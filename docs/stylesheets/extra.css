@@ -389,25 +389,29 @@
 }
 
 /* The open almanac behind every page, as in the web app (assets/backdrop-*.svg, drawn by scripts/backdrop.py): fixed behind the page, by
-   daylight or by candlelight. The text sits on a frosted panel, so it reads as it did on white. */
+   daylight or by candlelight, toned down so it stays a frame in the margins. The text sits on near-solid paper, so nothing of the book's
+   ink shows behind it. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
+    linear-gradient(rgb(255 253 248 / 0.45), rgb(255 253 248 / 0.45)),
     radial-gradient(ellipse at 50% 35%, transparent 45%, rgb(60 40 25 / 0.22) 100%),
     url("../assets/backdrop-light.svg") center / cover no-repeat;
 }
 [data-md-color-scheme="slate"] body::before,
 body[data-md-color-scheme="slate"]::before {
   background:
+    linear-gradient(rgb(14 15 20 / 0.45), rgb(14 15 20 / 0.45)),
     radial-gradient(ellipse at 50% 35%, transparent 45%, rgb(0 0 0 / 0.5) 100%),
     url("../assets/backdrop-dark.svg") center / cover no-repeat;
 }
 @media screen and (max-width: 44.9375em) {
   body::before {
     background-position:
+      center,
       center,
       72% center;
   }
@@ -416,10 +420,10 @@ body {
   background: transparent;
 }
 :root > * {
-  --ql-glass: rgb(255 253 248 / 0.88);
+  --ql-glass: rgb(255 253 248 / 0.97);
 }
 [data-md-color-scheme="slate"] {
-  --ql-glass: hsla(235, 12%, 10%, 0.86);
+  --ql-glass: hsla(235, 12%, 10%, 0.96);
 }
 /* The page, and on wide screens the menu and the table of contents, on frosted glass. */
 .md-content__inner {
