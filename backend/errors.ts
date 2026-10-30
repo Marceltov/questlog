@@ -27,3 +27,10 @@ export class AmbiguousError extends QuestlogError {
     super("ambiguous", message);
   }
 }
+
+// No valid access token for the surface asked (a missing, expired or foreign one, or one for /mcp on /api/v1).
+export class AuthError extends QuestlogError {
+  constructor(message = "A valid access token for this API is required") {
+    super("unauthorized", message);
+  }
+}

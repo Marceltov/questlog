@@ -11,7 +11,7 @@ import { QuestlogError } from "./errors";
 import { logger } from "./log";
 import { TOOLS } from "./tools";
 import type { Player } from "./types";
-import { AUTH_PATH, absoluteUrls, mcpResource } from "./urls";
+import { absoluteUrls, jwksUrl, mcpResource } from "./urls";
 
 const log = logger("mcp");
 
@@ -66,10 +66,6 @@ export const mcpAs = (req: Request, player: Player): Promise<Response> =>
 
 const rpcError = (status: number, message: string, headers?: Record<string, string>) =>
   Response.json({ jsonrpc: "2.0", error: { code: -32600, message } }, { status, headers });
-
-// The keys /mcp checks tokens against. Fetched from this same process over loopback, not through PUBLIC_URL: a server behind a reverse
-// proxy often can't reach its own public address.
-const jwksUrl = () => `http://127.0.0.1:${config.port()}${AUTH_PATH}/jwks`;
 
 export async function mcpRoute(req: Request): Promise<Response> {
   // The SDK doesn't check Origin, so a page of another site can't drive this endpoint: no Origin (server-side clients) passes, a present

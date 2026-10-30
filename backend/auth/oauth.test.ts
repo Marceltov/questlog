@@ -9,6 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { resetDbForTests } from "../db/testing";
+import { dispatch } from "../http/api";
+import { apiResourceMetadataRoute } from "../http/metadata";
 import { mcpRoute } from "../mcp";
 import { questsOf } from "../quests";
 import { resetSecretForTests } from "../secret";
@@ -24,6 +26,8 @@ const codes = new Map<string, string>();
 function route(req: Request): Promise<Response> {
   const path = new URL(req.url).pathname;
   if (path === "/mcp") return mcpRoute(req);
+  if (path.startsWith("/api/v1/")) return dispatch(req, path.slice("/api/v1/".length).split("/").map(decodeURIComponent));
+  if (path === "/.well-known/oauth-protected-resource/api/v1") return Promise.resolve(apiResourceMetadataRoute());
   // A stand-in OpenID Connect provider: only its discovery document.
   if (path === "/fake-oidc/.well-known/openid-configuration")
     return Promise.resolve(
@@ -259,4 +263,119 @@ test("an OpenID Connect provider from QUESTLOG_OIDC_<NAME>_* sends the browser t
   expect(to.searchParams.get("client_id")).toBe("questlog-client");
   expect(to.searchParams.get("redirect_uri")).toBe(`${base}/api/auth/callback/fake`);
   expect(to.searchParams.get("code_challenge_method")).toBe("S256");
+});
+
+/** A token for `resource`, through the whole flow: registration, authorize, the email code, consent, the token endpoint. */
+async function tokenFor(resource: string) {
+  const meta = await (await fetch(`${base}/.well-known/oauth-authorization-server/api/auth`)).json();
+  const redirect = "http://127.0.0.1:8123/callback";
+  const reg = await fetch(meta.registration_endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      client_name: "A script",
+      application_type: "native",
+      resources: [resource],
+      redirect_uris: [redirect],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+    }),
+  });
+  expect(reg.status).toBe(201);
+  const { client_id } = await reg.json();
+  const verifier = randomBytes(32).toString("base64url");
+  const authorize = new URL(meta.authorization_endpoint);
+  for (const [k, v] of Object.entries({
+    response_type: "code",
+    client_id,
+    redirect_uri: redirect,
+    scope: "openid",
+    state: "st",
+    code_challenge: createHash("sha256").update(verifier).digest("base64url"),
+    code_challenge_method: "S256",
+    resource,
+  }))
+    authorize.searchParams.set(k, v);
+  const toLogin = await fetch(authorize, { redirect: "manual", headers: { accept: "text/html" } });
+  const login = new URL(toLogin.status === 302 ? toLogin.headers.get("location")! : (await toLogin.json()).url, base);
+  const signed = await signIn("ada@example.com", login.search.slice(1));
+  const cookie = cookieOf(signed);
+  const consent = new URL((await signed.json()).url, base);
+  const consented = await fetch(`${base}/api/auth/oauth2/consent`, json({ accept: true, oauth_query: consent.search.slice(1) }, { cookie }));
+  const answer = await consented.json();
+  if (!answer.url) throw new Error(`consent for ${resource}: ${consented.status} ${JSON.stringify(answer)} (sign-in went to ${consent.pathname})`);
+  const back = new URL(answer.url);
+  const token = await fetch(meta.token_endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code: back.searchParams.get("code")!,
+      redirect_uri: redirect,
+      client_id,
+      code_verifier: verifier,
+      resource,
+    }),
+  });
+  expect(token.status).toBe(200);
+  return { access: (await token.json()).access_token as string, cookie };
+}
+
+test("a script gets a token bound to /api/v1; it works there and not on /mcp, and an /mcp token not on /api/v1", async () => {
+  const meta = await (await fetch(`${base}/.well-known/oauth-protected-resource/api/v1`)).json();
+  expect(meta).toEqual(expect.objectContaining({ resource: `${base}/api/v1`, authorization_servers: [`${base}/api/auth`] }));
+
+  const api = await tokenFor(`${base}/api/v1`);
+  const bearer = { authorization: `Bearer ${api.access}` };
+  const listed = await fetch(`${base}/api/v1/playthroughs`, { headers: bearer });
+  expect(listed.status).toBe(200);
+  expect(await listed.json()).toEqual({ playthroughs: [] });
+  const filed = await fetch(`${base}/api/v1/sessions`, {
+    method: "POST",
+    headers: { ...bearer, "content-type": "application/json" },
+    body: JSON.stringify({ game: "Lies of P", summary: "Met Venigni.", transcript: "Met Venigni." }),
+  });
+  expect(filed.status).toBe(201);
+  expect((await filed.json()).url).toMatch(new RegExp(`^${base}/s/`));
+  expect((await rpc("tools/list", {}, bearer)).status).toBe(401);
+
+  // The session cookie doesn't count on the API, and neither does a token for /mcp.
+  expect((await fetch(`${base}/api/v1/playthroughs`, { headers: { cookie: api.cookie } })).status).toBe(401);
+  const mcp = await tokenFor(`${base}/mcp`);
+  expect((await rpc("tools/list", {}, { authorization: `Bearer ${mcp.access}` })).status).toBe(200);
+  const refused = await fetch(`${base}/api/v1/playthroughs`, { headers: { authorization: `Bearer ${mcp.access}` } });
+  expect(refused.status).toBe(401);
+  expect(refused.headers.get("www-authenticate")).toContain(`${base}/.well-known/oauth-protected-resource/api/v1`);
+});
+
+test("a client registered without asking for /api/v1, as claude.ai registers, can't get a token for it", async () => {
+  const meta = await (await fetch(`${base}/.well-known/oauth-authorization-server/api/auth`)).json();
+  const redirect = "https://claude.example/api/mcp/auth_callback";
+  const reg = await fetch(meta.registration_endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      client_name: "MCP only",
+      redirect_uris: [redirect],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+    }),
+  });
+  const { client_id } = await reg.json();
+  const authorize = new URL(meta.authorization_endpoint);
+  for (const [k, v] of Object.entries({
+    response_type: "code",
+    client_id,
+    redirect_uri: redirect,
+    scope: "openid",
+    code_challenge: createHash("sha256").update("x".repeat(43)).digest("base64url"),
+    code_challenge_method: "S256",
+    resource: `${base}/api/v1`,
+  }))
+    authorize.searchParams.set(k, v);
+  const r = await fetch(authorize, { redirect: "manual", headers: { accept: "text/html" } });
+  const to = new URL(r.status === 302 ? r.headers.get("location")! : (await r.json()).url);
+  expect(to.searchParams.get("error")).toBe("invalid_target");
 });

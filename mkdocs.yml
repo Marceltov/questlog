@@ -18,6 +18,7 @@ nav:
       - Connect Claude: self-hosting/connect-claude.md
   - Reference:
       - MCP tools: reference/mcp-tools.md
+      - REST API: reference/rest-api.md
   - Internals:
       - How it works: internals/how-it-works.md
       - Development: internals/development.md
@@ -28,6 +29,7 @@ nav:
       - Sign-in with Better Auth: adr/0004-sign-in-with-better-auth.md
       - Spoiler levels and one gate: adr/0005-spoiler-levels-and-one-gate.md
       - How Better Auth is wired: adr/0006-better-auth-wiring.md
+      - The REST API's tokens: adr/0007-rest-api-tokens.md
 
 theme:
   name: material

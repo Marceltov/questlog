@@ -30,11 +30,27 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # The committed openapi.json must match the route table.
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run generate
+      # --porcelain also catches files the generator added that aren't committed yet.
+      - name: Generated files are current
+        run: test -z "$(git status --porcelain)" || { git status --short; echo "::error::Generated files are stale. Run npm run generate and commit."; exit 1; }
+      - run: npx -y @redocly/cli@2.57.0 lint openapi.json
+
   # A push to main publishes ghcr.io/marceltov/questlog:main, only once check passed in the same run, so an untested image is
   # never :main. Only this job may write packages; the rest of the workflow stays read-only.
   image:
     if: github.event_name == 'push'
-    needs: check
+    needs: [check, generate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
