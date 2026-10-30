@@ -24,6 +24,17 @@ export const OPEN_STATUSES: readonly QuestStatus[] = ["open", "blocked"];
 export const ENTRY_KINDS = ["log", "next", "decision"] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
+/**
+ * A long-term goal of a playthrough (ADR 0009), apart from what happened. `stat`: a stat to a value; `level`: a character level; `item`:
+ * something to do with an item (keep a blade for a handle); `note`: anything else (stay under 60 % load).
+ */
+export const GOAL_KINDS = ["stat", "level", "item", "note"] as const;
+export type GoalKind = (typeof GOAL_KINDS)[number];
+
+/** `open`: still to do. `reached`: done; a stat or level goal gets there on its own when a snapshot does. `dropped`: given up or replaced. */
+export const GOAL_STATUSES = ["open", "reached", "dropped"] as const;
+export type GoalStatus = (typeof GOAL_STATUSES)[number];
+
 export const PLAYTHROUGH_STATUSES = ["playing", "finished", "dropped"] as const;
 export type PlaythroughStatus = (typeof PLAYTHROUGH_STATUSES)[number];
 

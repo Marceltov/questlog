@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { TARGETS } from "../correct";
 import { Day, Spoiler } from "../schemas";
-import { ENTRY_KINDS, PLAYTHROUGH_STATUSES, QUEST_STATUSES } from "../types";
+import { ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES } from "../types";
 import { ERROR_CODES } from "./errors";
 
 const Url = z.string().describe("Its page in the web app, as an absolute URL");
@@ -28,6 +28,10 @@ export const PlaythroughJson = z
     status: z.enum(PLAYTHROUGH_STATUSES),
     language: z.string().nullable().describe("The language the game is played in, when known"),
     lastPlayedOn: Day.nullable(),
+    character: z
+      .object({ name: z.string().nullable(), class: z.string().nullable(), localClass: z.string().nullable().describe("The class in the game's own language") })
+      .nullable()
+      .describe("Who the player plays in this run; null until filed"),
     game: z.object({
       id: z.string(),
       title: z.string(),
@@ -84,7 +88,29 @@ export const ItemJson = z
 
 export const ItemListJson = z.object({ items: z.array(ItemJson).describe("Equipped first, then the newest") }).meta({ id: "ItemList" });
 
-const PlanJson = z.object({ summary: z.string().nullable(), mainStat: z.string().nullable(), targets: z.record(z.string(), z.number()) });
+const PlanJson = z.object({
+  summary: z.string().nullable(),
+  mainStat: z.string().nullable(),
+  targets: z.record(z.string(), z.number()).describe("The player's stat goals, by stat (the open one, else the last reached)"),
+});
+
+export const GoalJson = z
+  .object({
+    id: z.string(),
+    kind: z.enum(GOAL_KINDS),
+    stat: z.object({ key: z.string(), name: z.string(), localName: z.string().nullable() }).nullable().describe("A stat goal's stat"),
+    target: z.number().nullable().describe("A stat goal's value or a level goal's level"),
+    current: z.number().nullable().describe("Where the latest snapshot is, for a stat or level goal"),
+    item: z.object({ id: z.string(), name: z.string(), url: Url }).nullable().describe("An item goal's item"),
+    text: z.string().nullable().describe("A note goal's goal, or why"),
+    rank: z.number().describe("1 is first"),
+    status: z.enum(GOAL_STATUSES),
+    suggested: z.boolean().describe("Proposed by Claude or a guide, not agreed to by the player yet"),
+    spoiler: Spoiler,
+    reachedOn: Day.nullable(),
+    sessionUrl: z.string().nullable().describe("The session it was set in"),
+  })
+  .meta({ id: "Goal", description: "A long-term goal of a playthrough (ADR 0009)" });
 const SnapshotJson = z
   .object({
     id: z.string(),
@@ -103,8 +129,12 @@ const SnapshotJson = z
   .meta({ id: "StatSnapshot" });
 
 export const BuildJson = z
-  .object({ plan: PlanJson.nullable(), snapshots: z.array(SnapshotJson).describe("Newest first") })
-  .meta({ id: "Build", description: "The build plan and the stat snapshots" });
+  .object({
+    plan: PlanJson.nullable(),
+    goals: z.array(GoalJson).describe("Open by rank (the player's, then suggestions), then reached"),
+    snapshots: z.array(SnapshotJson).describe("Newest first"),
+  })
+  .meta({ id: "Build", description: "The build plan, its goals and the stat snapshots" });
 
 const SessionSummaryJson = z.object({ id: z.string(), playedOn: Day, summary: z.string(), url: Url }).meta({ id: "SessionSummary" });
 export const SessionListJson = z.object({ sessions: z.array(SessionSummaryJson).describe("Newest first") }).meta({ id: "SessionList" });
@@ -117,7 +147,7 @@ export const BriefingJson = z
     playthrough: PlaythroughJson.nullable(),
     lastSession: SessionSummaryJson.nullable(),
     openQuests: z.array(QuestJson).describe("Open first, then waiting on the game"),
-    build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable() }),
+    build: z.object({ plan: PlanJson.nullable(), goals: z.array(GoalJson), current: SnapshotJson.nullable() }),
     equipped: z.array(ItemJson),
     others: z.array(PlaythroughJson).describe("The player's other playthroughs"),
   })
@@ -148,7 +178,13 @@ export const RecordedJson = z
         newNames: z.array(z.object({ key: z.string(), name: z.string(), localName: z.string().nullable() })).describe("Stats the game hadn't had"),
       })
       .nullable(),
-    build: z.boolean().describe("Whether the build plan changed"),
+    build: z.boolean().describe("Whether the build plan or its goals changed"),
+    goals: z
+      .array(z.object({ id: z.string(), label: z.string(), status: z.enum(GOAL_STATUSES), suggested: z.boolean(), created: z.boolean() }))
+      .describe("The goals the session set or changed"),
+    reached: z.array(z.string()).describe("Goals the session's snapshot got to"),
+    character: z.boolean().describe("Whether the character changed"),
+    carried: z.number().nullable().describe("Open goals taken along from carryFrom"),
   })
   .meta({ id: "Recorded", description: "What was filed from a session" });
 
@@ -179,6 +215,7 @@ export const COMPONENTS = [
   ItemJson,
   ItemListJson,
   SnapshotJson,
+  GoalJson,
   BuildJson,
   SessionSummaryJson,
   SessionListJson,

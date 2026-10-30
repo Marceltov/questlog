@@ -21,7 +21,37 @@ items:
       - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
+  - id: inventory
+    status: next
+    when: Next
+    icon: bag-personal-outline
+    title: The whole inventory
+    summary: Weapons, armour, consumables, upgrade materials and collectibles, with quantities and an item's numbers as data, grouped by kind.
+    links:
+      - { label: "#24", url: "https://github.com/Marceltov/questlog/issues/24" }
+      - { label: "V8", url: "https://questlog.marceltov.de/values/" }
+
+  - id: world
+    status: later
+    when: Later
+    icon: account-group-outline
+    title: Bosses, NPCs and places
+    summary: Kept as the player meets them, not only as names in quest logs; beaten, met, reached, and what is left to do where.
+    links:
+      - { label: "#25", url: "https://github.com/Marceltov/questlog/issues/25" }
+      - { label: "V1", url: "https://questlog.marceltov.de/values/" }
+
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: goals
+    status: done
+    date: 2026-10-30
+    icon: flag-checkered
+    title: Goals and the character
+    summary: Long-term goals apart from what happened, in order, reached on their own when the stats get there, suggestions kept apart until agreed; the character is the playthrough's and can go along to NG+.
+    links:
+      - { label: "#26", url: "https://github.com/Marceltov/questlog/pull/26" }
+      - { label: "ADR 0009", url: "https://questlog.marceltov.de/adr/0009-goals-and-the-character/" }
+
   - id: trilium-import
     status: done
     date: 2026-10-30

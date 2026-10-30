@@ -194,6 +194,27 @@ body::before {
     transition: none;
   }
 }
+/* The plan (goals, ADR 0009): an ordered list, each goal with a thin rule that fills in ember as the stat gets there, like ink run along a
+   ruled line. Reached goals stay, quieter; a suggestion is set apart by a dotted rule until the player agrees. */
+.goal {
+  @apply space-y-1;
+}
+.goal-track {
+  @apply h-1 overflow-hidden rounded-full bg-surface-2;
+}
+.goal-fill {
+  @apply h-full rounded-full bg-accent;
+}
+.goal-reached {
+  @apply opacity-60;
+}
+.goal-suggested .goal-track {
+  @apply border border-dashed border-rule bg-transparent;
+}
+.goal-suggested .goal-fill {
+  @apply bg-muted;
+}
+
 /* Pull to fetch (components/Follow.tsx): the icon's bookmark ribbon comes down from under the header, in ink, ember once letting go
    fetches. It follows the finger without easing; let go, it slides back up, and while the pull's fetch runs it hangs and sways. */
 .ribbon-pull {

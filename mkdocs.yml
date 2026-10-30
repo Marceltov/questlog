@@ -31,6 +31,7 @@ nav:
       - How Better Auth is wired: adr/0006-better-auth-wiring.md
       - The REST API's tokens: adr/0007-rest-api-tokens.md
       - Claude looks things up: adr/0008-claude-looks-things-up.md
+      - Goals and the character: adr/0009-goals-and-the-character.md
 
 theme:
   name: material

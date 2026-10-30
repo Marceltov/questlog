@@ -1,14 +1,17 @@
 // Filing a play session: the transcript as the player said it (values V3), and what was filed from it: quest entries, a stat snapshot,
-// the build plan, items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
+// the build plan, goals, items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
 // in the playthrough, never by a guess (values V4).
 import { db, newId, now } from "./db";
 import { today } from "./dates";
 import { playthroughForRecord, statNames, type ResolvedPlaythrough } from "./games";
+import { carryGoals, goalLabel, reachGoals, writeGoals, type FiledGoal, type GoalInput } from "./goals";
+import type { Transaction } from "kysely";
+import type { Schema } from "./db/schema";
 import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
-import type { EntryKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
+import type { EntryKind, GoalKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
 
 export type QuestInput = {
@@ -45,7 +48,13 @@ export type RecordInput = {
   transcript: string;
   quests?: QuestInput[];
   stats?: { level?: number; values: Record<string, number>; names?: { key: string; name?: string; localName?: string }[] };
+  /** `targets` is short for stat goals of the player's: { vigor: 20 }. */
   build?: { summary?: string; mainStat?: string; targets?: Record<string, number> };
+  goals?: GoalInput[];
+  /** Who the player plays in this run; only the fields given change. */
+  character?: { name?: string; class?: string; localClass?: string };
+  /** For a new playthrough (NG+): the run to take the character, the build plan and the open goals from. */
+  carryFrom?: string;
   items?: ItemInput[];
   /** Pages the player trusts for this game; merged into the game's, by link. */
   sources?: SourceInput[];
@@ -71,11 +80,33 @@ export type Recorded = {
   items: FiledItem[];
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
+  goals: FiledGoal[];
+  /** Labels of the goals this session's snapshot got to. */
+  reached: string[];
+  character: boolean;
+  /** How many open goals came along from carryFrom; null when nothing was carried. */
+  carried: number | null;
   /** How many of the game's sources this call added or refreshed. */
   sources: number;
 };
 
 const clean = (s: string | undefined) => s?.trim() || null;
+
+async function characterOf(trx: Transaction<Schema>, p: Player, id: string) {
+  const r = await seen(trx.selectFrom("playthroughs"), p, "playthroughs")
+    .select(["character_name", "character_class", "character_local_class"])
+    .where("id", "=", id)
+    .executeTakeFirstOrThrow();
+  return { character: { name: r.character_name, class: r.character_class, localClass: r.character_local_class } };
+}
+
+// A goal reached that this call didn't name: its label from its row.
+async function reachedLabel(trx: Transaction<Schema>, p: Player, id: string, gameId: string) {
+  const g = await seen(trx.selectFrom("goals"), p, "goals", "full").select(["kind", "stat", "target"]).where("id", "=", id).executeTakeFirstOrThrow();
+  const names = await statNames(p, gameId, trx);
+  const stat = g.stat ? (names.find((n) => n.key === g.stat) ?? { key: g.stat, name: g.stat, localName: null }) : null;
+  return goalLabel({ kind: g.kind as GoalKind, stat, target: g.target, item: null, text: null });
+}
 
 export async function record(p: Player, input: RecordInput): Promise<Recorded> {
   const transcript = input.transcript.trim();
@@ -84,12 +115,45 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
   const d = await db();
   return d.transaction().execute(async (trx) => {
     const t = await playthroughForRecord(trx, p, input);
+    if (input.carryFrom && !t.createdPlaythrough)
+      throw new InvalidInputError("carryFrom: only for a new playthrough; pass the game and a new label (e.g. NG+) with it");
     const sessionId = newId();
     const at = now();
     await trx
       .insertInto("sessions")
       .values({ id: sessionId, player_id: p.id, playthrough_id: t.id, played_on: playedOn, summary: input.summary.trim(), transcript, created_at: at })
       .execute();
+
+    let carried: number | null = null;
+    if (input.carryFrom) {
+      const from = await seen(trx.selectFrom("playthroughs"), p, "playthroughs")
+        .select(["id", "game_id", "character_name", "character_class", "character_local_class"])
+        .where("id", "=", input.carryFrom)
+        .executeTakeFirst();
+      if (!from || from.game_id !== t.game.id) throw new NotFoundError(`carryFrom: no playthrough with id ${input.carryFrom} of ${t.game.title}`);
+      await seen(trx.updateTable("playthroughs"), p, "playthroughs")
+        .set({ character_name: from.character_name, character_class: from.character_class, character_local_class: from.character_local_class })
+        .where("id", "=", t.id)
+        .execute();
+      const plan = await seen(trx.selectFrom("build_plans"), p, "build_plans").selectAll().where("playthrough_id", "=", from.id).executeTakeFirst();
+      if (plan)
+        await trx
+          .insertInto("build_plans")
+          .values({ playthrough_id: t.id, player_id: p.id, summary: plan.summary, main_stat: plan.main_stat, updated_at: at })
+          .execute();
+      carried = await carryGoals(trx, p, from.id, t.id, sessionId);
+    }
+
+    const character = input.character && Object.values(input.character).some((v) => v?.trim());
+    if (character)
+      await seen(trx.updateTable("playthroughs"), p, "playthroughs")
+        .set({
+          ...(input.character!.name?.trim() ? { character_name: input.character!.name.trim() } : {}),
+          ...(input.character!.class?.trim() ? { character_class: input.character!.class.trim() } : {}),
+          ...(input.character!.localClass?.trim() ? { character_local_class: input.character!.localClass.trim() } : {}),
+        })
+        .where("id", "=", t.id)
+        .execute();
     if (!t.lastPlayedOn || t.lastPlayedOn < playedOn)
       await seen(trx.updateTable("playthroughs"), p, "playthroughs").set({ last_played_on: playedOn }).where("id", "=", t.id).execute();
 
@@ -209,12 +273,11 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
     }
 
     let build = false;
-    if (input.build && (input.build.summary || input.build.mainStat || input.build.targets)) {
+    if (input.build && (input.build.summary || input.build.mainStat)) {
       const plan = await seen(trx.selectFrom("build_plans"), p, "build_plans").selectAll().where("playthrough_id", "=", t.id).executeTakeFirst();
       const next = {
         summary: clean(input.build.summary) ?? plan?.summary ?? null,
         main_stat: clean(input.build.mainStat) ?? plan?.main_stat ?? null,
-        targets: JSON.stringify(input.build.targets ?? (plan ? JSON.parse(plan.targets) : {})),
         updated_at: at,
       };
       if (plan) await seen(trx.updateTable("build_plans"), p, "build_plans").set(next).where("playthrough_id", "=", t.id).execute();
@@ -278,6 +341,34 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 
-    return { sessionId, url: sessionPath(sessionId), playedOn, playthrough: t, quests, items, stats, build, sources: input.sources?.length ?? 0 };
+    // After the snapshot (a new stat's key) and the items (an item goal's item). The build's targets are stat goals of the player's.
+    const goalInputs: GoalInput[] = [
+      ...Object.entries(input.build?.targets ?? {}).map(([stat, target]) => ({ kind: "stat" as const, stat, target })),
+      ...(input.goals ?? []),
+    ];
+    const goals = goalInputs.length ? await writeGoals(trx, p, { id: t.id, gameId: t.game.id }, sessionId, goalInputs) : [];
+    const reachedIds = await reachGoals(trx, p, t.id);
+    const reached: string[] = [];
+    for (const id of reachedIds) {
+      const g = goals.find((x) => x.id === id);
+      if (g) g.status = "reached";
+      reached.push(g?.label ?? (await reachedLabel(trx, p, id, t.game.id)));
+    }
+
+    return {
+      sessionId,
+      url: sessionPath(sessionId),
+      playedOn,
+      playthrough: { ...t, ...(character || carried !== null ? await characterOf(trx, p, t.id) : {}) },
+      quests,
+      items,
+      stats,
+      build: build || goals.length > 0,
+      goals,
+      reached,
+      character: !!character || carried !== null,
+      carried,
+      sources: input.sources?.length ?? 0,
+    };
   });
 }

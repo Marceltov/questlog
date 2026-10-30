@@ -95,6 +95,7 @@ test("B can't correct or remove anything of A's: every target with A's id is not
     { what: "entry", id: entry },
     { what: "snapshot", id: brief.build.current!.id },
     { what: "item", id: item },
+    { what: "goal", id: brief.build.goals[0].id },
   ];
   for (const t of targets) await expect(toolByName("correct")!.run(s.b, { changes: [{ ...t, remove: true }] })).rejects.toBeInstanceOf(NotFoundError);
   await expect(toolByName("correct")!.run(s.b, { changes: [{ what: "quest", id: s.ranni, mergeInto: s.venigni }] })).rejects.toBeInstanceOf(NotFoundError);
@@ -121,6 +122,15 @@ test("B can't record into A's playthrough or A's quests; the same title makes B 
   expect((await listPlaythroughs(s.a)).map((t) => t.game.title)).toEqual(["Lies of P"]);
 });
 
+test("B can't file goals into A's playthrough or change A's goals by id", async () => {
+  const goal = (await buildOf(s.a, s.liesOfP)).goals[0].id;
+  await expect(record(s.b, { playthroughId: s.eldenRing, summary: "x", transcript: "x", goals: [{ id: goal, suggested: false }] })).rejects.toBeInstanceOf(
+    NotFoundError,
+  );
+  await expect(record(s.b, { playthroughId: s.eldenRing, summary: "x", transcript: "x", carryFrom: s.liesOfP })).rejects.toThrow();
+  expect((await buildOf(s.a, s.liesOfP)).goals).toHaveLength(1);
+});
+
 test("counts through the gate are per player", async () => {
   const d = await db();
   const n = async (p: typeof s.a, table: "quests" | "items" | "sessions" | "stat_snapshots") =>
@@ -136,7 +146,7 @@ test("counts through the gate are per player", async () => {
 test("deleting a player's log leaves the other's untouched", async () => {
   await deletePlayerLog(s.a);
   const d = await db();
-  for (const table of ["games", "playthroughs", "sessions", "quests", "quest_entries", "build_plans", "stat_snapshots", "items"] as const)
+  for (const table of ["games", "playthroughs", "sessions", "quests", "quest_entries", "build_plans", "goals", "stat_snapshots", "items"] as const)
     expect(await d.selectFrom(table).select("player_id").where("player_id", "=", s.a.id).execute()).toEqual([]);
   expect((await listPlaythroughs(s.b)).map((t) => t.game.title)).toEqual(["Elden Ring"]);
   expect(await questsOf(s.b, s.eldenRing)).toHaveLength(1);

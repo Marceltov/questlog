@@ -12,12 +12,17 @@ import { playthroughPath } from "./urls";
 
 type Db = Kysely<Schema> | Transaction<Schema>;
 
+/** Who the player plays in a run (ADR 0009): a name and a class (a starting class, a combat memory, in the game's terms). */
+export type Character = { name: string | null; class: string | null; localClass: string | null };
+
 export type PlaythroughView = {
   id: string;
   label: string;
   status: PlaythroughStatus;
   language: string | null;
   lastPlayedOn: string | null;
+  /** Null until one is filed. */
+  character: Character | null;
   /** `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. */
   game: { id: string; title: string; platform: string | null; sources: Source[] };
   url: string;
@@ -29,6 +34,9 @@ const columns = [
   "playthroughs.status",
   "playthroughs.language",
   "playthroughs.last_played_on",
+  "playthroughs.character_name",
+  "playthroughs.character_class",
+  "playthroughs.character_local_class",
   "games.id as game_id",
   "games.title",
   "games.platform",
@@ -41,6 +49,9 @@ type Row = {
   status: string;
   language: string | null;
   last_played_on: string | null;
+  character_name: string | null;
+  character_class: string | null;
+  character_local_class: string | null;
   game_id: string;
   title: string;
   platform: string | null;
@@ -53,6 +64,10 @@ const view = (r: Row): PlaythroughView => ({
   status: r.status as PlaythroughStatus,
   language: r.language,
   lastPlayedOn: r.last_played_on,
+  character:
+    r.character_name || r.character_class || r.character_local_class
+      ? { name: r.character_name, class: r.character_class, localClass: r.character_local_class }
+      : null,
   game: { id: r.game_id, title: r.title, platform: r.platform, sources: parseSources(r.sources) },
   url: playthroughPath(r.id),
 });

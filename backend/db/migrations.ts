@@ -137,6 +137,76 @@ const migrations: Record<string, Migration> = {
         .execute();
     },
   },
+  // Goals and the character (ADR 0009). A goal is a row of its own, apart from the snapshots of what happened: ranked, with a status that
+  // stays (a dropped goal is kept), the session it was decided in, and whether it is only a suggestion yet. The build plan's targets
+  // become stat goals; the column stays (a shipped migration made it) and is no longer written. The character is the playthrough's.
+  "003_goals": {
+    async up(db: Kysely<any>) {
+      const player = (c: any) => c.notNull();
+      const session = (c: any) => c.references("sessions.id").onDelete("set null");
+      const playthrough = (c: any) => c.notNull().references("playthroughs.id").onDelete("cascade");
+      await db.schema
+        .createTable("goals")
+        .addColumn("id", "text", (c) => c.primaryKey())
+        .addColumn("player_id", "text", player)
+        .addColumn("playthrough_id", "text", playthrough)
+        .addColumn("session_id", "text", session)
+        .addColumn("kind", "text", (c) => c.notNull().check(oneOf("kind", ["stat", "level", "item", "note"])))
+        .addColumn("stat", "text")
+        .addColumn("target", "real")
+        .addColumn("item_id", "text", (c) => c.references("items.id").onDelete("set null"))
+        .addColumn("text", "text")
+        .addColumn("rank", "integer", (c) => c.notNull())
+        .addColumn("status", "text", (c) => c.notNull().check(oneOf("status", ["open", "reached", "dropped"])))
+        .addColumn("suggested", "integer", (c) => c.notNull().defaultTo(0))
+        .addColumn("spoiler", "text", (c) => c.notNull().check(oneOf("spoiler", SPOILER)))
+        .addColumn("reached_on", "text")
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .addColumn("updated_at", "bigint", (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex("goals_by_playthrough").on("goals").columns(["playthrough_id", "rank"]).execute();
+      for (const col of ["character_name", "character_class", "character_local_class"])
+        await db.schema.alterTable("playthroughs").addColumn(col, "text").execute();
+
+      // Each plan's targets, in the order they were written, as the player's goals; reached where the latest snapshot is there already.
+      const plans = await db.selectFrom("build_plans").select(["playthrough_id", "player_id", "targets", "updated_at"]).execute();
+      for (const plan of plans) {
+        const latest = await db
+          .selectFrom("stat_snapshots")
+          .select(["stats", "taken_on"])
+          .where("playthrough_id", "=", plan.playthrough_id)
+          .orderBy("taken_on", "desc")
+          .orderBy("created_at", "desc")
+          .executeTakeFirst();
+        const values = latest ? (JSON.parse(latest.stats) as Record<string, number>) : {};
+        const targets = Object.entries(JSON.parse(plan.targets) as Record<string, number>);
+        for (const [i, [stat, target]] of targets.entries()) {
+          const reached = values[stat] !== undefined && values[stat] >= target;
+          await db
+            .insertInto("goals")
+            .values({
+              id: crypto.randomUUID(),
+              player_id: plan.player_id,
+              playthrough_id: plan.playthrough_id,
+              session_id: null,
+              kind: "stat",
+              stat,
+              target,
+              item_id: null,
+              text: null,
+              rank: i + 1,
+              status: reached ? "reached" : "open",
+              suggested: 0,
+              spoiler: "none",
+              reached_on: reached ? latest!.taken_on : null,
+              created_at: plan.updated_at,
+              updated_at: plan.updated_at,
+            })
+            .execute();
+        }
+      }
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

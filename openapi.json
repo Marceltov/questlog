@@ -822,6 +822,7 @@
                         "type": "string"
                       },
                       "targets": {
+                        "description": "Short for stat goals the player decided: { vigor: 20 }. For order or a reason, use goals",
                         "type": "object",
                         "propertyNames": {
                           "type": "string"
@@ -831,6 +832,94 @@
                         }
                       }
                     }
+                  },
+                  "goals": {
+                    "description": "Long-term goals the player set or changed in this session, in order; and ones you suggest, marked suggested, until they agree",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "description": "An existing goal's id, from briefing, to change it (accept a suggestion, re-rank, mark reached or dropped)",
+                          "type": "string"
+                        },
+                        "kind": {
+                          "description": "For a new goal. stat: a stat to a value; level: a character level; item: something to do with an item; note: anything else",
+                          "type": "string",
+                          "enum": [
+                            "stat",
+                            "level",
+                            "item",
+                            "note"
+                          ]
+                        },
+                        "stat": {
+                          "description": "stat: the stat's key, as snapshots name it",
+                          "type": "string"
+                        },
+                        "target": {
+                          "description": "stat: the value; level: the level. A new target for the same stat replaces the open goal (the old one is dropped)",
+                          "type": "number"
+                        },
+                        "item": {
+                          "description": "item: the item's id or exact name in this playthrough",
+                          "type": "string"
+                        },
+                        "text": {
+                          "description": "note: the goal itself. Any goal: why, in the player's terms",
+                          "type": "string"
+                        },
+                        "suggested": {
+                          "description": "true for a goal you or a guide propose and the player hasn't agreed to yet. Default false: the player decided it",
+                          "type": "boolean"
+                        },
+                        "status": {
+                          "description": "reached for an item or note goal the player finished (stat and level goals get there on their own), dropped when given up",
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "reached",
+                            "dropped"
+                          ]
+                        },
+                        "spoiler": {
+                          "description": "Default none. hint or full when the goal names a place, item or outcome the player hasn't reached",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "hint",
+                            "full"
+                          ]
+                        },
+                        "rank": {
+                          "description": "Its place in the order, 1 first. Default: last; a replacing goal keeps the old one's place",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    }
+                  },
+                  "character": {
+                    "description": "Who the player plays in this playthrough, when they say or a screenshot shows it",
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "class": {
+                        "description": "The starting class, origin or combat memory, in English",
+                        "type": "string"
+                      },
+                      "localClass": {
+                        "description": "The class's name in the game's own language",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "carryFrom": {
+                    "description": "Starting a new playthrough (NG+) with game and label: the playthrough to take the character, build plan and open goals from. Only when the player wants it",
+                    "type": "string"
                   },
                   "items": {
                     "description": "Items the player found, equipped or put away",
@@ -1028,9 +1117,10 @@
                             "quest",
                             "entry",
                             "snapshot",
-                            "item"
+                            "item",
+                            "goal"
                           ],
-                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats) or item"
+                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item or goal"
                         },
                         "id": {
                           "type": "string",
@@ -1067,7 +1157,7 @@
                           ]
                         },
                         "status": {
-                          "description": "playthrough: playing, finished, dropped. quest: open, blocked, done, failed, dropped; done only when the player said they finished it",
+                          "description": "playthrough: playing, finished, dropped. quest: open, blocked, done, failed, dropped; done only when the player said they finished it. goal: open, reached, dropped",
                           "type": "string"
                         },
                         "summary": {
@@ -1112,11 +1202,11 @@
                           ]
                         },
                         "text": {
-                          "description": "entry",
+                          "description": "entry; goal: the note, or why",
                           "type": "string"
                         },
                         "spoiler": {
-                          "description": "entry or item: none once the player has found what it names",
+                          "description": "entry, item or goal: none once the player has found what it names",
                           "type": "string",
                           "enum": [
                             "none",
@@ -1183,6 +1273,41 @@
                               "url"
                             ]
                           }
+                        },
+                        "characterName": {
+                          "description": "playthrough: the character's name; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "characterClass": {
+                          "description": "playthrough: the character's class, in English; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "characterLocalClass": {
+                          "description": "playthrough: the class in the game's own language; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "target": {
+                          "description": "goal (stat or level): the new value",
+                          "type": "number"
+                        },
+                        "suggested": {
+                          "description": "goal: false once the player agreed to a suggestion",
+                          "type": "boolean"
+                        },
+                        "rank": {
+                          "description": "goal: its place in the order, 1 first",
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9007199254740991
                         }
                       },
                       "required": [
@@ -1399,6 +1524,44 @@
               }
             ]
           },
+          "character": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "class": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "localClass": {
+                    "description": "The class in the game's own language",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "class",
+                  "localClass"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who the player plays in this run; null until filed"
+          },
           "game": {
             "type": "object",
             "properties": {
@@ -1441,6 +1604,7 @@
           "status",
           "language",
           "lastPlayedOn",
+          "character",
           "game",
           "url"
         ],
@@ -1757,6 +1921,163 @@
         ],
         "additionalProperties": false
       },
+      "Goal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "stat",
+              "level",
+              "item",
+              "note"
+            ]
+          },
+          "stat": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "localName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "name",
+                  "localName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A stat goal's stat"
+          },
+          "target": {
+            "description": "A stat goal's value or a level goal's level",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "current": {
+            "description": "Where the latest snapshot is, for a stat or level goal",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "item": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Its page in the web app, as an absolute URL"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An item goal's item"
+          },
+          "text": {
+            "description": "A note goal's goal, or why",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rank": {
+            "type": "number",
+            "description": "1 is first"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "reached",
+              "dropped"
+            ]
+          },
+          "suggested": {
+            "type": "boolean",
+            "description": "Proposed by Claude or a guide, not agreed to by the player yet"
+          },
+          "spoiler": {
+            "type": "string",
+            "enum": [
+              "none",
+              "hint",
+              "full"
+            ]
+          },
+          "reachedOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessionUrl": {
+            "description": "The session it was set in",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "stat",
+          "target",
+          "current",
+          "item",
+          "text",
+          "rank",
+          "status",
+          "suggested",
+          "spoiler",
+          "reachedOn",
+          "sessionUrl"
+        ],
+        "additionalProperties": false,
+        "description": "A long-term goal of a playthrough (ADR 0009)"
+      },
       "Build": {
         "type": "object",
         "properties": {
@@ -1784,7 +2105,8 @@
                     },
                     "additionalProperties": {
                       "type": "number"
-                    }
+                    },
+                    "description": "The player's stat goals, by stat (the open one, else the last reached)"
                   }
                 },
                 "required": [
@@ -1799,6 +2121,13 @@
               }
             ]
           },
+          "goals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Goal"
+            },
+            "description": "Open by rank (the player's, then suggestions), then reached"
+          },
           "snapshots": {
             "type": "array",
             "items": {
@@ -1809,10 +2138,11 @@
         },
         "required": [
           "plan",
+          "goals",
           "snapshots"
         ],
         "additionalProperties": false,
-        "description": "The build plan and the stat snapshots"
+        "description": "The build plan, its goals and the stat snapshots"
       },
       "SessionSummary": {
         "type": "object",
@@ -1948,7 +2278,8 @@
                         },
                         "additionalProperties": {
                           "type": "number"
-                        }
+                        },
+                        "description": "The player's stat goals, by stat (the open one, else the last reached)"
                       }
                     },
                     "required": [
@@ -1963,6 +2294,12 @@
                   }
                 ]
               },
+              "goals": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Goal"
+                }
+              },
               "current": {
                 "anyOf": [
                   {
@@ -1976,6 +2313,7 @@
             },
             "required": [
               "plan",
+              "goals",
               "current"
             ],
             "additionalProperties": false
@@ -2181,6 +2519,44 @@
                   }
                 ]
               },
+              "character": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "class": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "localClass": {
+                        "description": "The class in the game's own language",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "class",
+                      "localClass"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Who the player plays in this run; null until filed"
+              },
               "game": {
                 "type": "object",
                 "properties": {
@@ -2229,6 +2605,7 @@
               "status",
               "language",
               "lastPlayedOn",
+              "character",
               "game",
               "url",
               "createdGame",
@@ -2363,7 +2740,62 @@
           },
           "build": {
             "type": "boolean",
-            "description": "Whether the build plan changed"
+            "description": "Whether the build plan or its goals changed"
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "reached",
+                    "dropped"
+                  ]
+                },
+                "suggested": {
+                  "type": "boolean"
+                },
+                "created": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "status",
+                "suggested",
+                "created"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The goals the session set or changed"
+          },
+          "reached": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Goals the session's snapshot got to"
+          },
+          "character": {
+            "type": "boolean",
+            "description": "Whether the character changed"
+          },
+          "carried": {
+            "description": "Open goals taken along from carryFrom",
+            "type": [
+              "number",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2374,7 +2806,11 @@
           "quests",
           "items",
           "stats",
-          "build"
+          "build",
+          "goals",
+          "reached",
+          "character",
+          "carried"
         ],
         "additionalProperties": false,
         "description": "What was filed from a session"
@@ -2396,7 +2832,8 @@
                     "quest",
                     "entry",
                     "snapshot",
-                    "item"
+                    "item",
+                    "goal"
                   ]
                 },
                 "id": {

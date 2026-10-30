@@ -6,6 +6,9 @@ import { db } from "./db/testing";
 import { itemsOf } from "./items";
 import { questsOf } from "./quests";
 import { seen, shown } from "./spoilers";
+import { buildOf } from "./builds";
+import { goalsOf } from "./goals";
+import { record } from "./record";
 import { FULL, HINT, SPOILER_ITEM, SPOILER_SOURCE, seed, type Seed } from "./testing/fixtures";
 import { toolByName } from "./tools";
 
@@ -110,4 +113,16 @@ test("an item's sources stay hidden with the item; the game's sources are shown"
   expect(quiet).toContain("Lies Wiki");
   expect(JSON.stringify(await toolByName("briefing")!.run(s.a, { playthroughId: s.liesOfP }))).not.toContain(SPOILER_SOURCE);
   expect(JSON.stringify(await toolByName("item")!.run(s.a, { playthroughId: s.liesOfP, reveal: "full" }))).toContain(SPOILER_SOURCE);
+});
+
+test("a goal marked as a spoiler stays out of the build, the briefing and its next unless asked for", async () => {
+  await record(s.a, {
+    playthroughId: s.liesOfP,
+    summary: "Planned.",
+    transcript: "What should I aim for?",
+    goals: [{ kind: "note", text: HINT, suggested: true, spoiler: "hint" }],
+  });
+  expect(JSON.stringify(await buildOf(s.a, s.liesOfP))).not.toContain(HINT);
+  expect(JSON.stringify(await toolByName("briefing")!.run(s.a, { playthroughId: s.liesOfP }))).not.toContain(HINT);
+  expect((await goalsOf(s.a, s.liesOfP, { reveal: "hint" })).map((g) => g.text)).toContain(HINT);
 });
