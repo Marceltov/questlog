@@ -1,7 +1,7 @@
 // Sign-in: Better Auth, set up as ADR 0004 says, with its tables in their own file, ${DATA_DIR}/auth.sqlite, so a backup of the log holds
 // no sessions or tokens. Players sign in with an email code or an OpenID Connect provider; MCP clients through OAuth (@better-auth/mcp,
 // with Client ID Metadata Documents from @better-auth/cimd), with access tokens bound to /mcp. Where the setup differs from Better Auth's
-// defaults, and why, is in ADR 0004 and ADR 0005.
+// defaults, and why, is in ADR 0004 and ADR 0006.
 import { join } from "node:path";
 import { cimd } from "@better-auth/cimd";
 import { fetchClientMetadataResource } from "@better-auth/cimd/node";
@@ -44,7 +44,7 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
     // Nothing turns telemetry on (V7): no `telemetry` option and no BETTER_AUTH_TELEMETRY.
     emailAndPassword: { enabled: false },
     // A second sign-in joins a player only when its provider says the address is verified. A provider listed in trustedProviders would
-    // join even without that, so none is listed (ADR 0005).
+    // join even without that, so none is listed (ADR 0006).
     account: { accountLinking: { enabled: true, trustedProviders: [] } },
     databaseHooks: {
       user: {
