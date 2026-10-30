@@ -25,6 +25,15 @@ export function absoluteUrls<T>(base: string, body: T): T {
 export const AUTH_PATH = "/api/auth";
 /** The OAuth resource (RFC 8707) MCP access tokens are bound to. */
 export const mcpResource = () => `${config.publicUrl()}/mcp`;
+/** Where the REST API lives; its paths in the route table start with it. */
+export const API_PREFIX = "/api/v1";
+/** The OAuth resource REST access tokens are bound to: a token for /mcp fails there, and the other way round. */
+export const apiResource = () => `${config.publicUrl()}${API_PREFIX}`;
+/** The issuer of the access tokens: Better Auth, under its base path. */
+export const issuer = () => `${config.publicUrl()}${AUTH_PATH}`;
+// The keys tokens are checked against. Fetched from this same process over loopback, not through PUBLIC_URL: a server behind a reverse
+// proxy often can't reach its own public address.
+export const jwksUrl = () => `http://127.0.0.1:${config.port()}${AUTH_PATH}/jwks`;
 
 // Where to go after signing in: a same-origin path, else "/". A second "/" or any "\" would make it protocol-relative (browsers read
 // "\" as "/"), and browsers drop tabs and newlines, so "/\t/x" is "//x".

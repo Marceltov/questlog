@@ -1,6 +1,6 @@
 # How it works
 
-questlog is one Next.js app in one container. Three kinds of callers reach one framework-free domain layer in `backend/`, which reads and writes two SQLite files.
+questlog is one Next.js app in one container. Four kinds of callers reach one framework-free domain layer in `backend/`, which reads and writes two SQLite files.
 
 ```mermaid
 flowchart LR
@@ -8,7 +8,9 @@ flowchart LR
   browser["Browser"] -- "session cookie" --> pages["Pages, app/(app)"]
   browser -- "sign-in, consent" --> auth["Better Auth, /api/auth"]
   claude -- "OAuth" --> auth
+  script["Scripts"] -- "/api/v1, access token" --> api["backend/http/api.ts"]
   mcp --> tools["backend/tools.ts"]
+  api --> domain
   tools --> domain["Domain: record, briefing, quests, …"]
   pages --> domain
   domain --> gate{{"seen(): one gate"}}
@@ -21,6 +23,7 @@ Follow a call from the left: whichever way it comes in, it ends in a domain func
 ## Surfaces
 
 - **`/mcp`** checks the access token with `@better-auth/mcp` (signature, issuer, audience `/mcp`, expiry) and that the player still exists, then runs the tool as that player. The browser's cookie never counts there.
+- **`/api/v1`** checks its own access token the same way, with audience `/api/v1` ([ADR 0007](../adr/0007-rest-api-tokens.md)), and serves the route table in `backend/http/api.ts`, from which `openapi.json` is generated. A token for `/mcp` and the browser's cookie don't count there.
 - **The pages** in `app/(app)` get the player from Better Auth's session cookie and call the same domain functions, through `backend/index.ts` only (ESLint enforces it). They form one book (`app/(app)/book`): a contents page, then a page per playthrough, most recently played first. `components/Pages.tsx` lays them side by side with CSS scroll-snap, so a phone swipes between them and each scrolls on its own; arrow keys and side arrows turn them on a desktop. Each keeps its address, `/p/<id>`, which follows the page with `history.replaceState`.
 - **`/api/auth`** is Better Auth: email codes, OpenID Connect providers, sessions, and the OAuth server for MCP clients. Its tables are in `auth.sqlite` ([ADR 0004](../adr/0004-sign-in-with-better-auth.md), [ADR 0006](../adr/0006-better-auth-wiring.md)).
 

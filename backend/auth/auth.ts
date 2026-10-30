@@ -1,6 +1,7 @@
 // Sign-in: Better Auth, set up as ADR 0004 says, with its tables in their own file, ${DATA_DIR}/auth.sqlite, so a backup of the log holds
 // no sessions or tokens. Players sign in with an email code or an OpenID Connect provider; MCP clients through OAuth (@better-auth/mcp,
-// with Client ID Metadata Documents from @better-auth/cimd), with access tokens bound to /mcp. Where the setup differs from Better Auth's
+// with Client ID Metadata Documents from @better-auth/cimd), with access tokens bound to /mcp; scripts likewise, with tokens bound to
+// /api/v1. Where the setup differs from Better Auth's
 // defaults, and why, is in ADR 0004 and ADR 0006.
 import { join } from "node:path";
 import { cimd } from "@better-auth/cimd";
@@ -18,7 +19,7 @@ import { logger } from "../log";
 import { deletePlayerLog } from "../players";
 import { secret } from "../secret";
 import { processState } from "../state";
-import { AUTH_PATH, mcpResource } from "../urls";
+import { AUTH_PATH, apiResource, mcpResource } from "../urls";
 import { sendCode } from "./mail";
 
 const log = logger("auth");
@@ -65,6 +66,10 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
         loginPage: "/login",
         consentPage: "/consent",
         resource: mcpResource(),
+        // The REST API is a second resource. A client is linked to /mcp when it registers; a script asks to be linked to /api/v1 too
+        // (`resources` in its registration), then asks for a token with resource=${PUBLIC_URL}/api/v1 and gets one bound to it alone.
+        resources: [apiResource()],
+        clientRegistrationAllowedResources: [apiResource()],
         accessTokenExpiresIn: ACCESS_TOKEN_SECONDS,
         // Tokens only ever stand for a player: no client_credentials grant, whose tokens name no user.
         grantTypes: ["authorization_code", "refresh_token"],

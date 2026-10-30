@@ -2,6 +2,7 @@
 # MkDocs Markdown: Python-Markdown needs nested lists and admonition bodies indented by four spaces, which Prettier rewrites.
 docs/**/*.md
 site/
-# questlog's own: the lock file and build output.
+# questlog's own: the lock file, build output, and openapi.json, written by npm run generate.
 package-lock.json
 .next/
+openapi.json

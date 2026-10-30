@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate": "sh scripts/generate.sh"
   },
   "dependencies": {
     "@better-auth/cimd": "1.7.14",

@@ -1,0 +1,2338 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "questlog API",
+    "version": "1",
+    "description": "A spoiler-free quest log, build tracker and item list for the games you play. The MCP endpoint (/mcp) comes first; this API follows it, over the same data and the same rules: only the signed-in player's own log, and no spoiler unless a request asks for it.\n\nEvery error is JSON, `{\"error\": \"...\", \"code\": \"...\"}`. Besides the responses listed per operation, an unknown path answers 404 (`not_found`), a method an operation doesn't have answers 405 with `Allow`, and a failure on the server's side answers 500 (`internal`) without details.",
+    "license": {
+      "name": "AGPL-3.0-only",
+      "identifier": "AGPL-3.0-only"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://questlog.example/api/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Playthroughs",
+      "description": "The player's runs of their games: briefing, quests, items, build, and what may have been missed."
+    },
+    {
+      "name": "Sessions",
+      "description": "Filing a play session, and reading one back with its transcript."
+    },
+    {
+      "name": "Corrections",
+      "description": "Fixing or removing what was filed."
+    },
+    {
+      "name": "Meta",
+      "description": "About the API itself."
+    }
+  ],
+  "paths": {
+    "/playthroughs": {
+      "get": {
+        "operationId": "listPlaythroughs",
+        "summary": "The player's playthroughs",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most recently played first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaythroughList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}": {
+      "get": {
+        "operationId": "getPlaythrough",
+        "summary": "One playthrough",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The playthrough",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playthrough"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/briefing": {
+      "get": {
+        "operationId": "getBriefing",
+        "summary": "Where the player was",
+        "description": "The last session, the open quests with their next steps, the build and what is equipped. It never contains a spoiler.",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The briefing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Briefing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/quests": {
+      "get": {
+        "operationId": "listQuests",
+        "summary": "A playthrough's quests, with their logs",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Only quests with one of these statuses, comma-separated (open, blocked, done, failed, dropped). Default: all",
+            "schema": {
+              "type": "string",
+              "pattern": "^(open|blocked|done|failed|dropped)(,(open|blocked|done|failed|dropped))*$"
+            }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "description": "Default none: only what the player found. hint or full only when the player asked for spoilers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "hint",
+                "full"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most recently changed first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/items": {
+      "get": {
+        "operationId": "listItems",
+        "summary": "A playthrough's items",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "description": "Only items whose name, or name in the game's language, contains it",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "equipped",
+            "in": "query",
+            "required": false,
+            "description": "Only what is equipped",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true"
+              ]
+            }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": false,
+            "description": "Default none: only what the player found. hint or full only when the player asked for spoilers",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "none",
+                "hint",
+                "full"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Equipped first, then the newest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/build": {
+      "get": {
+        "operationId": "getBuild",
+        "summary": "A playthrough's build plan and stat snapshots",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The build",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Build"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "summary": "A playthrough's sessions",
+        "tags": [
+          "Sessions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/playthroughs/{id}/missed": {
+      "get": {
+        "operationId": "getMissed",
+        "summary": "What the player may have missed",
+        "description": "Only when the player asked, at the level they agreed to: open quests untouched in the last three sessions, and the hints and spoilers filed for open quests. `reveal` is required.",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reveal",
+            "in": "query",
+            "required": true,
+            "description": "hint (places and people, no outcomes) or full (everything)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hint",
+                "full"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What may have been missed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Missed"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{id}": {
+      "get": {
+        "operationId": "getSession",
+        "summary": "One session, with its transcript",
+        "tags": [
+          "Sessions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "recordSession",
+        "summary": "File a play session",
+        "description": "The player's words verbatim as transcript, then what was learned from it: quests with their entries, a stat snapshot, the build plan and items. The same as the MCP tool record.",
+        "tags": [
+          "Sessions"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transcript": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200000,
+                    "description": "What the player said, verbatim, never a summary. A screenshot they shared: what it shows, written out as text and numbers"
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "description": "One or two sentences of what happened in this session, in the player's terms"
+                  },
+                  "playthroughId": {
+                    "description": "The playthrough, as briefing returns it. Without it, give game",
+                    "type": "string"
+                  },
+                  "game": {
+                    "description": "The game's title, when there is no playthroughId: an unknown title starts a new game and playthrough",
+                    "type": "string"
+                  },
+                  "platform": {
+                    "description": "For a new game: where it is played (Switch 2, PS5, PC)",
+                    "type": "string"
+                  },
+                  "label": {
+                    "description": "Which run of the game: NG, NG+; picks or starts that playthrough",
+                    "type": "string"
+                  },
+                  "language": {
+                    "description": "For a new playthrough: the language the game is played in (de, en)",
+                    "type": "string"
+                  },
+                  "playedOn": {
+                    "description": "The day of the session. Default today",
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+                  },
+                  "quests": {
+                    "description": "Quests the player started, advanced or finished in this session",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "description": "An existing quest's id, from briefing or open_threads",
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "The quest's name, or the NPC's when the game names none. An exact match in the playthrough updates that quest; otherwise a new one starts"
+                        },
+                        "localName": {
+                          "description": "The name in the game's own language, as the player said it",
+                          "type": "string"
+                        },
+                        "giver": {
+                          "description": "Who gave it",
+                          "type": "string"
+                        },
+                        "location": {
+                          "description": "Where it started",
+                          "type": "string"
+                        },
+                        "status": {
+                          "description": "open: waiting on the player; blocked: waiting on the game; done, failed, dropped close it. Set done only when the player said they finished it. Default: unchanged, open for a new one",
+                          "type": "string",
+                          "enum": [
+                            "open",
+                            "blocked",
+                            "done",
+                            "failed",
+                            "dropped"
+                          ]
+                        },
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "log",
+                                  "next",
+                                  "decision"
+                                ],
+                                "description": "log: what the player did or found out; next: the next step, in vague words; decision: a choice the player made"
+                              },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "spoiler": {
+                                "description": "Default none: what the player found or told. hint when the text names a place, person or item the player hasn't reached; full when it names a boss, an outcome or a story event. A next step from your own knowledge of the game is at least hint",
+                                "type": "string",
+                                "enum": [
+                                  "none",
+                                  "hint",
+                                  "full"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "text"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  },
+                  "stats": {
+                    "description": "A snapshot of the stats, as the player said them or a screenshot shows them",
+                    "type": "object",
+                    "properties": {
+                      "level": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "values": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "number"
+                        },
+                        "description": "Each stat by its key, as earlier snapshots name it: { \"vitality\": 12, \"motivity\": 20 }"
+                      },
+                      "names": {
+                        "description": "For a stat the game hasn't had yet: its English and its own name",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "description": "The English name",
+                              "type": "string"
+                            },
+                            "localName": {
+                              "description": "The game's own name for it",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "values"
+                    ]
+                  },
+                  "build": {
+                    "description": "The build plan, when the player set or changed it",
+                    "type": "object",
+                    "properties": {
+                      "summary": {
+                        "type": "string"
+                      },
+                      "mainStat": {
+                        "description": "The stat key the build is built around",
+                        "type": "string"
+                      },
+                      "targets": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "items": {
+                    "description": "Items the player found, equipped or put away",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "localName": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "description": "weapon, handle, blade, amulet, …, in the game's terms",
+                          "type": "string"
+                        },
+                        "location": {
+                          "description": "Where it was found",
+                          "type": "string"
+                        },
+                        "equipped": {
+                          "type": "boolean"
+                        },
+                        "verdict": {
+                          "description": "How it fits the build, with where you know it from",
+                          "type": "string"
+                        },
+                        "spoiler": {
+                          "description": "Default none. hint or full when the verdict names what the player hasn't reached",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "hint",
+                            "full"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "transcript",
+                  "summary"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "What was filed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recorded"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request could mean more than one thing: two playthroughs being played, a name another row has (`ambiguous`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/corrections": {
+      "post": {
+        "operationId": "correct",
+        "summary": "Fix or remove what was filed",
+        "description": "Each change names one row by what and id and sets some of its fields, or removes it; all apply or none. The same as the MCP tool correct.",
+        "tags": [
+          "Corrections"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "changes": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "what": {
+                          "type": "string",
+                          "enum": [
+                            "game",
+                            "playthrough",
+                            "session",
+                            "quest",
+                            "entry",
+                            "snapshot",
+                            "item"
+                          ],
+                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats) or item"
+                        },
+                        "id": {
+                          "type": "string",
+                          "description": "Its id, as briefing, open_threads, item or record returned it"
+                        },
+                        "remove": {
+                          "description": "Remove it. A game or playthrough takes everything filed in it along; a session its log entries and its snapshot; a quest its entries. Only when the player said so",
+                          "type": "boolean"
+                        },
+                        "mergeInto": {
+                          "description": "A quest only: the id of the quest it really is. Its entries move there and it is removed. Only after the player agreed",
+                          "type": "string"
+                        },
+                        "title": {
+                          "description": "game",
+                          "type": "string"
+                        },
+                        "platform": {
+                          "description": "game; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "label": {
+                          "description": "playthrough: NG, NG+, …",
+                          "type": "string"
+                        },
+                        "language": {
+                          "description": "playthrough; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "description": "playthrough: playing, finished, dropped. quest: open, blocked, done, failed, dropped; done only when the player said they finished it",
+                          "type": "string"
+                        },
+                        "summary": {
+                          "description": "session",
+                          "type": "string"
+                        },
+                        "playedOn": {
+                          "description": "session (its snapshot moves with it) or snapshot: the day",
+                          "type": "string",
+                          "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+                        },
+                        "name": {
+                          "description": "quest or item",
+                          "type": "string"
+                        },
+                        "localName": {
+                          "description": "quest or item: the name in the game's own language; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "giver": {
+                          "description": "quest; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "location": {
+                          "description": "quest: where it started; item: where it was found; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "description": "entry: log, next, decision. item: weapon, handle, amulet, … in the game's terms; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "text": {
+                          "description": "entry",
+                          "type": "string"
+                        },
+                        "spoiler": {
+                          "description": "entry or item: none once the player has found what it names",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "hint",
+                            "full"
+                          ]
+                        },
+                        "level": {
+                          "description": "snapshot",
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "values": {
+                          "description": "snapshot: the stats to fix, by key; the others stay",
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "number"
+                          }
+                        },
+                        "equipped": {
+                          "description": "item",
+                          "type": "boolean"
+                        },
+                        "verdict": {
+                          "description": "item: how it fits the build, with where you know it from; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "what",
+                        "id"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "changes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Corrected"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request can't be read (`invalid_request`), or a value in it is not acceptable (`invalid_input`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The request could mean more than one thing: two playthroughs being played, a name another row has (`ambiguous`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "getOpenApi",
+        "summary": "This description",
+        "tags": [
+          "Meta"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The OpenAPI 3.1 description of the API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "What went wrong, in English"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_input",
+              "unauthorized",
+              "not_found",
+              "ambiguous",
+              "internal"
+            ]
+          }
+        },
+        "required": [
+          "error",
+          "code"
+        ],
+        "additionalProperties": false,
+        "description": "Every error the API answers with"
+      },
+      "Playthrough": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "description": "NG, NG+, or what the player calls this run"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "playing",
+              "finished",
+              "dropped"
+            ]
+          },
+          "language": {
+            "description": "The language the game is played in, when known",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastPlayedOn": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "game": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "platform": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "platform"
+            ],
+            "additionalProperties": false
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "status",
+          "language",
+          "lastPlayedOn",
+          "game",
+          "url"
+        ],
+        "additionalProperties": false,
+        "description": "One run of a game"
+      },
+      "PlaythroughList": {
+        "type": "object",
+        "properties": {
+          "playthroughs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Playthrough"
+            },
+            "description": "Most recently played first"
+          }
+        },
+        "required": [
+          "playthroughs"
+        ],
+        "additionalProperties": false
+      },
+      "QuestEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "log",
+              "next",
+              "decision"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "spoiler": {
+            "type": "string",
+            "enum": [
+              "none",
+              "hint",
+              "full"
+            ],
+            "description": "none for what the player found; hint or full only when the request asked for them"
+          },
+          "on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The day of the session it was filed in"
+          },
+          "sessionUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "text",
+          "spoiler",
+          "on",
+          "sessionUrl"
+        ],
+        "additionalProperties": false,
+        "description": "A line of a quest's log: what happened (log), the next step (next) or a choice made (decision)"
+      },
+      "Quest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "localName": {
+            "description": "The name in the game's own language",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "giver": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "description": "Where it started",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "blocked",
+              "done",
+              "failed",
+              "dropped"
+            ]
+          },
+          "nextStep": {
+            "description": "The latest next step the request may show",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestEntry"
+            },
+            "description": "Oldest first"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "localName",
+          "giver",
+          "location",
+          "status",
+          "nextStep",
+          "entries",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "QuestList": {
+        "type": "object",
+        "properties": {
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quest"
+            },
+            "description": "Most recently changed first"
+          }
+        },
+        "required": [
+          "quests"
+        ],
+        "additionalProperties": false
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "localName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "description": "Where it was found",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "equipped": {
+            "type": "boolean"
+          },
+          "verdict": {
+            "description": "How it fits the build",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spoiler": {
+            "type": "string",
+            "enum": [
+              "none",
+              "hint",
+              "full"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "localName",
+          "kind",
+          "location",
+          "equipped",
+          "verdict",
+          "spoiler",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "ItemList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            },
+            "description": "Equipped first, then the newest"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "StatSnapshot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "takenOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+          },
+          "level": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "stats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "localName": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": "number"
+                },
+                "change": {
+                  "description": "Since the snapshot before; null for the first",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "localName",
+                "value",
+                "change"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "takenOn",
+          "level",
+          "stats"
+        ],
+        "additionalProperties": false
+      },
+      "Build": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "summary": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "mainStat": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "targets": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "required": [
+                  "summary",
+                  "mainStat",
+                  "targets"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatSnapshot"
+            },
+            "description": "Newest first"
+          }
+        },
+        "required": [
+          "plan",
+          "snapshots"
+        ],
+        "additionalProperties": false,
+        "description": "The build plan and the stat snapshots"
+      },
+      "SessionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "playedOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          }
+        },
+        "required": [
+          "id",
+          "playedOn",
+          "summary",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "SessionList": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionSummary"
+            },
+            "description": "Newest first"
+          }
+        },
+        "required": [
+          "sessions"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "playedOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          },
+          "transcript": {
+            "type": "string",
+            "description": "What the player said, verbatim"
+          },
+          "playthrough": {
+            "$ref": "#/components/schemas/Playthrough"
+          }
+        },
+        "required": [
+          "id",
+          "playedOn",
+          "summary",
+          "url",
+          "transcript",
+          "playthrough"
+        ],
+        "additionalProperties": false
+      },
+      "Briefing": {
+        "type": "object",
+        "properties": {
+          "playthrough": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Playthrough"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastSession": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "openQuests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quest"
+            },
+            "description": "Open first, then waiting on the game"
+          },
+          "build": {
+            "type": "object",
+            "properties": {
+              "plan": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "summary": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "mainStat": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "targets": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "required": [
+                      "summary",
+                      "mainStat",
+                      "targets"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "current": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StatSnapshot"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "plan",
+              "current"
+            ],
+            "additionalProperties": false
+          },
+          "equipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            }
+          },
+          "others": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Playthrough"
+            },
+            "description": "The player's other playthroughs"
+          }
+        },
+        "required": [
+          "playthrough",
+          "lastSession",
+          "openQuests",
+          "build",
+          "equipped",
+          "others"
+        ],
+        "additionalProperties": false,
+        "description": "Where the player was. It never contains a spoiler"
+      },
+      "Missed": {
+        "type": "object",
+        "properties": {
+          "playthrough": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Playthrough"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reveal": {
+            "type": "string",
+            "enum": [
+              "hint",
+              "full"
+            ]
+          },
+          "hidden": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "localName": {
+                  "description": "The name in the game's own language",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "giver": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "location": {
+                  "description": "Where it started",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "blocked",
+                    "done",
+                    "failed",
+                    "dropped"
+                  ]
+                },
+                "nextStep": {
+                  "description": "The latest next step the request may show",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuestEntry"
+                  },
+                  "description": "Oldest first"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Its page in the web app, as an absolute URL"
+                },
+                "hidden": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuestEntry"
+                  },
+                  "description": "Only the entries above none"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "localName",
+                "giver",
+                "location",
+                "status",
+                "nextStep",
+                "entries",
+                "url",
+                "hidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "hiddenItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            }
+          },
+          "leftBehind": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Quest"
+            },
+            "description": "Open quests untouched in the last three sessions"
+          }
+        },
+        "required": [
+          "playthrough",
+          "reveal",
+          "hidden",
+          "hiddenItems",
+          "leftBehind"
+        ],
+        "additionalProperties": false,
+        "description": "What the player may have missed, at the level asked for"
+      },
+      "Recorded": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page in the web app, as an absolute URL"
+          },
+          "playedOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+          },
+          "playthrough": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string",
+                "description": "NG, NG+, or what the player calls this run"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "playing",
+                  "finished",
+                  "dropped"
+                ]
+              },
+              "language": {
+                "description": "The language the game is played in, when known",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "lastPlayedOn": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "game": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "platform"
+                ],
+                "additionalProperties": false
+              },
+              "url": {
+                "type": "string",
+                "description": "Its page in the web app, as an absolute URL"
+              },
+              "createdGame": {
+                "type": "boolean"
+              },
+              "createdPlaythrough": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "status",
+              "language",
+              "lastPlayedOn",
+              "game",
+              "url",
+              "createdGame",
+              "createdPlaythrough"
+            ],
+            "additionalProperties": false
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "blocked",
+                    "done",
+                    "failed",
+                    "dropped"
+                  ]
+                },
+                "created": {
+                  "type": "boolean"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Its page in the web app, as an absolute URL"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "created",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "created": {
+                  "type": "boolean"
+                },
+                "equipped": {
+                  "type": "boolean"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Its page in the web app, as an absolute URL"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "created",
+                "equipped",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "stats": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "level": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "newNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "localName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "localName"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Stats the game hadn't had"
+                  }
+                },
+                "required": [
+                  "id",
+                  "level",
+                  "newNames"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "build": {
+            "type": "boolean",
+            "description": "Whether the build plan changed"
+          }
+        },
+        "required": [
+          "sessionId",
+          "url",
+          "playedOn",
+          "playthrough",
+          "quests",
+          "items",
+          "stats",
+          "build"
+        ],
+        "additionalProperties": false,
+        "description": "What was filed from a session"
+      },
+      "Corrected": {
+        "type": "object",
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "what": {
+                  "type": "string",
+                  "enum": [
+                    "game",
+                    "playthrough",
+                    "session",
+                    "quest",
+                    "entry",
+                    "snapshot",
+                    "item"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "What it is called now: a title, a name or a day"
+                },
+                "changed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The fields that were set"
+                },
+                "removed": {
+                  "type": "boolean"
+                },
+                "mergedInto": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "url": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Its page in the web app, as an absolute URL"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "what",
+                "id",
+                "name",
+                "changed",
+                "removed",
+                "mergedInto",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "changes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "An OAuth access token from this instance's authorization server, issued for this API's URL (`resource=<PUBLIC_URL>/api/v1`). A token for /mcp is refused here."
+      }
+    }
+  }
+}

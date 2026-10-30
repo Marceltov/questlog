@@ -1,7 +1,10 @@
-// Who is asking, on each surface. Pages: Better Auth's HttpOnly session cookie. /mcp: an OAuth access token bound to /mcp (mcp.ts); the
-// cookie never counts there, and a token never counts on the pages. Either names a Better Auth user, who must still exist.
+// Who is asking, on each surface. Pages: Better Auth's HttpOnly session cookie. /mcp: an OAuth access token bound to /mcp (mcp.ts).
+// /api/v1: an OAuth access token bound to /api/v1. The cookie never counts on either, a token never counts on the pages, and a token for
+// one of the two never counts on the other. Each names a Better Auth user, who must still exist.
 import { oauthProviderAuthServerMetadata, oauthProviderOpenIdConfigMetadata } from "@better-auth/oauth-provider";
+import { requestToResourceInput, verifyAccessTokenRequest } from "better-auth/oauth2";
 import type { Player } from "../types";
+import { apiResource, issuer, jwksUrl } from "../urls";
 import { auth } from "./auth";
 
 /** The signed-in player of a page request, from its session cookie; null when there is none or it is no longer valid. */
@@ -14,6 +17,22 @@ export async function playerFromHeaders(headers: Headers): Promise<Player | null
 export async function playerById(id: string): Promise<Player | null> {
   const ctx = await (await auth()).$context;
   return (await ctx.internalAdapter.findUserById(id)) ? { id } : null;
+}
+
+/**
+ * The player an /api/v1 request's access token stands for: a JWT from this instance (signature, issuer, expiry, DPoP when bound) whose
+ * audience is /api/v1, for a user who still exists. Null for anything else, an /mcp token included.
+ */
+export async function playerFromApiToken(req: Request): Promise<Player | null> {
+  try {
+    const claims = await verifyAccessTokenRequest(requestToResourceInput(req), {
+      verifyOptions: { issuer: issuer(), audience: apiResource() },
+      jwksUrl: jwksUrl(),
+    });
+    return typeof claims.sub === "string" ? await playerById(claims.sub) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Everything under /api/auth, and the protected-resource metadata of /mcp: Better Auth answers. */

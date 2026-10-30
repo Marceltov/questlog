@@ -8,6 +8,8 @@ export { healthRoute };
 export { authRoute, authServerMetadataRoute, clientName, openIdConfigRoute, playerFromHeaders, signedInAs, signInMethods } from "./auth/session";
 export type { SignInMethods } from "./auth/methods";
 export { mcpRoute } from "./mcp";
+export { dispatch as apiRoute } from "./http/api";
+export { apiResourceMetadataRoute } from "./http/metadata";
 export { mcpResource as mcpUrl, safeNext } from "./urls";
 
 // What the pages read, as the signed-in player sees it: through the same gate as the tools, never asking for spoilers unless the
