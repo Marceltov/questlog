@@ -24,10 +24,10 @@ sequenceDiagram
   participant P as Player
   participant C as Claude
   participant Q as questlog (/mcp)
-  P->>C: "Gave Polendina the ergo; Eugenie needs a better workshop"
+  P->>C: "Gave Polendina the ergo, Eugenie needs a better workshop"
   C->>Q: record: the words, two quests, a stat snapshot
   Q-->>C: what was filed, and next: read it back
-  C-->>P: "Polendina is done; Eugenie's Workshop waits on the game"
+  C-->>P: "Polendina is done, Eugenie's Workshop waits on the game"
   Note over P,Q: days later
   P->>C: "Where was I in Lies of P?"
   C->>Q: briefing
