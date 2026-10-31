@@ -636,3 +636,14 @@ body::before {
 .group-count {
   @apply inline-block rounded-full bg-surface-2 px-1.5 text-xs font-semibold text-muted tabular-nums no-underline;
 }
+
+/* A group's heading inside Items and Codex: a frosted band across the column, larger and bolder than the chips of the group row, its
+   icon in the part's colour and its count on the right, with the part's colour as a rule underneath. */
+.group-heading {
+  @apply glass mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-lg font-bold text-ink;
+  border-bottom: 2px solid color-mix(in oklab, var(--c, var(--accent)) 60%, var(--surface));
+}
+.group-heading svg {
+  @apply h-5 w-5 shrink-0;
+  color: color-mix(in oklab, var(--c, var(--accent)) 65%, var(--ink));
+}

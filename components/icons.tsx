@@ -72,6 +72,17 @@ export function Heading({ icon: Icon, children, className = "" }: { icon: Lucide
   );
 }
 
+/** A group's heading inside a part (Weapons, Bosses): wider and larger than a chip of the group row above it, with how many it holds. */
+export function GroupHeading({ icon: Icon, count, children }: { icon: LucideIcon; count: number; children: ReactNode }) {
+  return (
+    <h3 className="group-heading">
+      <Icon aria-hidden="true" />
+      <span className="flex-1">{children}</span>
+      <span className="text-sm font-semibold text-muted tabular-nums">{count}</span>
+    </h3>
+  );
+}
+
 /** The tile at the start of a card: what kind of thing the card is. */
 export function Tile({ icon: Icon, muted = false }: { icon: LucideIcon; muted?: boolean }) {
   return (
