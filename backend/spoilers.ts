@@ -7,7 +7,7 @@ import type { Schema } from "./db/schema";
 import { SPOILER_LEVELS, type Player, type SpoilerLevel } from "./types";
 
 /** The tables whose rows carry a spoiler level. */
-export const SPOILER_TABLES = ["quests", "quest_entries", "items", "goals", "codex"] as const satisfies readonly (keyof Schema)[];
+export const SPOILER_TABLES = ["quests", "quest_entries", "items", "goals", "codex", "background"] as const satisfies readonly (keyof Schema)[];
 export type SpoilerTable = (typeof SPOILER_TABLES)[number];
 const hasSpoiler = (t: keyof Schema): t is SpoilerTable => (SPOILER_TABLES as readonly string[]).includes(t);
 

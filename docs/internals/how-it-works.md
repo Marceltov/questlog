@@ -29,7 +29,7 @@ Follow a call from the left: whichever way it comes in, it ends in a domain func
 
 ## The gate
 
-`seen()` in `backend/spoilers.ts` narrows every query: a row reaches a player only when its `player_id` is theirs, and, for quests, quest entries and items, only when its spoiler level is one the read asked for ([ADR 0005](../adr/0005-spoiler-levels-and-one-gate.md)).
+`seen()` in `backend/spoilers.ts` narrows every query: a row reaches a player only when its `player_id` is theirs, and, for quests, quest entries, items, goals, codex entries and background lines ([ADR 0016](../adr/0016-background-and-spoilers.md)), only when its spoiler level is one the read asked for ([ADR 0005](../adr/0005-spoiler-levels-and-one-gate.md)).
 
 ```mermaid
 flowchart LR

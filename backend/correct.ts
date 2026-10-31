@@ -13,8 +13,10 @@ import { goalLabel, reachGoals } from "./goals";
 import { norm } from "./names";
 import { mergeSources, parseSources } from "./sources";
 import { seen } from "./spoilers";
+import { addBackground, type BackgroundInput } from "./background";
 import { gameOfRow, mergeTag, removeTag, renameTag, setTags } from "./tags";
 import {
+  BACKGROUND_LEVELS,
   CODEX_STATUSES,
   ENTRY_KINDS,
   GOAL_STATUSES,
@@ -22,6 +24,7 @@ import {
   QUEST_STATUSES,
   SPOILER_LEVELS,
   type Attributes,
+  type BackgroundLevel,
   type CodexStatus,
   type EntryKind,
   type GoalKind,
@@ -42,7 +45,7 @@ const replaceSources = (before: string, next: SourceInput[] | undefined) => {
 };
 
 /** What a correction can name. */
-export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal", "codex", "tag"] as const;
+export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal", "codex", "tag", "background"] as const;
 export type Target = (typeof TARGETS)[number];
 
 /** One change: the row (`what`, `id`), and either `remove` or the fields to set. A nullable field set to null is cleared. */
@@ -101,14 +104,21 @@ export type Correction = {
   notes?: string | null;
   /** What a game, quest, item or codex entry is. */
   description?: string | null;
+  /** A playthrough's settings (ADR 0016): how much Claude adds on its own, and what shows without asking. */
+  background?: BackgroundLevel;
+  spoilers?: SpoilerLevel;
+  /** Lines of background for an item, codex entry or quest (ADR 0016), added to those it has. */
+  addBackground?: BackgroundInput[];
+  /** A background line's source; null clears it. */
+  source?: { url: string; title: string } | null;
 };
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
 const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
   game: ["title", "platform", "description", "notes", "sources", "itemKinds"],
-  playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass", "notes"],
+  playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass", "notes", "background", "spoilers"],
   session: ["summary", "playedOn", "notes"],
-  quest: ["name", "localName", "giver", "location", "status", "description", "notes", "tags"],
+  quest: ["name", "localName", "giver", "location", "status", "description", "notes", "tags", "addBackground"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn", "notes"],
   item: [
@@ -126,10 +136,27 @@ const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
     "description",
     "notes",
     "tags",
+    "addBackground",
   ],
-  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "description", "notes", "spoiler", "sources", "tags"],
+  codex: [
+    "name",
+    "localName",
+    "location",
+    "status",
+    "attempts",
+    "weaknesses",
+    "resistances",
+    "strategy",
+    "description",
+    "notes",
+    "spoiler",
+    "sources",
+    "tags",
+    "addBackground",
+  ],
   goal: ["target", "text", "status", "suggested", "rank", "spoiler", "notes"],
   tag: ["name"],
+  background: ["text", "spoiler", "source"],
 };
 
 export type Corrected = {
@@ -193,6 +220,8 @@ async function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   // A row's tags last, once its own fields are set; the row is still there, as tags never come with remove.
   if (c.tags !== undefined && (c.what === "item" || c.what === "codex" || c.what === "quest"))
     await setTags(trx, p, (await gameOfRow(trx, p, c.what, c.id))!, c.what, c.id, c.tags);
+  if (c.addBackground !== undefined && (c.what === "item" || c.what === "codex" || c.what === "quest"))
+    await addBackground(trx, p, c.what, c.id, c.addBackground);
   return out;
 }
 
@@ -218,7 +247,28 @@ function target(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
       return codex(trx, p, c);
     case "tag":
       return tag(trx, p, c);
+    case "background":
+      return background(trx, p, c);
   }
+}
+
+// A background line (ADR 0016): its text, spoiler level and source, or gone.
+async function background(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const row = await seen(trx.selectFrom("background"), p, "background", "full").select(["id", "text"]).where("id", "=", c.id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No background line with id ${c.id}`);
+  if (c.remove) {
+    await seen(trx.deleteFrom("background"), p, "background", "full").where("id", "=", c.id).execute();
+    return done(c, row.text, null, null);
+  }
+  const t = text("text", c.text);
+  const set = given({
+    text: t,
+    spoiler: oneOf<SpoilerLevel>("spoiler", c.spoiler, SPOILER_LEVELS),
+    source_url: c.source === undefined ? undefined : (c.source?.url ?? null),
+    source_title: c.source === undefined ? undefined : (c.source?.title ?? null),
+  });
+  if (Object.keys(set).length) await seen(trx.updateTable("background"), p, "background", "full").set(set).where("id", "=", c.id).execute();
+  return done(c, t ?? row.text, null, null);
 }
 
 async function tag(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
@@ -296,6 +346,8 @@ async function playthrough(trx: Trx, p: Player, c: Correction): Promise<Correcte
         character_class: nullable(c.characterClass),
         character_local_class: nullable(c.characterLocalClass),
         notes: nullable(c.notes),
+        background: oneOf<BackgroundLevel>("background", c.background, BACKGROUND_LEVELS),
+        spoilers: oneOf<SpoilerLevel>("spoilers", c.spoilers, SPOILER_LEVELS),
       }),
     )
     .where("id", "=", c.id)

@@ -34,10 +34,11 @@ export async function briefing(p: Player, ref: PlaythroughRef = {}): Promise<Bri
   if (!t) return { playthrough: null, lastSession: null, openQuests: [], build: { plan: null, goals: [], current: null }, equipped: [], bosses: [], others };
   const [sessions, quests, build, equipped, bosses] = await Promise.all([
     sessionsOf(p, t.id, 1),
-    questsOf(p, t.id, { statuses: OPEN_STATUSES, reveal: "none" }),
+    // As far as the player's spoiler setting goes (ADR 0016), never further: a briefing never asks for more.
+    questsOf(p, t.id, { statuses: OPEN_STATUSES, reveal: t.settings.spoilers }),
     buildOf(p, t.id, 1),
-    itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
-    codexOf(p, t.id, { kind: "boss", statuses: ["met"], reveal: "none" }),
+    itemsOf(p, t.id, { equippedOnly: true, reveal: t.settings.spoilers }),
+    codexOf(p, t.id, { kind: "boss", statuses: ["met"], reveal: t.settings.spoilers }),
   ]);
   return {
     playthrough: t,

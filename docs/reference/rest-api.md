@@ -8,7 +8,7 @@
 | --- | --- |
 | `GET /api/v1/playthroughs` | The player's playthroughs, most recently played first |
 | `GET /api/v1/playthroughs/{id}` | One playthrough |
-| `GET /api/v1/playthroughs/{id}/briefing` | Where the player was; never a spoiler |
+| `GET /api/v1/playthroughs/{id}/briefing` | Where the player was, as far as the playthrough's spoiler setting |
 | `GET /api/v1/playthroughs/{id}/quests` | Quests with their logs; `status` (comma-separated) and `reveal` |
 | `GET /api/v1/playthroughs/{id}/items` | Items with their tags; `name`, `tag`, `equipped=true` and `reveal` |
 | `GET /api/v1/playthroughs/{id}/tags` | The tags in use, with ids and counts, most used first |

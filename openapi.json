@@ -908,6 +908,53 @@
                           },
                           "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
                         },
+                        "background": {
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1000,
+                                "description": "One thing worth knowing about it, in your own words, never a page's text"
+                              },
+                              "spoiler": {
+                                "description": "Default none. hint when it names a place, person or item the player hasn't reached; full when it gives away an outcome, a fate or a story event",
+                                "type": "string",
+                                "enum": [
+                                  "none",
+                                  "hint",
+                                  "full"
+                                ]
+                              },
+                              "source": {
+                                "description": "The page it comes from; leave it out for what you know yourself",
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string",
+                                    "pattern": "^https?:\\/\\/\\S+$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "title"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "text"
+                            ]
+                          },
+                          "description": "Background you add on your own, as deep as the playthrough's background setting asks (briefing and record's next say it): each line with its own spoiler level. Added to the lines it has; a line it has already is skipped"
+                        },
                         "location": {
                           "description": "Where it started",
                           "type": "string"
@@ -1220,6 +1267,53 @@
                           },
                           "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
                         },
+                        "background": {
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1000,
+                                "description": "One thing worth knowing about it, in your own words, never a page's text"
+                              },
+                              "spoiler": {
+                                "description": "Default none. hint when it names a place, person or item the player hasn't reached; full when it gives away an outcome, a fate or a story event",
+                                "type": "string",
+                                "enum": [
+                                  "none",
+                                  "hint",
+                                  "full"
+                                ]
+                              },
+                              "source": {
+                                "description": "The page it comes from; leave it out for what you know yourself",
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string",
+                                    "pattern": "^https?:\\/\\/\\S+$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "title"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "text"
+                            ]
+                          },
+                          "description": "Background you add on your own, as deep as the playthrough's background setting asks (briefing and record's next say it): each line with its own spoiler level. Added to the lines it has; a line it has already is skipped"
+                        },
                         "equipped": {
                           "type": "boolean"
                         },
@@ -1412,6 +1506,53 @@
                             "maxLength": 40
                           },
                           "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
+                        },
+                        "background": {
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1000,
+                                "description": "One thing worth knowing about it, in your own words, never a page's text"
+                              },
+                              "spoiler": {
+                                "description": "Default none. hint when it names a place, person or item the player hasn't reached; full when it gives away an outcome, a fate or a story event",
+                                "type": "string",
+                                "enum": [
+                                  "none",
+                                  "hint",
+                                  "full"
+                                ]
+                              },
+                              "source": {
+                                "description": "The page it comes from; leave it out for what you know yourself",
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string",
+                                    "pattern": "^https?:\\/\\/\\S+$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "title"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "text"
+                            ]
+                          },
+                          "description": "Background you add on your own, as deep as the playthrough's background setting asks (briefing and record's next say it): each line with its own spoiler level. Added to the lines it has; a line it has already is skipped"
                         }
                       },
                       "required": [
@@ -1569,9 +1710,10 @@
                             "item",
                             "goal",
                             "codex",
-                            "tag"
+                            "tag",
+                            "background"
                           ],
-                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place) or tag"
+                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place), tag or background (a line of background, by its id)"
                         },
                         "id": {
                           "type": "string",
@@ -1663,11 +1805,103 @@
                           ]
                         },
                         "text": {
-                          "description": "entry; goal: the note, or why",
+                          "description": "entry or background; goal: the note, or why",
                           "type": "string"
                         },
                         "spoiler": {
-                          "description": "entry, item, goal or codex: none once the player has found what it names",
+                          "description": "entry, item, goal, codex or background: none once the player has found what it names",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "hint",
+                            "full"
+                          ]
+                        },
+                        "source": {
+                          "description": "background: the page the line comes from; null clears it",
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "pattern": "^https?:\\/\\/\\S+$"
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "title"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "addBackground": {
+                          "description": "item, codex or quest: lines of background to add, as the playthrough's background setting asks",
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 1000,
+                                "description": "One thing worth knowing about it, in your own words, never a page's text"
+                              },
+                              "spoiler": {
+                                "description": "Default none. hint when it names a place, person or item the player hasn't reached; full when it gives away an outcome, a fate or a story event",
+                                "type": "string",
+                                "enum": [
+                                  "none",
+                                  "hint",
+                                  "full"
+                                ]
+                              },
+                              "source": {
+                                "description": "The page it comes from; leave it out for what you know yourself",
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string",
+                                    "pattern": "^https?:\\/\\/\\S+$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "title"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "text"
+                            ]
+                          }
+                        },
+                        "background": {
+                          "description": "playthrough: how much you add on your own when filing (ADR 0016). Only as the player said",
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "light",
+                            "useful",
+                            "everything"
+                          ]
+                        },
+                        "spoilers": {
+                          "description": "playthrough: what shows without asking; above it you only offer. Only as the player said",
                           "type": "string",
                           "enum": [
                             "none",
@@ -2162,6 +2396,36 @@
               "null"
             ]
           },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "background": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "light",
+                  "useful",
+                  "everything"
+                ],
+                "description": "How much Claude adds on its own when filing: none, light, useful, everything"
+              },
+              "spoilers": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "hint",
+                  "full"
+                ],
+                "description": "What shows without asking; above it Claude only offers"
+              }
+            },
+            "required": [
+              "background",
+              "spoilers"
+            ],
+            "additionalProperties": false,
+            "description": "The player's settings for this run (ADR 0016)"
+          },
           "game": {
             "type": "object",
             "properties": {
@@ -2251,6 +2515,7 @@
           "lastPlayedOn",
           "character",
           "notes",
+          "settings",
           "game",
           "url"
         ],
@@ -2403,6 +2668,62 @@
             },
             "description": "Its tags (free names across groups, e.g. fire), by name"
           },
+          "background": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "For correct (background)"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "spoiler": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "hint",
+                    "full"
+                  ],
+                  "description": "Each line has its own; only lines this read may show are here"
+                },
+                "source": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The page it comes from; null for Claude's own knowledge"
+                }
+              },
+              "required": [
+                "id",
+                "text",
+                "spoiler",
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Background Claude added (ADR 0016), oldest first"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2420,6 +2741,7 @@
           "nextStep",
           "entries",
           "tags",
+          "background",
           "url"
         ],
         "additionalProperties": false
@@ -2598,6 +2920,62 @@
             },
             "description": "Its tags (free names across groups, e.g. fire), by name"
           },
+          "background": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "For correct (background)"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "spoiler": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "hint",
+                    "full"
+                  ],
+                  "description": "Each line has its own; only lines this read may show are here"
+                },
+                "source": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The page it comes from; null for Claude's own knowledge"
+                }
+              },
+              "required": [
+                "id",
+                "text",
+                "spoiler",
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Background Claude added (ADR 0016), oldest first"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2619,6 +2997,7 @@
           "spoiler",
           "sources",
           "tags",
+          "background",
           "url"
         ],
         "additionalProperties": false
@@ -2816,6 +3195,62 @@
             },
             "description": "Its tags (free names across groups, e.g. fire), by name"
           },
+          "background": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "For correct (background)"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "spoiler": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "hint",
+                    "full"
+                  ],
+                  "description": "Each line has its own; only lines this read may show are here"
+                },
+                "source": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "url",
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The page it comes from; null for Claude's own knowledge"
+                }
+              },
+              "required": [
+                "id",
+                "text",
+                "spoiler",
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Background Claude added (ADR 0016), oldest first"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2839,6 +3274,7 @@
           "sources",
           "counters",
           "tags",
+          "background",
           "url"
         ],
         "additionalProperties": false,
@@ -3513,6 +3949,62 @@
                   },
                   "description": "Its tags (free names across groups, e.g. fire), by name"
                 },
+                "background": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "For correct (background)"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "spoiler": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "hint",
+                          "full"
+                        ],
+                        "description": "Each line has its own; only lines this read may show are here"
+                      },
+                      "source": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "url": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "url",
+                              "title"
+                            ],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "description": "The page it comes from; null for Claude's own knowledge"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "spoiler",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Background Claude added (ADR 0016), oldest first"
+                },
                 "url": {
                   "type": "string",
                   "description": "Its page in the web app, as an absolute URL"
@@ -3537,6 +4029,7 @@
                 "nextStep",
                 "entries",
                 "tags",
+                "background",
                 "url",
                 "hidden"
               ],
@@ -3662,6 +4155,36 @@
                   "null"
                 ]
               },
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "light",
+                      "useful",
+                      "everything"
+                    ],
+                    "description": "How much Claude adds on its own when filing: none, light, useful, everything"
+                  },
+                  "spoilers": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "hint",
+                      "full"
+                    ],
+                    "description": "What shows without asking; above it Claude only offers"
+                  }
+                },
+                "required": [
+                  "background",
+                  "spoilers"
+                ],
+                "additionalProperties": false,
+                "description": "The player's settings for this run (ADR 0016)"
+              },
               "game": {
                 "type": "object",
                 "properties": {
@@ -3757,6 +4280,7 @@
               "lastPlayedOn",
               "character",
               "notes",
+              "settings",
               "game",
               "url",
               "createdGame",
@@ -4035,7 +4559,8 @@
                     "item",
                     "goal",
                     "codex",
-                    "tag"
+                    "tag",
+                    "background"
                   ]
                 },
                 "id": {

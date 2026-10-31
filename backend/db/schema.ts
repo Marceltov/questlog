@@ -5,6 +5,8 @@ import type { ColumnType } from "kysely";
 
 type Flag = ColumnType<number, number | undefined, number>;
 type Json = ColumnType<string, string | undefined, string>;
+/** Text with a default in the table: optional on insert. */
+type Defaulted = ColumnType<string, string | undefined, string>;
 
 export interface Schema {
   games: {
@@ -33,6 +35,8 @@ export interface Schema {
     character_local_class: string | null;
     created_at: number;
     notes: string | null;
+    background: Defaulted;
+    spoilers: Defaulted;
   };
   sessions: {
     id: string;
@@ -152,5 +156,16 @@ export interface Schema {
   tags: { id: string; player_id: string; game_id: string; name: string; norm: string; created_at: number };
   /** Which item, codex entry or quest carries a tag. */
   tag_links: { tag_id: string; player_id: string; what: string; row_id: string };
+  background: {
+    id: string;
+    player_id: string;
+    what: string;
+    row_id: string;
+    text: string;
+    spoiler: string;
+    source_url: string | null;
+    source_title: string | null;
+    created_at: number;
+  };
   item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

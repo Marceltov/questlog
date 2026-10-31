@@ -30,7 +30,7 @@ Values V1 and V2 are lines never crossed: nothing the player hasn't found is sho
 * **Every table carries `player_id`**, so the gate needs no joins. It is Better Auth's `user.id` (ADR 0004), without a foreign key across the two files.
 * **The gate is `seen(query, player, table, reveal = "none")`** in `backend/spoilers.ts`: `table.player_id = player` and, for the three tables above, `table.spoiler in (levels up to reveal)`. Every query on a table of the schema goes through it, look-ups for a write and counts included. A row of another player is not found, the same answer as a row that doesn't exist.
 * **Who may ask for more:** `briefing` never does. `open_threads` takes `reveal`, described as "only when the player asked for hints in this conversation", and its `next` tells Claude to warn before reading them out. The web app's playthrough page shows hints after a "Show hints" click, behind a warning; full spoilers aren't shown there. A list of what the player might have missed (`missed`, ADR 0001) is a later tool.
-* **No hidden counts:** no read says how many rows it left out.
+* **No hidden counts:** no read says how many rows it left out. (Since [ADR 0016](0016-background-and-spoilers.md) a read may say that there is more above the player's spoiler setting, as a yes or no, so Claude can offer it; still never how much or what. The setting also replaces the page's "Show hints" click.)
 
 ### Consequences
 

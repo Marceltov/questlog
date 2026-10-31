@@ -14,6 +14,7 @@ import {
   PLAYTHROUGH_STATUSES,
   QUEST_STATUSES,
   SPOILER_LEVELS,
+  BACKGROUND_LEVELS,
 } from "./types";
 
 export const Spoiler = z.enum(SPOILER_LEVELS);
@@ -22,6 +23,23 @@ export const TagNames = z
   .max(10)
   .describe(
     "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them",
+  );
+export const BackgroundLines = z
+  .array(
+    z.object({
+      text: z.string().trim().min(1).max(1000).describe("One thing worth knowing about it, in your own words, never a page's text"),
+      spoiler: Spoiler.optional().describe(
+        "Default none. hint when it names a place, person or item the player hasn't reached; full when it gives away an outcome, a fate or a story event",
+      ),
+      source: z
+        .object({ url: z.string().regex(/^https?:\/\/\S+$/, "an http or https URL"), title: z.string().trim().min(1).max(200) })
+        .optional()
+        .describe("The page it comes from; leave it out for what you know yourself"),
+    }),
+  )
+  .max(20)
+  .describe(
+    "Background you add on your own, as deep as the playthrough's background setting asks (briefing and record's next say it): each line with its own spoiler level. Added to the lines it has; a line it has already is skipped",
   );
 export const Day = z.string().regex(DAY, "a day as YYYY-MM-DD");
 
@@ -126,6 +144,7 @@ export const CodexInput = z.object({
   spoiler: Spoiler.optional().describe("Default none: what the player met. hint or full for what comes from your knowledge or a guide and gives away more"),
   sources: z.array(SourceInput).optional().describe("The pages its weaknesses or strategy come from, with the facts; merged by link"),
   tags: TagNames.optional(),
+  background: BackgroundLines.optional(),
 });
 
 export const RecordInput = z.object({
@@ -155,6 +174,7 @@ export const RecordInput = z.object({
         notes: Notes.optional(),
         giver: z.string().optional().describe("Who gave it"),
         tags: TagNames.optional(),
+        background: BackgroundLines.optional(),
         location: z.string().optional().describe("Where it started"),
         status: z
           .enum(QUEST_STATUSES)
@@ -230,6 +250,7 @@ export const RecordInput = z.object({
         against: Against.optional(),
         location: z.string().optional().describe("Where it was found"),
         tags: TagNames.optional(),
+        background: BackgroundLines.optional(),
         equipped: z.boolean().optional(),
         verdict: z.string().optional().describe("How it fits the build, with where you know it from"),
         spoiler: Spoiler.optional().describe("Default none. hint or full when the verdict names what the player hasn't reached"),
@@ -262,7 +283,7 @@ export const ChangeInput = z.object({
   what: z
     .enum(TARGETS)
     .describe(
-      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place) or tag",
+      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place), tag or background (a line of background, by its id)",
     ),
   id: z.string().describe("Its id, as briefing, open_threads, item or record returned it"),
   remove: z
@@ -295,8 +316,16 @@ export const ChangeInput = z.object({
   giver: Nullable(z.string(), "quest"),
   location: Nullable(z.string(), "quest: where it started; item: where it was found; codex: where the player met it"),
   kind: Nullable(z.string(), `entry: ${ENTRY_KINDS.join(", ")}. item: ${ITEM_KINDS.join(", ")}, or the game's term`),
-  text: z.string().optional().describe("entry; goal: the note, or why"),
-  spoiler: Spoiler.optional().describe("entry, item, goal or codex: none once the player has found what it names"),
+  text: z.string().optional().describe("entry or background; goal: the note, or why"),
+  spoiler: Spoiler.optional().describe("entry, item, goal, codex or background: none once the player has found what it names"),
+  source: z
+    .object({ url: z.string().regex(/^https?:\/\/\S+$/, "an http or https URL"), title: z.string().trim().min(1).max(200) })
+    .nullable()
+    .optional()
+    .describe("background: the page the line comes from; null clears it"),
+  addBackground: BackgroundLines.optional().describe("item, codex or quest: lines of background to add, as the playthrough's background setting asks"),
+  background: z.enum(BACKGROUND_LEVELS).optional().describe("playthrough: how much you add on your own when filing (ADR 0016). Only as the player said"),
+  spoilers: Spoiler.optional().describe("playthrough: what shows without asking; above it you only offer. Only as the player said"),
   level: z.number().int().nullable().optional().describe("snapshot"),
   values: z.record(z.string(), z.number()).optional().describe("snapshot: the stats to fix, by key; the others stay"),
   equipped: z.boolean().optional().describe("item"),

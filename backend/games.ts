@@ -7,7 +7,7 @@ import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { parseSources } from "./sources";
-import type { ItemKind, Player, PlaythroughStatus, Source, StatName } from "./types";
+import type { BackgroundLevel, ItemKind, Player, PlaythroughStatus, Source, SpoilerLevel, StatName } from "./types";
 import { playthroughPath } from "./urls";
 
 type Db = Kysely<Schema> | Transaction<Schema>;
@@ -25,6 +25,8 @@ export type PlaythroughView = {
   character: Character | null;
   /** The player's own notes on this run (ADR 0011). */
   notes: string | null;
+  /** How much Claude adds on its own, and what shows without asking (ADR 0016). */
+  settings: { background: BackgroundLevel; spoilers: SpoilerLevel };
   /**
    * `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. `itemKinds`: its
    * inventory groups, in the player's order. `description`: what the game is; `notes`: the player's own (ADR 0011).
@@ -51,6 +53,8 @@ const columns = [
   "playthroughs.character_class",
   "playthroughs.character_local_class",
   "playthroughs.notes",
+  "playthroughs.background",
+  "playthroughs.spoilers",
   "games.id as game_id",
   "games.title",
   "games.platform",
@@ -70,6 +74,8 @@ type Row = {
   character_class: string | null;
   character_local_class: string | null;
   notes: string | null;
+  background: string;
+  spoilers: string;
   game_id: string;
   title: string;
   platform: string | null;
@@ -90,6 +96,7 @@ const view = (r: Row): PlaythroughView => ({
       ? { name: r.character_name, class: r.character_class, localClass: r.character_local_class }
       : null,
   notes: r.notes,
+  settings: { background: r.background as BackgroundLevel, spoilers: r.spoilers as SpoilerLevel },
   game: {
     id: r.game_id,
     title: r.title,

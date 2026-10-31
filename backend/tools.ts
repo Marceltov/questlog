@@ -18,6 +18,7 @@ import { ChangeInput, Day, RecordInput, Spoiler } from "./schemas";
 import { tagsInPlaythrough } from "./tags-in-use";
 import { goalLabel, type GoalView } from "./goals";
 import {
+  BACKGROUND_LEVELS,
   CODEX_KINDS,
   CODEX_STATUSES,
   EFFECTS,
@@ -27,8 +28,12 @@ import {
   OPEN_STATUSES,
   PLAYTHROUGH_STATUSES,
   QUEST_STATUSES,
+  SPOILER_LEVELS,
   type Player,
+  type SpoilerLevel,
 } from "./types";
+import { BackgroundJson } from "./http/schemas";
+import { moreAbove } from "./hidden";
 
 export type Tool = {
   name: string;
@@ -97,6 +102,12 @@ const PlaythroughJson = z.object({
     .nullable()
     .describe("Who the player plays in this run; null until filed"),
   notes: z.string().nullable().describe("The player's own notes on this run"),
+  settings: z
+    .object({
+      background: z.enum(BACKGROUND_LEVELS).describe("How much Claude adds on its own when filing: none, light, useful, everything"),
+      spoilers: z.enum(SPOILER_LEVELS).describe("What shows without asking; above it Claude only offers"),
+    })
+    .describe("The player's settings for this run (ADR 0016)"),
   game: z.object({
     id: z.string(),
     title: z.string(),
@@ -129,6 +140,7 @@ const QuestJson = z.object({
   location: z.string().nullable().describe("Where it started"),
   status: z.enum(QUEST_STATUSES),
   nextStep: z.string().nullable().describe("The latest next step this call may show"),
+  background: BackgroundJson,
   url: Url,
 });
 
@@ -162,6 +174,7 @@ const ItemJson = z.object({
     )
     .describe("Codex entries it works on, best first, from very good to very bad"),
   sources: z.array(SourceJson).describe("Where its facts come from"),
+  background: BackgroundJson,
   url: Url,
 });
 
@@ -192,6 +205,7 @@ const CodexJson = z.object({
       }),
     )
     .describe("The player's items rated against it, best first, from very good to very bad, with how many they have"),
+  background: BackgroundJson,
   url: Url,
 });
 
@@ -256,6 +270,26 @@ const RecordedJson = z.object({
   carried: z.number().nullable().describe("Open goals taken along from carryFrom; null when nothing was carried"),
 });
 
+// What "add background" means at each level of the setting (ADR 0016).
+const DEPTH = {
+  light: "one line on what each is",
+  useful: "what is worth knowing about each: stats and scaling, where it is found, a short lore note, a tip when it fits",
+  everything: "everything worth knowing about each: lore and story context, how it ties in, strategy and build advice, stats and where it is found",
+} as const;
+
+function backgroundNext(r: Recorded): string | null {
+  const t = r.playthrough;
+  const level = t.settings.background;
+  if (level === "none") return null;
+  const rows = [
+    ...r.items.map((x) => `item ${x.name} (${x.id})`),
+    ...r.codex.map((x) => `codex ${x.name} (${x.id})`),
+    ...r.quests.map((x) => `quest ${x.name} (${x.id})`),
+  ];
+  if (!rows.length) return null;
+  return `The player's background setting for ${t.game.title} ${t.label} is ${level}: add ${DEPTH[level]} of what was filed just now: ${rows.join(", ")}. Look it up yourself on their sources for the game, or say it is your own knowledge, then file it with correct (that what and id, addBackground): each line in your own words, with its source, and an honest spoiler level (hint when it names what the player hasn't reached, full when it gives away an outcome, a fate or a story event). Lines a row has already are skipped. Tell the player in a line what you added, and read out nothing above their spoiler setting (${t.settings.spoilers}).`;
+}
+
 function recordNext(r: Recorded): Next {
   const next: Next = [];
   const t = r.playthrough;
@@ -290,6 +324,8 @@ function recordNext(r: Recorded): Next {
       `New in the codex: ${freshCodex.map((x) => `${x.name} (${x.kind})`).join(", ")}. If one is another name of an entry already there, ask the player and correct it.`,
     );
   if (r.codex.some((x) => x.spoiler !== "none")) next.push("Some codex entries are marked as spoilers: briefings leave them out.");
+  const bg = backgroundNext(r);
+  if (bg) next.push(bg);
   if (r.reached.length) next.push(`Goals reached with this snapshot: ${r.reached.join(", ")}. Tell the player, and name what comes next in their plan.`);
   const suggested = r.goals.filter((g) => g.suggested && g.status === "open");
   if (suggested.length)
@@ -341,7 +377,17 @@ const BriefingJson = z.object({
 const NO_ADDING =
   "Name only what is listed here: never add steps, places, bosses or outcomes from your own knowledge of the game, unless the player asks for hints (open_threads with reveal).";
 
-function briefingNext(b: Briefing): Next {
+// The player's spoiler setting is what shows without asking (ADR 0016). Above it Claude offers, and only after a yes asks again with
+// reveal; a read says that more is there, never what or how much.
+const offerMore = (t: PlaythroughView) =>
+  `There is more filed for ${t.game.title} ${t.label} than the player's spoiler setting (${t.settings.spoilers}) shows. Never say what it is or how much, and never hint at it. You may offer it once, in a few words ("there are hints for this, want them?"); only after a yes, ask again with reveal and warn before you read it out.`;
+const LEVEL = { none: 0, hint: 1, full: 2 } as const;
+/** The reveal of a read: what the player asked for just now, else their setting. */
+const revealFor = (t: PlaythroughView | null, asked: SpoilerLevel | undefined): SpoilerLevel => asked ?? t?.settings.spoilers ?? "none";
+/** Whether this read shows more than the player's setting: they asked for it just now. */
+const beyond = (t: PlaythroughView | null, reveal: SpoilerLevel) => !!t && LEVEL[reveal] > LEVEL[t.settings.spoilers];
+
+function briefingNext(b: Briefing, more: boolean): Next {
   if (!b.playthrough)
     return [
       b.others.length
@@ -356,6 +402,7 @@ function briefingNext(b: Briefing): Next {
       : `Nothing has been recorded in ${t.game.title} ${t.label} yet: ask what happened so far and file it with record.`,
   );
   if (b.openQuests.length) next.push(NO_ADDING);
+  if (more) next.push(offerMore(t));
   const open = b.build.goals.filter((g) => g.status === "open");
   const mine = open.filter((g) => !g.suggested);
   if (mine.length)
@@ -382,11 +429,12 @@ const ThreadsJson = z.object({
   quests: z.array(QuestJson.extend({ entries: z.array(EntryJson).describe("Oldest first") })).describe("Open first, then blocked; most recently changed first"),
 });
 
-const threadsNext = (t: PlaythroughView | null, reveal: string, quests: QuestView[]): Next => {
+const threadsNext = (t: PlaythroughView | null, reveal: SpoilerLevel, quests: QuestView[], more: boolean): Next => {
   if (!t) return ["The player has no such playthrough yet. Ask what they are playing."];
   if (!quests.length) return [`No quest is open in ${t.game.title} ${t.label}. Tell the player; don't suggest quests from your own knowledge of the game.`];
   const next: Next = [NO_ADDING.replace(", unless the player asks for hints (open_threads with reveal)", "")];
-  if (reveal !== "none")
+  if (more) next.push(offerMore(t));
+  if (beyond(t, reveal))
     next.push(
       `The player asked for ${reveal === "hint" ? "hints" : "full spoilers"}: entries marked ${reveal === "hint" ? "hint" : "hint or full"} give away more than they found. Warn them once, and read out only those for the quest they asked about.`,
     );
@@ -419,7 +467,7 @@ function lookupNext(t: PlaythroughView): string {
     : `questlog has no sources for ${t.game.title} yet. If the player wants to know more than questlog holds, suggest a site you know for this game, look it up there with your web tools, and ask whether to keep it as a source (record or correct with game sources). Only about what they have found; file the facts in your own words with the link.`;
 }
 
-function itemNext(t: PlaythroughView | null, name: string | undefined, items: ItemView[], reveal: string): Next {
+function itemNext(t: PlaythroughView | null, name: string | undefined, items: ItemView[], reveal: SpoilerLevel, more = false): Next {
   if (!t) return ["The player has no such playthrough yet. Ask what they are playing."];
   const next: Next = [];
   if (name && !items.length)
@@ -431,8 +479,9 @@ function itemNext(t: PlaythroughView | null, name: string | undefined, items: It
       "Compare with the build using these numbers, the verdicts and what the player tells you or a screenshot shows. Where your verdict draws on knowledge of the game, say so and where it comes from. A new or changed verdict goes in with correct (item, by id).",
       lookupNext(t),
     );
-  if (reveal !== "none" && items.some((i) => i.spoiler !== "none"))
-    next.push("Some items here are marked as spoilers: the player asked for them; warn once before naming one.");
+  if (more) next.push(offerMore(t));
+  if (beyond(t, reveal) && items.some((i) => i.spoiler !== "none" || i.background.some((l) => l.spoiler !== "none")))
+    next.push("Some items or lines here are marked as spoilers: the player asked for them; warn once before naming one.");
   return next;
 }
 
@@ -449,7 +498,7 @@ const CodexLookupJson = z.object({
   equipped: z.array(ItemDetailJson).describe("What the player has equipped now"),
 });
 
-function codexNext(t: PlaythroughView | null, name: string | undefined, entries: CodexView[], reveal: string): Next {
+function codexNext(t: PlaythroughView | null, name: string | undefined, entries: CodexView[], reveal: SpoilerLevel, more = false): Next {
   if (!t) return ["The player has no such playthrough yet. Ask what they are playing."];
   if (name && !entries.length)
     return [
@@ -464,8 +513,9 @@ function codexNext(t: PlaythroughView | null, name: string | undefined, entries:
       `Nothing is known yet about how to beat ${bare.map((e) => e.name).join(", ")}. ${lookupNext(t).replace("If the player wants to know more than questlog holds, look", "If the player wants help, look")} File weaknesses and the strategy with record (codex, by id), marked hint when they give away more than the player has seen.`,
     );
   else next.push(lookupNext(t));
-  if (reveal !== "none" && entries.some((e) => e.spoiler !== "none"))
-    next.push("Some entries here are marked as spoilers: the player asked for them; warn once before naming one.");
+  if (more) next.push(offerMore(t));
+  if (beyond(t, reveal) && entries.some((e) => e.spoiler !== "none" || e.background.some((l) => l.spoiler !== "none")))
+    next.push("Some entries or lines here are marked as spoilers: the player asked for them; warn once before naming one.");
   return next;
 }
 
@@ -485,8 +535,13 @@ const CorrectedJson = z.object({
   ),
 });
 
-function correctNext(cs: Corrected[]): Next {
+function correctNext(cs: Corrected[], changes: { what: string; background?: string }[] = []): Next {
   const next: Next = [`Read back what changed, in a sentence per change, with its link: ${cs.map(describe).join("; ")}.`];
+  // Raising background doesn't fill in what was filed before on its own (ADR 0016): Claude offers it.
+  if (changes.some((c) => c.what === "playthrough" && c.background && c.background !== "none"))
+    next.push(
+      "The player's background setting is up: from now on, add background after each session as record's next says. Offer once to add it for what is already in the book too; only on a yes look things up for its items, codex entries and quests, and file them with correct (addBackground).",
+    );
   if (cs.some((c) => c.removed && !c.mergedInto))
     next.push("A removal can't be undone. If one was a mistake, tell the player at once and file it again with record from what they say.");
   const done = cs.filter((c) => c.what === "quest" && c.changed.includes("status"));
@@ -566,12 +621,13 @@ export const TOOLS: Tool[] = [
   tool({
     name: "briefing",
     description:
-      'Where the player was: for one playthrough, the last session, the open quests with their next steps, the current build and what is equipped. Call it when the player picks a game up again ("where was I?") and before record. It never contains spoilers.',
+      'Where the player was: for one playthrough, the last session, the open quests with their next steps, the current build and what is equipped. Call it when the player picks a game up again ("where was I?") and before record. It shows only as much as the player\'s spoiler setting for the playthrough.',
     input: z.object(PlaythroughRefInput),
     output: BriefingJson,
     annotations: { readOnlyHint: true },
     handler: async (p, args) => {
       const b = await briefing(p, args);
+      const more = b.playthrough ? await moreAbove(p, b.playthrough.id, b.playthrough.settings.spoilers, ["quest", "item", "codex"]) : false;
       const body = {
         ...b,
         openQuests: b.openQuests.map((q) => ({ ...questJson(q), lastLog: q.entries.findLast((e) => e.kind === "log") ?? null })),
@@ -580,24 +636,26 @@ export const TOOLS: Tool[] = [
         bosses: b.bosses,
         tags: b.playthrough ? await tagsInPlaythrough(p, b.playthrough.id) : [],
       };
-      return ok(BriefingJson, body, briefingNext(b));
+      return ok(BriefingJson, body, briefingNext(b, more));
     },
   }),
   tool({
     name: "open_threads",
     description:
-      'The quests the player started and hasn\'t finished, with their whole log: what they did, the next steps and the choices made. Call it for "what is still open?" or before the player goes back to an area. reveal is none unless the player asked for a hint in this conversation.',
+      "The quests the player started and hasn't finished, with their whole log: what they did, the next steps and the choices made. Call it for \"what is still open?\" or before the player goes back to an area. It shows as much as the player's spoiler setting; reveal goes higher only when the player asked just now.",
     input: z.object({
       ...PlaythroughRefInput,
-      reveal: Spoiler.optional().describe("Default none: only what the player found. hint or full only when the player asked for hints or spoilers just now"),
+      reveal: Spoiler.optional().describe("Default: the player's spoiler setting. Higher only when the player asked for hints or spoilers just now"),
     }),
     output: ThreadsJson,
     annotations: { readOnlyHint: true },
-    handler: async (p, { reveal = "none", ...ref }) => {
+    handler: async (p, { reveal: asked, ...ref }) => {
       const t = await findPlaythrough(p, ref);
+      const reveal = revealFor(t, asked);
       const quests = t ? await questsOf(p, t.id, { statuses: OPEN_STATUSES, reveal }) : [];
       const ordered = [...quests.filter((q) => q.status === "open"), ...quests.filter((q) => q.status === "blocked")];
-      return ok(ThreadsJson, { playthrough: t, reveal, quests: ordered }, threadsNext(t, reveal, ordered));
+      const more = t ? await moreAbove(p, t.id, reveal, ["quest"]) : false;
+      return ok(ThreadsJson, { playthrough: t, reveal, quests: ordered }, threadsNext(t, reveal, ordered, more));
     },
   }),
   tool({
@@ -608,12 +666,13 @@ export const TOOLS: Tool[] = [
       ...PlaythroughRefInput,
       name: z.string().optional().describe("The item's name, or part of it"),
       tag: z.string().optional().describe('Only items that carry this tag ("what do I have against fire?")'),
-      reveal: Spoiler.optional().describe("Default none. hint or full only when the player asked for spoilers just now"),
+      reveal: Spoiler.optional().describe("Default: the player's spoiler setting. Higher only when the player asked for spoilers just now"),
     }),
     output: ItemLookupJson,
     annotations: { readOnlyHint: true },
-    handler: async (p, { reveal = "none", name, tag, ...ref }) => {
+    handler: async (p, { reveal: asked, name, tag, ...ref }) => {
       const t = await findPlaythrough(p, ref);
+      const reveal = revealFor(t, asked);
       if (!t)
         return ok(
           ItemLookupJson,
@@ -623,7 +682,7 @@ export const TOOLS: Tool[] = [
       const [items, build, equipped, tags] = await Promise.all([
         itemsOf(p, t.id, { name, tag, reveal }),
         buildOf(p, t.id, 1),
-        itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+        itemsOf(p, t.id, { equippedOnly: true, reveal: t.settings.spoilers }),
         tagsInPlaythrough(p, t.id),
       ]);
       const body = {
@@ -634,7 +693,7 @@ export const TOOLS: Tool[] = [
         build: { plan: build.plan, goals: build.goals.map(goalJson), current: build.snapshots[0] ?? null },
         equipped,
       };
-      return ok(ItemLookupJson, body, itemNext(t, name, items, reveal));
+      return ok(ItemLookupJson, body, itemNext(t, name, items, reveal, await moreAbove(p, t.id, reveal, ["item"])));
     },
   }),
   tool({
@@ -646,12 +705,13 @@ export const TOOLS: Tool[] = [
       name: z.string().optional().describe("The entry's name, or part of it"),
       kind: z.enum(CODEX_KINDS).optional().describe("Only bosses, enemies, NPCs or places"),
       tag: z.string().optional().describe("Only entries that carry this tag"),
-      reveal: Spoiler.optional().describe("Default none. hint or full only when the player asked for hints or spoilers just now"),
+      reveal: Spoiler.optional().describe("Default: the player's spoiler setting. Higher only when the player asked for hints or spoilers just now"),
     }),
     output: CodexLookupJson,
     annotations: { readOnlyHint: true },
-    handler: async (p, { reveal = "none", name, kind, tag, ...ref }) => {
+    handler: async (p, { reveal: asked, name, kind, tag, ...ref }) => {
       const t = await findPlaythrough(p, ref);
+      const reveal = revealFor(t, asked);
       if (!t)
         return ok(
           CodexLookupJson,
@@ -661,11 +721,11 @@ export const TOOLS: Tool[] = [
       const [entries, build, equipped, tags] = await Promise.all([
         codexOf(p, t.id, { name, kind, tag, reveal }),
         buildOf(p, t.id, 1),
-        itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+        itemsOf(p, t.id, { equippedOnly: true, reveal: t.settings.spoilers }),
         tagsInPlaythrough(p, t.id),
       ]);
       const body = { playthrough: t, reveal, entries, tags, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
-      return ok(CodexLookupJson, body, codexNext(t, name, entries, reveal));
+      return ok(CodexLookupJson, body, codexNext(t, name, entries, reveal, await moreAbove(p, t.id, reveal, ["codex"])));
     },
   }),
   tool({
@@ -677,7 +737,7 @@ export const TOOLS: Tool[] = [
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     handler: async (p, { changes }) => {
       const cs = await correct(p, changes);
-      return ok(CorrectedJson, { changes: cs }, correctNext(cs));
+      return ok(CorrectedJson, { changes: cs }, correctNext(cs, changes));
     },
   }),
   tool({

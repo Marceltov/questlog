@@ -8,6 +8,7 @@ import {
   questsOf,
   sessionsOf,
   tagsInUse,
+  type BackgroundLine,
   type CodexView,
   type ItemView,
   type Player,
@@ -16,6 +17,7 @@ import {
 } from "@/backend";
 import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
+import { PlaythroughSettings } from "@/components/PlaythroughSettings";
 import { TagFilter } from "@/components/TagFilter";
 import { Register } from "@/components/Register";
 import { CODEX_ICONS, Group, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
@@ -31,18 +33,19 @@ const siteOf = (url: string) => {
   }
 };
 
-// One playthrough's page of the book: its title, then the register (components/Register.tsx), where the player left off first. Hints show only after the player asks on this page,
-// behind a warning (values V1); full spoilers never do here.
-export async function Sheet({ player: p, playthrough: t, reveal }: { player: Player; playthrough: PlaythroughView; reveal: "none" | "hint" }) {
+// One playthrough's page of the book: its title, then the register (components/Register.tsx), where the player left off
+// first. It shows as much as the player's spoiler setting for the run (ADR 0016), and marks what is a hint or a spoiler (values V1).
+export async function Sheet({ player: p, playthrough: t }: { player: Player; playthrough: PlaythroughView }) {
   const copy = await serverCopy();
   const id = t.id;
+  const reveal = t.settings.spoilers;
   const [threads, all, build, items, sessions, codex] = await Promise.all([
     questsOf(p, id, { statuses: ["open", "blocked"], reveal }),
-    questsOf(p, id, { reveal: "none" }),
+    questsOf(p, id, { reveal }),
     buildOf(p, id, 1),
-    itemsOf(p, id, { reveal: "none" }),
+    itemsOf(p, id, { reveal }),
     sessionsOf(p, id),
-    codexOf(p, id, { reveal: "none" }),
+    codexOf(p, id, { reveal }),
   ]);
   // The inventory by the game's groups, in the player's order, under the game's own name when it has one; an item without one goes last.
   const kinds = t.game.itemKinds;
@@ -56,7 +59,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
   const current = build.snapshots[0];
   const codexKinds = CODEX_KINDS.filter((k) => codex.some((e) => e.kind === k));
   const last = sessions[0];
-  const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes"] as const).map((key) => {
+  const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes", "settings"] as const).map((key) => {
     const Icon = PART_ICONS[key];
     return { key, label: copy.tabs[key], icon: <Icon aria-hidden="true" /> };
   });
@@ -79,7 +82,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
       </div>
 
       {/* The rest behind the register's tabs; hints open on the quests, where they are. */}
-      <Register tabs={tabs} start={reveal === "hint" ? "quests" : "overview"} label={copy.tabs.label}>
+      <Register tabs={tabs} start="overview" label={copy.tabs.label}>
         {/* Where the player left off: the last session, what each open quest waits for, the plan's next goals and what is equipped. */}
         <div className="space-y-6">
           {last && (
@@ -185,15 +188,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         <TagFilter tags={tagsInUse([...open, ...closed])} label={copy.tags}>
           <div className="space-y-6">
             <section data-tag-scope>
-              <div className="mb-2 flex items-baseline justify-between">
-                <Heading icon={QUEST_ICONS.open} className="mb-0">
-                  {copy.openQuests}
-                </Heading>
-                <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
-                  {reveal === "hint" ? copy.hideHints : copy.showHints}
-                </Link>
-              </div>
-              {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
+              <Heading icon={QUEST_ICONS.open}>{copy.openQuests}</Heading>
               {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} run={t.id} />}
             </section>
             {closed.length > 0 && (
@@ -295,6 +290,11 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             )}
           </div>
         )}
+
+        {/* How much Claude adds on its own, and what shows without asking (ADR 0016). */}
+        <div className="card">
+          <PlaythroughSettings playthroughId={t.id} settings={t.settings} />
+        </div>
       </Register>
     </div>
   );
@@ -386,6 +386,7 @@ async function Quests({ quests, run }: { quests: QuestView[]; run: string }) {
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
           <Tags tags={q.tags} />
           <Notes description={q.description} notes={q.notes} />
+          <Background lines={q.background} />
           {q.entries.length > 0 && (
             <ul className="mt-2 space-y-1 text-sm">
               {q.entries.map((e) => (
@@ -414,6 +415,32 @@ function Tags({ tags }: { tags: string[] }) {
       <ul className="card-tags">
         {tags.map((t) => (
           <li key={t}>{t}</li>
+        ))}
+      </ul>
+    )
+  );
+}
+
+// What Claude added about a card (ADR 0016), as far as the spoiler setting goes: each line marked when it is a hint or a spoiler, with
+// its source.
+async function Background({ lines }: { lines: BackgroundLine[] }) {
+  const copy = await serverCopy();
+  return (
+    lines.length > 0 && (
+      <ul className="background" aria-label={copy.backgroundLines}>
+        {lines.map((l) => (
+          <li key={l.id} className={l.spoiler === "none" ? "" : "text-hint"}>
+            {l.spoiler !== "none" && <span className="font-bold">{copy.spoilerTag[l.spoiler]}: </span>}
+            {l.text}
+            {l.source && (
+              <>
+                {" "}
+                <a href={l.source.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                  {l.source.title || siteOf(l.source.url)}
+                </a>
+              </>
+            )}
+          </li>
         ))}
       </ul>
     )
@@ -470,6 +497,7 @@ async function Item({ item: i, run }: { item: ItemView; run: string }) {
         );
       })}
       <Notes description={i.description} />
+      <Background lines={i.background} />
       {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
       <Notes notes={i.notes} />
       {i.sources.length > 0 && (
@@ -524,6 +552,7 @@ async function CodexEntry({ entry: e, run }: { entry: CodexView; run: string }) 
         </p>
       )}
       <Notes description={e.description} />
+      <Background lines={e.background} />
       {e.strategy && <p className="mt-1 text-sm">{e.strategy}</p>}
       <Notes notes={e.notes} />
       {EFFECTS.map((effect) => {

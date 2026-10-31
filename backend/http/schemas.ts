@@ -3,11 +3,32 @@
 import * as z from "zod";
 import { TARGETS } from "../correct";
 import { Day, Spoiler } from "../schemas";
-import { CODEX_KINDS, CODEX_STATUSES, EFFECTS, ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES } from "../types";
+import {
+  BACKGROUND_LEVELS,
+  SPOILER_LEVELS,
+  CODEX_KINDS,
+  CODEX_STATUSES,
+  EFFECTS,
+  ENTRY_KINDS,
+  GOAL_KINDS,
+  GOAL_STATUSES,
+  PLAYTHROUGH_STATUSES,
+  QUEST_STATUSES,
+} from "../types";
 import { ERROR_CODES } from "./errors";
 
 const Url = z.string().describe("Its page in the web app, as an absolute URL");
 const Tags = z.array(z.string()).describe("Its tags (free names across groups, e.g. fire), by name");
+export const BackgroundJson = z
+  .array(
+    z.object({
+      id: z.string().describe("For correct (background)"),
+      text: z.string(),
+      spoiler: z.enum(SPOILER_LEVELS).describe("Each line has its own; only lines this read may show are here"),
+      source: z.object({ url: z.string(), title: z.string() }).nullable().describe("The page it comes from; null for Claude's own knowledge"),
+    }),
+  )
+  .describe("Background Claude added (ADR 0016), oldest first");
 
 export const ErrorJson = z
   .object({ error: z.string().describe("What went wrong, in English"), code: z.enum(ERROR_CODES) })
@@ -34,6 +55,12 @@ export const PlaythroughJson = z
       .nullable()
       .describe("Who the player plays in this run; null until filed"),
     notes: z.string().nullable().describe("The player's own notes on this run"),
+    settings: z
+      .object({
+        background: z.enum(BACKGROUND_LEVELS).describe("How much Claude adds on its own when filing: none, light, useful, everything"),
+        spoilers: z.enum(SPOILER_LEVELS).describe("What shows without asking; above it Claude only offers"),
+      })
+      .describe("The player's settings for this run (ADR 0016)"),
     game: z.object({
       id: z.string(),
       title: z.string(),
@@ -75,6 +102,7 @@ export const QuestJson = z
     nextStep: z.string().nullable().describe("The latest next step the request may show"),
     entries: z.array(EntryJson).describe("Oldest first"),
     tags: Tags,
+    background: BackgroundJson,
     url: Url,
   })
   .meta({ id: "Quest" });
@@ -108,6 +136,7 @@ export const ItemJson = z
     spoiler: Spoiler,
     sources: z.array(SourceJson).describe("Where its facts come from"),
     tags: Tags,
+    background: BackgroundJson,
     url: Url,
   })
   .meta({ id: "Item" });
@@ -141,6 +170,7 @@ export const CodexJson = z
       )
       .describe("The player's items rated against it, best first, from very good to very bad"),
     tags: Tags,
+    background: BackgroundJson,
     url: Url,
   })
   .meta({ id: "CodexEntry", description: "A boss, enemy, NPC or place the player met (ADR 0010)" });
