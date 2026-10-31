@@ -74,14 +74,16 @@ export function Heading({ icon: Icon, children, className = "" }: { icon: Lucide
 }
 
 /** A group inside a part (Weapons, Bosses), folding: its band is a native disclosure (keyboard and screen readers know it), larger than
- * a chip of the group row above it, with how many it holds and a chevron that turns when it folds. Open to start with. */
+ * a tag chip, with how many it holds (under a tag, how many of those; components/TagFilter.tsx) and a chevron that turns when it folds. Open to start with. */
 export function Group({ icon: Icon, label, count, children }: { icon: LucideIcon; label: ReactNode; count: number; children: ReactNode }) {
   return (
-    <details open className="group-fold">
+    <details open className="group-fold" data-tag-scope>
       <summary className="group-heading">
         <Icon aria-hidden="true" />
         <h3 className="flex-1">{label}</h3>
-        <span className="group-count">{count}</span>
+        <span className="group-count" data-tag-count={count}>
+          {count}
+        </span>
         <ChevronDown aria-hidden="true" className="group-chevron" />
       </summary>
       {children}
