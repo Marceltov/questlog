@@ -1,9 +1,11 @@
 // Tags (ADR 0014): free names per game on items, codex entries and quests, made up as they're needed, cleaned up with the rows they're on.
 import { beforeEach, expect, test } from "vitest";
 import { correct } from "./correct";
+import { NotFoundError } from "./errors";
 import { db, newId, now } from "./db/testing";
 import { getPlaythrough } from "./games";
 import { itemsOf } from "./items";
+import { setTags, tagsInUse, tagsOf } from "./tags";
 import { seed, type Seed } from "./testing/fixtures";
 
 let s: Seed;
@@ -46,4 +48,38 @@ test("deleting a playthrough cascades to its rows' tag links", async () => {
   await correct(s.a, [{ what: "playthrough", id: s.liesOfP, remove: true }]);
   expect(await links()).toEqual([]);
   expect(await tags()).toEqual([]);
+});
+
+const gameOf = async (p = s.a, run = s.liesOfP) => (await getPlaythrough(p, run)).game.id;
+async function write(what: "item" | "codex" | "quest", id: string, names: string[], p = s.a, gameId?: string) {
+  const game = gameId ?? (await gameOf());
+  return (await db()).transaction().execute((trx) => setTags(trx, p, game, what, id, names));
+}
+
+test("setTags creates new tags and reuses existing ones by their norm form", async () => {
+  expect(await write("item", await saber(), ["fire"])).toEqual(["fire"]);
+  expect(await write("quest", s.venigni, ["Fire", "  frost   bite "])).toEqual(["frost bite"]);
+  expect((await tagsOf(await db(), s.a, "quest", [s.venigni])).get(s.venigni)).toEqual(["fire", "frost bite"]);
+  expect((await tags()).map((t) => t.name).sort()).toEqual(["fire", "frost bite"]);
+});
+
+test("setTags replaces a row's tags, and a tag no row has goes", async () => {
+  const item = await saber();
+  await write("item", item, ["fire"]);
+  await write("item", item, ["frost"]);
+  expect((await tagsOf(await db(), s.a, "item", [item])).get(item)).toEqual(["frost"]);
+  expect(await tags()).toEqual([{ name: "frost" }]);
+});
+
+test("another player's game or row can't be tagged", async () => {
+  await expect(write("item", await saber(), ["fire"], s.a, await gameOf(s.b, s.eldenRing))).rejects.toThrow(NotFoundError);
+  await expect(write("quest", s.ranni, ["fire"])).rejects.toThrow(NotFoundError);
+});
+
+test("tagsInUse counts tags over rows, most used first, then by name", () => {
+  expect(tagsInUse([{ tags: ["frost", "fire"] }, { tags: ["fire"] }, { tags: ["bleed"] }])).toEqual([
+    { name: "fire", count: 2 },
+    { name: "bleed", count: 1 },
+    { name: "frost", count: 1 },
+  ]);
 });
