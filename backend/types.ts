@@ -43,8 +43,19 @@ export type CodexKind = (typeof CODEX_KINDS)[number];
 export const CODEX_STATUSES = ["met", "beaten", "gone"] as const;
 export type CodexStatus = (typeof CODEX_STATUSES)[number];
 
-/** The kinds the inventory groups by, in this order; an item's kind is free text in the game's terms, and anything else goes last. */
-export const ITEM_KINDS = ["weapon", "blade", "handle", "armour", "amulet", "consumable", "material", "collectible", "key"] as const;
+/**
+ * An inventory group of a game, as data like its stats (values V8): games call them differently (amulets in one, rings or talismans in
+ * another). `key` is what an item's kind holds, `name` the group's English name, `localName` the game's own. A game keeps its groups in
+ * the player's order; an item of a kind the game doesn't have yet adds one at the end.
+ */
+export type ItemKind = { key: string; name: string; localName: string | null };
+
+/** The keys Claude reaches for first when a game has no group that fits; any other key is fine. */
+export const ITEM_KINDS = ["weapon", "armour", "amulet", "consumable", "material", "collectible", "key"] as const;
+
+/** What an item does against a codex entry: `good` to use on it, `bad` to leave at home (it resists it, it heals from it). */
+export const EFFECTS = ["good", "bad"] as const;
+export type Effect = (typeof EFFECTS)[number];
 
 /** An item's numbers as the game shows them, by the game's names: { "Physical ATK": 119, "Technique": "C" }. */
 export type Attributes = Record<string, string | number>;

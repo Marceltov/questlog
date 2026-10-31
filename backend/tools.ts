@@ -16,7 +16,18 @@ import { questsOf, type QuestView } from "./quests";
 import { record, type Recorded } from "./record";
 import { ChangeInput, Day, RecordInput, Spoiler } from "./schemas";
 import { goalLabel, type GoalView } from "./goals";
-import { CODEX_KINDS, CODEX_STATUSES, ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, OPEN_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, type Player } from "./types";
+import {
+  CODEX_KINDS,
+  CODEX_STATUSES,
+  EFFECTS,
+  ENTRY_KINDS,
+  GOAL_KINDS,
+  GOAL_STATUSES,
+  OPEN_STATUSES,
+  PLAYTHROUGH_STATUSES,
+  QUEST_STATUSES,
+  type Player,
+} from "./types";
 
 export type Tool = {
   name: string;
@@ -89,6 +100,9 @@ const PlaythroughJson = z.object({
     title: z.string(),
     platform: z.string().nullable(),
     sources: z.array(SourceJson).describe("The sites the player trusts for this game: where you look things up when they ask"),
+    itemKinds: z
+      .array(z.object({ key: z.string().describe("What an item's kind holds"), name: z.string(), localName: z.string().nullable() }))
+      .describe("The game's inventory groups, in the player's order: file an item's kind with one of these keys"),
   }),
   url: Url,
 });
@@ -129,8 +143,14 @@ const ItemJson = z.object({
   quantity: z.number().nullable().describe("How many the player has; null when it isn't counted"),
   attributes: z.record(z.string(), z.union([z.string(), z.number()])).describe("Its numbers, by the game's names"),
   against: z
-    .array(z.object({ codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }), note: z.string().nullable() }))
-    .describe("Codex entries it is good against"),
+    .array(
+      z.object({
+        codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }),
+        effect: z.enum(EFFECTS).describe("good: use it on them; bad: better not"),
+        note: z.string().nullable(),
+      }),
+    )
+    .describe("Codex entries it is good or bad against"),
   sources: z.array(SourceJson).describe("Where its facts come from"),
   url: Url,
 });
@@ -154,10 +174,11 @@ const CodexJson = z.object({
     .array(
       z.object({
         item: z.object({ id: z.string(), name: z.string(), kind: z.string().nullable(), quantity: z.number().nullable(), url: Url }),
+        effect: z.enum(EFFECTS).describe("good: use it on them; bad: leave it at home"),
         note: z.string().nullable(),
       }),
     )
-    .describe("The player's items that are good against it, with how many they have"),
+    .describe("The player's items that are good or bad against it, with how many they have"),
   url: Url,
 });
 
@@ -201,6 +222,7 @@ const RecordedJson = z.object({
   playthrough: PlaythroughJson,
   quests: z.array(z.object({ id: z.string(), name: z.string(), status: z.enum(QUEST_STATUSES), created: z.boolean(), url: Url })),
   items: z.array(z.object({ id: z.string(), name: z.string(), created: z.boolean(), equipped: z.boolean(), url: Url })),
+  newItemKinds: z.array(z.string()).describe("Inventory group keys this game hadn't had"),
   stats: z.object({ id: z.string(), level: z.number().nullable(), newNames: z.array(z.string()).describe("Stat keys this game hadn't had") }).nullable(),
   build: z.boolean().describe("Whether the build plan or its goals changed"),
   goals: z
@@ -256,6 +278,10 @@ function recordNext(r: Recorded): Next {
   if (r.carried !== null)
     next.push(
       `Taken along from the earlier playthrough: the character, the build plan and ${r.carried} open goal${r.carried === 1 ? "" : "s"}. Read them back and ask which still hold.`,
+    );
+  if (r.newItemKinds.length)
+    next.push(
+      `New inventory group${r.newItemKinds.length === 1 ? "" : "s"} for ${t.game.title}: ${r.newItemKinds.map((k) => `${k.name}${k.localName ? ` (${k.localName})` : ""}, key ${k.key}`).join("; ")}. Check the names with the player, the game's own as localName (record itemKinds); if one is a group already there under another name, move its items with correct.`,
     );
   if (r.stats?.newNames.length)
     next.push(
@@ -399,7 +425,7 @@ function codexNext(t: PlaythroughView | null, name: string | undefined, entries:
       `The player hasn't filed ${name} in the codex of ${t.game.title} ${t.label}. If they just met it, file it with record (codex, with its kind). Don't describe it from your own knowledge unless they ask.`,
     ];
   const next: Next = [
-    "Answer from these entries: weaknesses, the strategy, and the player's own items that counter it (say when they have none left). Weigh it against the build and what is equipped.",
+    "Answer from these entries: weaknesses, the strategy, the player's own items that counter it (say when they have none left) and those to leave at home. Weigh it against the build and what is equipped.",
   ];
   const bare = entries.filter((e) => (e.kind === "boss" || e.kind === "enemy") && !e.weaknesses.length && !e.strategy);
   if (bare.length)
@@ -482,7 +508,7 @@ export const TOOLS: Tool[] = [
   tool({
     name: "record",
     description:
-      "File one play session: the player's words verbatim as transcript, then what was learned from it, split into quests (with log entries, next steps and decisions), a stat snapshot, the build plan with its goals, the character, the codex (bosses, enemies, NPCs and places, with weaknesses and strategies) and the inventory (items with counts, numbers and what they are good against). Before filing, call briefing for the playthrough and reuse the ids of quests and items that are already there. Ask the player when you aren't sure which quest they mean, whether they finished something or only started it, or which choice they made: never file a guess.",
+      "File one play session: the player's words verbatim as transcript, then what was learned from it, split into quests (with log entries, next steps and decisions), a stat snapshot, the build plan with its goals, the character, the codex (bosses, enemies, NPCs and places, with weaknesses and strategies) and the inventory (items with counts, numbers and what they are good or bad against, in the game's inventory groups). Before filing, call briefing for the playthrough and reuse the ids of quests and items that are already there. Ask the player when you aren't sure which quest they mean, whether they finished something or only started it, or which choice they made: never file a guess.",
     input: RecordInput,
     output: RecordedJson,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
@@ -494,6 +520,7 @@ export const TOOLS: Tool[] = [
         playthrough: playthroughJson(r.playthrough),
         quests: r.quests,
         items: r.items,
+        newItemKinds: r.newItemKinds.map((k) => k.key),
         stats: r.stats && { id: r.stats.id, level: r.stats.level, newNames: r.stats.newNames.map((n) => n.key) },
         build: r.build,
         goals: r.goals,
@@ -577,7 +604,7 @@ export const TOOLS: Tool[] = [
   tool({
     name: "codex",
     description:
-      'The bosses, enemies, NPCs and places the player met in a playthrough: one by name (part of it is enough), or all of one kind, with weaknesses, resistances, the strategy, and the player\'s own items that are good against it, with how many they have. Call it for "how do I beat this boss?", "what is this enemy weak to?", "what did that NPC want?".',
+      'The bosses, enemies, NPCs and places the player met in a playthrough: one by name (part of it is enough), or all of one kind, with weaknesses, resistances, the strategy, and the player\'s own items that are good or bad against it, with how many they have. Call it for "how do I beat this boss?", "what is this enemy weak to?", "what did that NPC want?".',
     input: z.object({
       ...PlaythroughRefInput,
       name: z.string().optional().describe("The entry's name, or part of it"),
@@ -606,7 +633,7 @@ export const TOOLS: Tool[] = [
   tool({
     name: "correct",
     description:
-      "Fix or remove what was filed: a game's title, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good against), a goal, a codex entry (a boss, enemy, NPC or place). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
+      "Fix or remove what was filed: a game's title or inventory groups, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good or bad against), a goal, a codex entry (a boss, enemy, NPC or place). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
     input: z.object({ changes: z.array(ChangeInput).min(1).max(50) }),
     output: CorrectedJson,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },

@@ -3,8 +3,8 @@
 // in the playthrough, never by a guess (values V4).
 import { db, newId, now } from "./db";
 import { today } from "./dates";
-import { playthroughForRecord, statNames, type ResolvedPlaythrough } from "./games";
-import { writeCodex, writeUses, type CodexInput, type FiledCodex } from "./codex";
+import { fileItemKind, itemKindsOf, playthroughForRecord, setItemKinds, statNames, type ItemKindInput, type ResolvedPlaythrough } from "./games";
+import { writeCodex, writeUses, type AgainstInput, type CodexInput, type FiledCodex } from "./codex";
 import { carryGoals, goalLabel, reachGoals, writeGoals, type FiledGoal, type GoalInput } from "./goals";
 import type { Transaction } from "kysely";
 import type { Schema } from "./db/schema";
@@ -12,7 +12,7 @@ import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
-import type { Attributes, EntryKind, GoalKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
+import type { Attributes, EntryKind, GoalKind, ItemKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
 
 export type QuestInput = {
@@ -40,8 +40,8 @@ export type ItemInput = {
   quantity?: number;
   /** Its numbers, by the game's names; merged into those it has. */
   attributes?: Attributes;
-  /** Codex entries it is good against, by id or exact name, with how. */
-  against?: { target: string; note?: string }[];
+  /** Codex entries it is good (the default) or bad against, by id or exact name, with how. */
+  against?: AgainstInput[];
 };
 
 export type RecordInput = {
@@ -55,6 +55,8 @@ export type RecordInput = {
   transcript: string;
   quests?: QuestInput[];
   stats?: { level?: number; values: Record<string, number>; names?: { key: string; name?: string; localName?: string }[] };
+  /** Names the game's inventory groups: a group named by key gets the names, a new one goes at the end. */
+  itemKinds?: ItemKindInput[];
   /** `targets` is short for stat goals of the player's: { vigor: 20 }. */
   build?: { summary?: string; mainStat?: string; targets?: Record<string, number> };
   goals?: GoalInput[];
@@ -87,6 +89,8 @@ export type Recorded = {
   playthrough: ResolvedPlaythrough;
   quests: FiledQuest[];
   items: FiledItem[];
+  /** Inventory groups this call added to the game, by an item's new kind or by itemKinds. */
+  newItemKinds: ItemKind[];
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
   goals: FiledGoal[];
@@ -301,8 +305,11 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
 
     const codex = input.codex?.length ? await writeCodex(trx, p, t.id, sessionId, playedOn, input.codex) : [];
 
+    const kindsBefore = t.game.itemKinds.map((k) => k.key);
+    if (input.itemKinds?.length) await setItemKinds(trx, p, t.game.id, input.itemKinds, "merge");
     const items: FiledItem[] = [];
     for (const i of input.items ?? []) {
+      const kind = i.kind?.trim() ? (await fileItemKind(trx, p, t.game.id, i.kind)).key : null;
       if (i.quantity !== undefined && (!Number.isInteger(i.quantity) || i.quantity < 0)) throw new InvalidInputError("items: quantity is a count, 0 or more");
       const name = i.name.trim();
       const existing = await seen(trx.selectFrom("items"), p, "items", "full")
@@ -321,7 +328,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             spoiler,
             updated_at: at,
             ...(i.localName ? { local_name: i.localName.trim() } : {}),
-            ...(i.kind ? { kind: i.kind.trim() } : {}),
+            ...(kind ? { kind } : {}),
             ...(i.location ? { location: i.location.trim() } : {}),
             ...(i.verdict ? { verdict: i.verdict.trim() } : {}),
             ...(i.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(existing.sources), i.sources, playedOn)) } : {}),
@@ -342,7 +349,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             name,
             norm: norm(name),
             local_name: clean(i.localName),
-            kind: clean(i.kind),
+            kind,
             location: clean(i.location),
             equipped: equipped ? 1 : 0,
             verdict: clean(i.verdict),
@@ -373,13 +380,15 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       reached.push(g?.label ?? (await reachedLabel(trx, p, id, t.game.id)));
     }
 
+    const itemKinds = await itemKindsOf(p, t.game.id, trx);
     return {
       sessionId,
       url: sessionPath(sessionId),
       playedOn,
-      playthrough: { ...t, ...(character || carried !== null ? await characterOf(trx, p, t.id) : {}) },
+      playthrough: { ...t, game: { ...t.game, itemKinds }, ...(character || carried !== null ? await characterOf(trx, p, t.id) : {}) },
       quests,
       items,
+      newItemKinds: itemKinds.filter((k) => !kindsBefore.includes(k.key)),
       stats,
       build: build || goals.length > 0,
       goals,

@@ -1043,7 +1043,7 @@
                           "type": "string"
                         },
                         "kind": {
-                          "description": "One of weapon, blade, handle, armour, amulet, consumable, material, collectible, key where it fits (the inventory groups by it), else the game's term",
+                          "description": "The inventory group: a key, name or local name of one of the game's groups (game.itemKinds), else a new group in the game's terms (weapon, armour, amulet, consumable, material, collectible, key, ring, talisman)",
                           "type": "string"
                         },
                         "quantity": {
@@ -1074,8 +1074,16 @@
                                 "type": "string",
                                 "description": "A codex entry (boss, enemy, NPC): its id or exact name"
                               },
+                              "effect": {
+                                "description": "good (the default): use it on them. bad: leave it at home, they resist it or heal from it",
+                                "type": "string",
+                                "enum": [
+                                  "good",
+                                  "bad"
+                                ]
+                              },
                               "note": {
-                                "description": "How it helps: fire against a weak spot, throw before the second phase",
+                                "description": "How: fire against a weak spot, throw before the second phase; or why not: it heals from fire",
                                 "type": "string"
                               }
                             },
@@ -1083,7 +1091,7 @@
                               "target"
                             ]
                           },
-                          "description": "What the item is good against"
+                          "description": "What the item is good or bad against"
                         },
                         "location": {
                           "description": "Where it was found",
@@ -1134,6 +1142,33 @@
                       },
                       "required": [
                         "name"
+                      ]
+                    }
+                  },
+                  "itemKinds": {
+                    "description": "Names the game's inventory groups when the player says what the game calls them; a group named by key gets the names, a new one goes last",
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "description": "What items' kind holds: amulet, ring, consumable; an existing group's key renames it"
+                        },
+                        "name": {
+                          "description": "The group's name in English, as a heading: Amulets, Rings, Talismans",
+                          "type": "string"
+                        },
+                        "localName": {
+                          "description": "The name in the game's own language: Amulette",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "key"
                       ]
                     }
                   },
@@ -1451,7 +1486,7 @@
                           ]
                         },
                         "kind": {
-                          "description": "entry: log, next, decision. item: weapon, blade, handle, armour, amulet, consumable, material, collectible, key, or the game's term; null clears it",
+                          "description": "entry: log, next, decision. item: weapon, armour, amulet, consumable, material, collectible, key, or the game's term; null clears it",
                           "type": [
                             "string",
                             "null"
@@ -1592,7 +1627,7 @@
                           }
                         },
                         "against": {
-                          "description": "item: what it is good against, all of it: a link left out is dropped",
+                          "description": "item: what it is good or bad against, all of it: a link left out is dropped",
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -1601,13 +1636,48 @@
                                 "type": "string",
                                 "description": "A codex entry (boss, enemy, NPC): its id or exact name"
                               },
+                              "effect": {
+                                "description": "good (the default): use it on them. bad: leave it at home, they resist it or heal from it",
+                                "type": "string",
+                                "enum": [
+                                  "good",
+                                  "bad"
+                                ]
+                              },
                               "note": {
-                                "description": "How it helps: fire against a weak spot, throw before the second phase",
+                                "description": "How: fire against a weak spot, throw before the second phase; or why not: it heals from fire",
                                 "type": "string"
                               }
                             },
                             "required": [
                               "target"
+                            ]
+                          }
+                        },
+                        "itemKinds": {
+                          "description": "game: its inventory groups, all of them in the player's order; one that items still use can't go",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string",
+                                "description": "What items' kind holds: amulet, ring, consumable; an existing group's key renames it"
+                              },
+                              "name": {
+                                "description": "The group's name in English, as a heading: Amulets, Rings, Talismans",
+                                "type": "string"
+                              },
+                              "localName": {
+                                "description": "The name in the game's own language: Amulette",
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "key"
                             ]
                           }
                         },
@@ -1926,13 +1996,42 @@
                   "$ref": "#/components/schemas/Source"
                 },
                 "description": "The sites the player trusts for this game"
+              },
+              "itemKinds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "What an item's kind holds"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "localName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "name",
+                    "localName"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "The game's inventory groups, in the player's order"
               }
             },
             "required": [
               "id",
               "title",
               "platform",
-              "sources"
+              "sources",
+              "itemKinds"
             ],
             "additionalProperties": false
           },
@@ -2129,6 +2228,7 @@
             ]
           },
           "kind": {
+            "description": "The key of one of the game's inventory groups",
             "type": [
               "string",
               "null"
@@ -2190,6 +2290,14 @@
                   ],
                   "additionalProperties": false
                 },
+                "effect": {
+                  "type": "string",
+                  "enum": [
+                    "good",
+                    "bad"
+                  ],
+                  "description": "good: use it on them; bad: better not"
+                },
                 "note": {
                   "type": [
                     "string",
@@ -2199,11 +2307,12 @@
               },
               "required": [
                 "codex",
+                "effect",
                 "note"
               ],
               "additionalProperties": false
             },
-            "description": "Codex entries it is good against"
+            "description": "Codex entries it is good or bad against"
           },
           "location": {
             "description": "Where it was found",
@@ -2411,6 +2520,14 @@
                   ],
                   "additionalProperties": false
                 },
+                "effect": {
+                  "type": "string",
+                  "enum": [
+                    "good",
+                    "bad"
+                  ],
+                  "description": "good: use it on them; bad: leave it at home"
+                },
                 "note": {
                   "type": [
                     "string",
@@ -2420,11 +2537,12 @@
               },
               "required": [
                 "item",
+                "effect",
                 "note"
               ],
               "additionalProperties": false
             },
-            "description": "The player's items that are good against it"
+            "description": "The player's items that are good or bad against it"
           },
           "url": {
             "type": "string",
@@ -3196,13 +3314,42 @@
                       "$ref": "#/components/schemas/Source"
                     },
                     "description": "The sites the player trusts for this game"
+                  },
+                  "itemKinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "description": "What an item's kind holds"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "localName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "localName"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "The game's inventory groups, in the player's order"
                   }
                 },
                 "required": [
                   "id",
                   "title",
                   "platform",
-                  "sources"
+                  "sources",
+                  "itemKinds"
                 ],
                 "additionalProperties": false
               },

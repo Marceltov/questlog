@@ -27,7 +27,7 @@ items:
     date: 2026-10-30
     icon: sword-cross
     title: The tracker, inventory and codex
-    summary: The whole inventory with counts and an item's numbers, grouped by kind; the bosses, enemies, NPCs and places met, with weaknesses, strategies and tries; and what each item is good against.
+    summary: The whole inventory with counts and an item's numbers, in the game's own groups; the bosses, enemies, NPCs and places met, with weaknesses, strategies and tries; and what each item is good or bad against.
     links:
       - { label: "#24", url: "https://github.com/Marceltov/questlog/issues/24" }
       - { label: "#25", url: "https://github.com/Marceltov/questlog/issues/25" }

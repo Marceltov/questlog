@@ -7,8 +7,8 @@ import { db, now } from "./db";
 import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { today } from "./dates";
-import { statNames } from "./games";
-import { writeUses } from "./codex";
+import { fileItemKind, setItemKinds, statNames, type ItemKindInput } from "./games";
+import { writeUses, type AgainstInput } from "./codex";
 import { goalLabel, reachGoals } from "./goals";
 import { norm } from "./names";
 import { mergeSources, parseSources } from "./sources";
@@ -85,8 +85,10 @@ export type Correction = {
   quantity?: number | null;
   /** An item's numbers, all of them: a key left out is dropped. */
   attributes?: Attributes;
-  /** What an item is good against, all of it: a link left out is dropped. */
-  against?: { target: string; note?: string }[];
+  /** What an item is good or bad against, all of it: a link left out is dropped. */
+  against?: AgainstInput[];
+  /** A game's inventory groups, all of them in the player's order. */
+  itemKinds?: ItemKindInput[];
   /** A codex entry's. */
   attempts?: number | null;
   weaknesses?: string[];
@@ -97,7 +99,7 @@ export type Correction = {
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
 const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
-  game: ["title", "platform", "sources"],
+  game: ["title", "platform", "sources", "itemKinds"],
   playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass"],
   session: ["summary", "playedOn"],
   quest: ["name", "localName", "giver", "location", "status"],
@@ -211,10 +213,9 @@ async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
     if (clash)
       throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). questlog doesn't merge games: ask the player what they want`);
   }
-  await seen(trx.updateTable("games"), p, "games")
-    .set(given({ title, norm: title && norm(title), platform: nullable(c.platform), sources: replaceSources(row.sources, c.sources) }))
-    .where("id", "=", c.id)
-    .execute();
+  const set = given({ title, norm: title && norm(title), platform: nullable(c.platform), sources: replaceSources(row.sources, c.sources) });
+  if (Object.keys(set).length) await seen(trx.updateTable("games"), p, "games").set(set).where("id", "=", c.id).execute();
+  if (c.itemKinds) await setItemKinds(trx, p, c.id, c.itemKinds, "replace");
   return done(c, title ?? row.title, null, null);
 }
 
@@ -386,6 +387,10 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
     .where("id", "=", c.id)
     .executeTakeFirst();
   if (!row) throw new NotFoundError(`No item with id ${c.id}`);
+  const { game_id } = await seen(trx.selectFrom("playthroughs"), p, "playthroughs")
+    .select("game_id")
+    .where("id", "=", row.playthrough_id)
+    .executeTakeFirstOrThrow();
   if (c.remove) {
     await seen(trx.deleteFrom("items"), p, "items", "full").where("id", "=", c.id).execute();
     return done(c, row.name, row.playthrough_id, playthroughPath(row.playthrough_id));
@@ -408,7 +413,7 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         name,
         norm: name && norm(name),
         local_name: nullable(c.localName),
-        kind: nullable(c.kind),
+        kind: c.kind?.trim() ? (await fileItemKind(trx, p, game_id, c.kind)).key : nullable(c.kind),
         location: nullable(c.location),
         verdict: nullable(c.verdict),
         sources: replaceSources(row.sources, c.sources),

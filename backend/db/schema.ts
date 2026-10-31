@@ -7,7 +7,17 @@ type Flag = ColumnType<number, number | undefined, number>;
 type Json = ColumnType<string, string | undefined, string>;
 
 export interface Schema {
-  games: { id: string; player_id: string; title: string; norm: string; platform: string | null; stats: Json; sources: Json; created_at: number };
+  games: {
+    id: string;
+    player_id: string;
+    title: string;
+    norm: string;
+    platform: string | null;
+    stats: Json;
+    item_kinds: Json;
+    sources: Json;
+    created_at: number;
+  };
   playthroughs: {
     id: string;
     player_id: string;
@@ -117,5 +127,5 @@ export interface Schema {
     created_at: number;
     updated_at: number;
   };
-  item_uses: { item_id: string; codex_id: string; player_id: string; note: string | null; created_at: number };
+  item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

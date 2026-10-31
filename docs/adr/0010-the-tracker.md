@@ -25,13 +25,13 @@ Items were the player's inventory in name only: a weapon's numbers (scaling, att
 
 ## Decision Outcome
 
-Chosen: **the inventory grows, a codex joins it, and what an item is good against links the two.**
+Chosen: **the inventory grows, a codex joins it, and what an item is good or bad against links the two.**
 
-* **Inventory:** an item has a `quantity` (null when it isn't counted) and `attributes`, its numbers as `{ name: value }` by the game's own names, merged by `record`, replaced by `correct`. `kind` stays free text; a known list (weapon, blade, handle, armour, amulet, consumable, material, collectible, key) is what the page groups by and what the tool's description offers.
+* **Inventory:** an item has a `quantity` (null when it isn't counted) and `attributes`, its numbers as `{ name: value }` by the game's own names, merged by `record`, replaced by `correct`. `kind` is the key of one of the game's **inventory groups**: like stat names (V8) they are the game's, a list of `{ key, name, localName }` on the game in the player's order, since games call them differently (amulets in one, rings or talismans in another). An item of a kind the game doesn't have adds a group at the end, and `next` asks Claude to check its name with the player; `record` names groups (`itemKinds`), `correct` on the game sets the whole list and order and refuses to drop a group items still use. The migration seeds each game's groups from the kinds its items had.
 * **Codex:** a row per boss, enemy, NPC or place the player met, matched by exact name within its kind, with a `status` (`met`, `beaten` with the day, `gone`), a boss's `attempts`, `weaknesses` and `resistances` (added up, case-insensitively), a `strategy`, `notes`, `sources` with facts (ADR 0008) and a spoiler level. Its gate is the same as quests' (ADR 0005).
-* **Good against:** `item_uses` links an item to codex entries, with a note. It shows only when both ends may: an item marked as a spoiler isn't offered as a counter, and a hidden boss doesn't show in an item's links.
-* **Tools:** `record` takes `codex`, and items take `quantity`, `attributes` and `against`. A new tool, `codex`, answers "how do I beat this?" with the entry, the player's counters and how many are left, the build and what is equipped; with nothing known yet, `next` points Claude at the game's sources. `briefing` lists the bosses met and not beaten. `correct` takes `codex`, and an item's count, numbers and links.
-* **Pages:** a playthrough's page has a codex (bosses first, what is in the way before what is beaten) and the inventory grouped by kind, with counts and numbers.
+* **Good or bad against:** `item_uses` links an item to codex entries, with an `effect` (`good`: use it on them; `bad`: leave it at home, they resist or heal from it) and a note. It shows only when both ends may: an item marked as a spoiler isn't offered as a counter, and a hidden boss doesn't show in an item's links.
+* **Tools:** `record` takes `codex`, and items take `quantity`, `attributes` and `against`. A new tool, `codex`, answers "how do I beat this?" with the entry, the player's counters and how many are left, what to leave at home, the build and what is equipped; with nothing known yet, `next` points Claude at the game's sources. `briefing` lists the bosses met and not beaten. `correct` takes `codex`, and an item's count, numbers and links.
+* **Pages:** a playthrough's page has a codex (bosses first, what is in the way before what is beaten) and the inventory in the game's groups under the game's own names, with counts, numbers and what each item is good or bad against.
 
 ### Consequences
 

@@ -1,4 +1,4 @@
-// Games and playthroughs. A game is the player's own entry for a title, with the stat names it uses as data (values V8); a playthrough
+// Games and playthroughs. A game is the player's own entry for a title, with the stat names and inventory groups it uses as data (values V8); a playthrough
 // is one run of it (NG, NG+). Which playthrough a call means is resolved here, for every surface the same way.
 import type { Kysely, Transaction } from "kysely";
 import { db, newId, now } from "./db";
@@ -7,7 +7,7 @@ import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { parseSources } from "./sources";
-import type { Player, PlaythroughStatus, Source, StatName } from "./types";
+import type { ItemKind, Player, PlaythroughStatus, Source, StatName } from "./types";
 import { playthroughPath } from "./urls";
 
 type Db = Kysely<Schema> | Transaction<Schema>;
@@ -23,8 +23,11 @@ export type PlaythroughView = {
   lastPlayedOn: string | null;
   /** Null until one is filed. */
   character: Character | null;
-  /** `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. */
-  game: { id: string; title: string; platform: string | null; sources: Source[] };
+  /**
+   * `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. `itemKinds`: its
+   * inventory groups, in the player's order.
+   */
+  game: { id: string; title: string; platform: string | null; sources: Source[]; itemKinds: ItemKind[] };
   url: string;
 };
 
@@ -41,6 +44,7 @@ const columns = [
   "games.title",
   "games.platform",
   "games.sources",
+  "games.item_kinds",
 ] as const;
 
 type Row = {
@@ -56,6 +60,7 @@ type Row = {
   title: string;
   platform: string | null;
   sources: string;
+  item_kinds: string;
 };
 
 const view = (r: Row): PlaythroughView => ({
@@ -68,7 +73,7 @@ const view = (r: Row): PlaythroughView => ({
     r.character_name || r.character_class || r.character_local_class
       ? { name: r.character_name, class: r.character_class, localClass: r.character_local_class }
       : null,
-  game: { id: r.game_id, title: r.title, platform: r.platform, sources: parseSources(r.sources) },
+  game: { id: r.game_id, title: r.title, platform: r.platform, sources: parseSources(r.sources), itemKinds: JSON.parse(r.item_kinds) as ItemKind[] },
   url: playthroughPath(r.id),
 });
 
@@ -172,4 +177,77 @@ export async function statNames(p: Player, gameId: string, d?: Db): Promise<Stat
     .where("id", "=", gameId)
     .executeTakeFirst();
   return row ? (JSON.parse(row.stats) as StatName[]) : [];
+}
+
+/** A game's inventory groups, in the player's order. */
+export async function itemKindsOf(p: Player, gameId: string, d?: Db): Promise<ItemKind[]> {
+  const row = await seen((d ?? (await db())).selectFrom("games"), p, "games")
+    .select("item_kinds")
+    .where("id", "=", gameId)
+    .executeTakeFirst();
+  return row ? (JSON.parse(row.item_kinds) as ItemKind[]) : [];
+}
+
+const kindMatches = (k: ItemKind, s: string) => [k.key, k.name, k.localName].some((x) => x && norm(x) === norm(s));
+
+/**
+ * The key an item's kind is filed under: the group it names by key, name or local name, else a new group at the end of the game's list
+ * (`added`), its key the kind as given.
+ */
+export async function fileItemKind(trx: Transaction<Schema>, p: Player, gameId: string, kind: string): Promise<{ key: string; added: ItemKind | null }> {
+  const known = await itemKindsOf(p, gameId, trx);
+  const found = known.find((k) => kindMatches(k, kind));
+  if (found) return { key: found.key, added: null };
+  const added = { key: norm(kind), name: kind.trim(), localName: null };
+  await seen(trx.updateTable("games"), p, "games")
+    .set({ item_kinds: JSON.stringify([...known, added]) })
+    .where("id", "=", gameId)
+    .execute();
+  return { key: added.key, added };
+}
+
+export type ItemKindInput = { key: string; name?: string; localName?: string | null };
+
+/**
+ * Names a game's inventory groups. `merge` (record): a group named by key gets the new names, a new one goes at the end. `replace`
+ * (correct): the list as given is the game's, in that order; a group left out that items still use is refused, so none goes missing.
+ */
+export async function setItemKinds(trx: Transaction<Schema>, p: Player, gameId: string, inputs: ItemKindInput[], mode: "merge" | "replace") {
+  const known = await itemKindsOf(p, gameId, trx);
+  const out = mode === "merge" ? [...known] : [];
+  for (const i of inputs) {
+    const key = norm(i.key);
+    if (!key) throw new InvalidInputError("itemKinds: every group needs a key");
+    const before = known.find((k) => k.key === key);
+    const kind: ItemKind = {
+      key,
+      name: i.name?.trim() || before?.name || i.key.trim(),
+      localName: i.localName === null ? null : i.localName?.trim() || before?.localName || null,
+    };
+    const at = out.findIndex((k) => k.key === key);
+    if (at >= 0) {
+      if (mode === "replace") throw new InvalidInputError(`itemKinds: ${key} is in the list twice`);
+      out[at] = kind;
+    } else out.push(kind);
+  }
+  if (mode === "replace") {
+    const dropped = known.filter((k) => !out.some((o) => o.key === k.key)).map((k) => k.key);
+    if (dropped.length) {
+      const inUse = await seen(trx.selectFrom("items").innerJoin("playthroughs", "playthroughs.id", "items.playthrough_id"), p, "items", "full")
+        .select("items.kind")
+        .distinct()
+        .where("playthroughs.game_id", "=", gameId)
+        .where("items.kind", "in", dropped)
+        .execute();
+      if (inUse.length)
+        throw new InvalidInputError(
+          `itemKinds: items are still filed under ${inUse.map((r) => r.kind).join(", ")}; give them another kind first, or keep the group`,
+        );
+    }
+  }
+  await seen(trx.updateTable("games"), p, "games")
+    .set({ item_kinds: JSON.stringify(out) })
+    .where("id", "=", gameId)
+    .execute();
+  return out;
 }

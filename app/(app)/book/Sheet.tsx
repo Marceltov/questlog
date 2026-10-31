@@ -2,8 +2,8 @@ import Link from "next/link";
 import {
   buildOf,
   CODEX_KINDS,
+  EFFECTS,
   codexOf,
-  ITEM_KINDS,
   itemsOf,
   questsOf,
   sessionsOf,
@@ -36,10 +36,11 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
     sessionsOf(p, id),
     codexOf(p, id, { reveal: "none" }),
   ]);
-  // The inventory by kind, in the order of ITEM_KINDS; a kind the list doesn't know, or none, goes last.
-  const known = (k: string | null) => (ITEM_KINDS as readonly string[]).includes(k ?? "");
+  // The inventory by the game's groups, in the player's order, under the game's own name when it has one; an item without one goes last.
+  const kinds = t.game.itemKinds;
+  const known = (k: string | null) => kinds.some((x) => x.key === k);
   const groups: [string, ItemView[]][] = [
-    ...ITEM_KINDS.map((k): [string, ItemView[]] => [copy.itemKinds[k], items.filter((i) => i.kind === k)]),
+    ...kinds.map((k): [string, ItemView[]] => [k.localName ?? k.name, items.filter((i) => i.kind === k.key)]),
     [copy.otherItems, items.filter((i) => !known(i.kind))],
   ].filter(([, list]) => list.length > 0) as [string, ItemView[]][];
   const open = [...threads.filter((q) => q.status === "open"), ...threads.filter((q) => q.status === "blocked")];
@@ -305,20 +306,25 @@ function Item({ item: i }: { item: ItemView }) {
           ))}
         </dl>
       )}
-      {i.against.length > 0 && (
-        <p className="mt-1 text-sm">
-          <span className="text-muted">{copy.goodAgainst}: </span>
-          {i.against.map((a, n) => (
-            <span key={a.codex.id}>
-              {n > 0 && ", "}
-              <a href={a.codex.url} className="text-accent">
-                {a.codex.name}
-              </a>
-              {a.note && <span className="text-muted"> ({a.note})</span>}
-            </span>
-          ))}
-        </p>
-      )}
+      {EFFECTS.map((effect) => {
+        const list = i.against.filter((a) => a.effect === effect);
+        return (
+          list.length > 0 && (
+            <p key={effect} className="mt-1 text-sm">
+              <span className="text-muted">{copy.against[effect]}: </span>
+              {list.map((a, n) => (
+                <span key={a.codex.id}>
+                  {n > 0 && ", "}
+                  <a href={a.codex.url} className="text-accent">
+                    {a.codex.name}
+                  </a>
+                  {a.note && <span className="text-muted"> ({a.note})</span>}
+                </span>
+              ))}
+            </p>
+          )
+        );
+      })}
       {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
       {i.sources.length > 0 && (
         <ul className="mt-1 space-y-0.5 text-sm text-muted">
@@ -369,21 +375,26 @@ function CodexEntry({ entry: e }: { entry: CodexView }) {
       )}
       {e.strategy && <p className="mt-1 text-sm">{e.strategy}</p>}
       {e.notes && <p className="mt-1 text-sm text-muted">{e.notes}</p>}
-      {e.counters.length > 0 && (
-        <p className="mt-1 text-sm">
-          <span className="text-muted">{copy.use}: </span>
-          {e.counters.map((c, n) => (
-            <span key={c.item.id}>
-              {n > 0 && ", "}
-              <a href={c.item.url} className="text-accent">
-                {c.item.name}
-              </a>
-              {c.item.quantity !== null && <span className="tabular-nums"> {copy.quantity(c.item.quantity)}</span>}
-              {c.note && <span className="text-muted"> ({c.note})</span>}
-            </span>
-          ))}
-        </p>
-      )}
+      {EFFECTS.map((effect) => {
+        const list = e.counters.filter((c) => c.effect === effect);
+        return (
+          list.length > 0 && (
+            <p key={effect} className="mt-1 text-sm">
+              <span className="text-muted">{copy.counters[effect]}: </span>
+              {list.map((c, n) => (
+                <span key={c.item.id}>
+                  {n > 0 && ", "}
+                  <a href={c.item.url} className="text-accent">
+                    {c.item.name}
+                  </a>
+                  {c.item.quantity !== null && <span className="tabular-nums"> {copy.quantity(c.item.quantity)}</span>}
+                  {c.note && <span className="text-muted"> ({c.note})</span>}
+                </span>
+              ))}
+            </p>
+          )
+        );
+      })}
       {e.sources.length > 0 && (
         <p className="mt-1 text-sm text-muted">
           {e.sources.map((x, n) => (

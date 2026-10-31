@@ -3,7 +3,7 @@
 import * as z from "zod";
 import { TARGETS } from "../correct";
 import { Day, Spoiler } from "../schemas";
-import { CODEX_KINDS, CODEX_STATUSES, ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES } from "../types";
+import { CODEX_KINDS, CODEX_STATUSES, EFFECTS, ENTRY_KINDS, GOAL_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES } from "../types";
 import { ERROR_CODES } from "./errors";
 
 const Url = z.string().describe("Its page in the web app, as an absolute URL");
@@ -37,6 +37,9 @@ export const PlaythroughJson = z
       title: z.string(),
       platform: z.string().nullable(),
       sources: z.array(SourceJson).describe("The sites the player trusts for this game"),
+      itemKinds: z
+        .array(z.object({ key: z.string().describe("What an item's kind holds"), name: z.string(), localName: z.string().nullable() }))
+        .describe("The game's inventory groups, in the player's order"),
     }),
     url: Url,
   })
@@ -76,12 +79,18 @@ export const ItemJson = z
     id: z.string(),
     name: z.string(),
     localName: z.string().nullable(),
-    kind: z.string().nullable(),
+    kind: z.string().nullable().describe("The key of one of the game's inventory groups"),
     quantity: z.number().nullable().describe("How many the player has; null when it isn't counted"),
     attributes: z.record(z.string(), z.union([z.string(), z.number()])).describe("Its numbers, by the game's names"),
     against: z
-      .array(z.object({ codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }), note: z.string().nullable() }))
-      .describe("Codex entries it is good against"),
+      .array(
+        z.object({
+          codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }),
+          effect: z.enum(EFFECTS).describe("good: use it on them; bad: better not"),
+          note: z.string().nullable(),
+        }),
+      )
+      .describe("Codex entries it is good or bad against"),
     location: z.string().nullable().describe("Where it was found"),
     equipped: z.boolean(),
     verdict: z.string().nullable().describe("How it fits the build"),
@@ -111,10 +120,11 @@ export const CodexJson = z
       .array(
         z.object({
           item: z.object({ id: z.string(), name: z.string(), kind: z.string().nullable(), quantity: z.number().nullable(), url: Url }),
+          effect: z.enum(EFFECTS).describe("good: use it on them; bad: leave it at home"),
           note: z.string().nullable(),
         }),
       )
-      .describe("The player's items that are good against it"),
+      .describe("The player's items that are good or bad against it"),
     url: Url,
   })
   .meta({ id: "CodexEntry", description: "A boss, enemy, NPC or place the player met (ADR 0010)" });

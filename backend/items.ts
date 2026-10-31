@@ -1,25 +1,26 @@
-// Reading items, the player's inventory: what they found, how many, its numbers, where, whether it is equipped, what it is good against
-// (ADR 0010) and Claude's verdict, as far as the read may show (spoilers.ts).
+// Reading items, the player's inventory: what they found, how many, its numbers, where, whether it is equipped, what it is good or bad
+// against (ADR 0010) and Claude's verdict, as far as the read may show (spoilers.ts).
 import { usesOf } from "./codex";
 import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { parseSources } from "./sources";
-import type { Attributes, CodexKind, Player, Source, SpoilerLevel } from "./types";
+import type { Attributes, CodexKind, Effect, Player, Source, SpoilerLevel } from "./types";
 import { itemPath } from "./urls";
 
 export type ItemView = {
   id: string;
   name: string;
   localName: string | null;
+  /** The key of one of the game's inventory groups (ItemKind). */
   kind: string | null;
   /** How many the player has, for what comes in numbers; null when it isn't counted. */
   quantity: number | null;
   /** Its numbers as the game shows them, by the game's names. */
   attributes: Attributes;
-  /** The codex entries it is good against. */
-  against: { codex: { id: string; name: string; kind: CodexKind; url: string }; note: string | null }[];
+  /** The codex entries it is good against (`good`), or better not used on (`bad`). */
+  against: { codex: { id: string; name: string; kind: CodexKind; url: string }; effect: Effect; note: string | null }[];
   location: string | null;
   equipped: boolean;
   verdict: string | null;
@@ -57,7 +58,7 @@ export async function itemsOf(
     kind: r.kind,
     quantity: r.quantity,
     attributes: JSON.parse(r.attributes) as Attributes,
-    against: uses.filter((u) => u.itemId === r.id).map(({ codex, note }) => ({ codex, note })),
+    against: uses.filter((u) => u.itemId === r.id).map(({ codex, effect, note }) => ({ codex, effect, note })),
     location: r.location,
     equipped: r.equipped === 1,
     verdict: r.verdict,

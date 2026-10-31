@@ -1,7 +1,7 @@
 // The codex (ADR 0010): the bosses, enemies, NPCs and places the player met in a playthrough, with what helps against them. Kept like
 // quests: only what the player met (values V1), matched by id or by exact name within its kind (values V4), with a spoiler level for
-// what Claude files from its own knowledge or a guide. What an item is good against (item_uses) links the inventory to it; a link shows
-// only when both ends may.
+// what Claude files from its own knowledge or a guide. What an item is good or bad against (item_uses) links the inventory to it; a
+// link shows only when both ends may.
 import type { Kysely, Transaction } from "kysely";
 import { db, newId, now } from "./db";
 import type { Schema } from "./db/schema";
@@ -10,7 +10,7 @@ import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
-import { CODEX_KINDS, type CodexKind, type CodexStatus, type Player, type Source, type SourceInput, type SpoilerLevel } from "./types";
+import { CODEX_KINDS, type CodexKind, type CodexStatus, type Effect, type Player, type Source, type SourceInput, type SpoilerLevel } from "./types";
 import { codexPath, itemPath } from "./urls";
 
 type Db = Kysely<Schema> | Transaction<Schema>;
@@ -32,8 +32,8 @@ export type CodexView = {
   notes: string | null;
   spoiler: SpoilerLevel;
   sources: Source[];
-  /** The player's items that are good against it, with how many they have. */
-  counters: { item: { id: string; name: string; kind: string | null; quantity: number | null; url: string }; note: string | null }[];
+  /** The player's items that are good against it (`good`) or better left at home (`bad`), with how many they have. */
+  counters: { item: { id: string; name: string; kind: string | null; quantity: number | null; url: string }; effect: Effect; note: string | null }[];
   url: string;
 };
 
@@ -115,7 +115,9 @@ export async function codexOf(
       notes: r.notes,
       spoiler: r.spoiler as SpoilerLevel,
       sources: parseSources(r.sources),
-      counters: counters.filter((c) => c.codexId === r.id).map(({ item, note }) => ({ item: { ...item, url: itemPath(playthroughId, item.id) }, note })),
+      counters: counters
+        .filter((c) => c.codexId === r.id)
+        .map(({ item, effect, note }) => ({ item: { ...item, url: itemPath(playthroughId, item.id) }, effect, note })),
       url: codexPath(playthroughId, r.id),
     }));
 }
@@ -124,23 +126,31 @@ export async function codexOf(
 async function countersOf(d: Db, p: Player, codexIds: string[], reveal: SpoilerLevel) {
   if (!codexIds.length) return [];
   const rows = await seen(seen(d.selectFrom("item_uses").innerJoin("items", "items.id", "item_uses.item_id"), p, "item_uses"), p, "items", reveal)
-    .select(["item_uses.codex_id", "item_uses.note", "items.id", "items.name", "items.kind", "items.quantity"])
+    .select(["item_uses.codex_id", "item_uses.effect", "item_uses.note", "items.id", "items.name", "items.kind", "items.quantity"])
     .where("item_uses.codex_id", "in", codexIds)
+    .orderBy("item_uses.effect", "desc")
     .orderBy("items.name")
     .execute();
-  return rows.map((r) => ({ codexId: r.codex_id, note: r.note, item: { id: r.id, name: r.name, kind: r.kind, quantity: r.quantity } }));
+  return rows.map((r) => ({
+    codexId: r.codex_id,
+    effect: r.effect as Effect,
+    note: r.note,
+    item: { id: r.id, name: r.name, kind: r.kind, quantity: r.quantity },
+  }));
 }
 
-/** The codex ends of the given items' links (what each is good against), through the gate on both tables. */
+/** The codex ends of the given items' links (what each is good or bad against), through the gate on both tables. */
 export async function usesOf(d: Db, p: Player, itemIds: string[], reveal: SpoilerLevel) {
   if (!itemIds.length) return [];
   const rows = await seen(seen(d.selectFrom("item_uses").innerJoin("codex", "codex.id", "item_uses.codex_id"), p, "item_uses"), p, "codex", reveal)
-    .select(["item_uses.item_id", "item_uses.note", "codex.id", "codex.name", "codex.kind", "codex.playthrough_id"])
+    .select(["item_uses.item_id", "item_uses.effect", "item_uses.note", "codex.id", "codex.name", "codex.kind", "codex.playthrough_id"])
     .where("item_uses.item_id", "in", itemIds)
+    .orderBy("item_uses.effect", "desc")
     .orderBy("codex.name")
     .execute();
   return rows.map((r) => ({
     itemId: r.item_id,
+    effect: r.effect as Effect,
     note: r.note,
     codex: { id: r.id, name: r.name, kind: r.kind as CodexKind, url: codexPath(r.playthrough_id, r.id) },
   }));
@@ -242,20 +252,30 @@ export async function writeCodex(
   return out;
 }
 
-/** Links an item to what it is good against, each by codex id or exact name; a link that is there gets the new note. */
-export async function writeUses(trx: Transaction<Schema>, p: Player, playthroughId: string, itemId: string, against: { target: string; note?: string }[]) {
+export type AgainstInput = { target: string; effect?: Effect; note?: string };
+
+/** Links an item to what it is good (the default) or bad against, each by codex id or exact name; a link that is there gets the new effect and note. */
+export async function writeUses(trx: Transaction<Schema>, p: Player, playthroughId: string, itemId: string, against: AgainstInput[]) {
   for (const a of against) {
     const target = await findCodex(trx, p, playthroughId, a.target.trim());
     if (!target) throw new NotFoundError(`against: no ${a.target} in the codex of this playthrough; file it under codex first (with its kind)`);
     const note = a.note?.trim() || null;
     const there = await seen(trx.selectFrom("item_uses"), p, "item_uses")
-      .select("note")
+      .select("effect")
       .where("item_id", "=", itemId)
       .where("codex_id", "=", target.id)
       .executeTakeFirst();
     if (there) {
-      if (note)
-        await seen(trx.updateTable("item_uses"), p, "item_uses").set({ note }).where("item_id", "=", itemId).where("codex_id", "=", target.id).execute();
-    } else await trx.insertInto("item_uses").values({ item_id: itemId, codex_id: target.id, player_id: p.id, note, created_at: now() }).execute();
+      if (note || a.effect)
+        await seen(trx.updateTable("item_uses"), p, "item_uses")
+          .set({ ...(note ? { note } : {}), ...(a.effect ? { effect: a.effect } : {}) })
+          .where("item_id", "=", itemId)
+          .where("codex_id", "=", target.id)
+          .execute();
+    } else
+      await trx
+        .insertInto("item_uses")
+        .values({ item_id: itemId, codex_id: target.id, player_id: p.id, effect: a.effect ?? "good", note, created_at: now() })
+        .execute();
   }
 }

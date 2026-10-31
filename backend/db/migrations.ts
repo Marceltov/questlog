@@ -249,11 +249,52 @@ const migrations: Record<string, Migration> = {
         .addColumn("item_id", "text", (c) => c.notNull().references("items.id").onDelete("cascade"))
         .addColumn("codex_id", "text", (c) => c.notNull().references("codex.id").onDelete("cascade"))
         .addColumn("player_id", "text", player)
+        .addColumn("effect", "text", (c) =>
+          c
+            .notNull()
+            .defaultTo("good")
+            .check(oneOf("effect", ["good", "bad"])),
+        )
         .addColumn("note", "text")
         .addColumn("created_at", "bigint", (c) => c.notNull())
         .addPrimaryKeyConstraint("item_uses_pk", ["item_id", "codex_id"])
         .execute();
       await db.schema.createIndex("item_uses_by_codex").on("item_uses").columns(["codex_id"]).execute();
+      // A game's inventory groups (ItemKind), seeded from the kinds its items have, in the order the inventory showed them so far.
+      await db.schema
+        .alterTable("games")
+        .addColumn("item_kinds", "text", (c) => c.notNull().defaultTo("[]"))
+        .execute();
+      const NAMES: Record<string, string> = {
+        weapon: "Weapons",
+        blade: "Blades",
+        handle: "Handles",
+        armour: "Armour",
+        amulet: "Amulets",
+        consumable: "Consumables",
+        material: "Upgrade materials",
+        collectible: "Collectibles",
+        key: "Key items",
+      };
+      const ORDER = Object.keys(NAMES);
+      const used = await db
+        .selectFrom("items")
+        .innerJoin("playthroughs", "playthroughs.id", "items.playthrough_id")
+        .select(["playthroughs.game_id", "items.kind"])
+        .distinct()
+        .where("items.kind", "is not", null)
+        .execute();
+      const byGame = new Map<string, string[]>();
+      for (const u of used) byGame.set(u.game_id, [...(byGame.get(u.game_id) ?? []), u.kind]);
+      for (const [gameId, kinds] of byGame) {
+        const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
+        const list = kinds.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((key) => ({ key, name: NAMES[key] ?? key, localName: null }));
+        await db
+          .updateTable("games")
+          .set({ item_kinds: JSON.stringify(list) })
+          .where("id", "=", gameId)
+          .execute();
+      }
     },
   },
 };

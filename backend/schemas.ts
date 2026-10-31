@@ -3,7 +3,18 @@
 import * as z from "zod";
 import { TARGETS } from "./correct";
 import { DAY } from "./dates";
-import { CODEX_KINDS, CODEX_STATUSES, ENTRY_KINDS, GOAL_KINDS, ITEM_KINDS, GOAL_STATUSES, PLAYTHROUGH_STATUSES, QUEST_STATUSES, SPOILER_LEVELS } from "./types";
+import {
+  CODEX_KINDS,
+  CODEX_STATUSES,
+  EFFECTS,
+  ENTRY_KINDS,
+  GOAL_KINDS,
+  ITEM_KINDS,
+  GOAL_STATUSES,
+  PLAYTHROUGH_STATUSES,
+  QUEST_STATUSES,
+  SPOILER_LEVELS,
+} from "./types";
 
 export const Spoiler = z.enum(SPOILER_LEVELS);
 export const Day = z.string().regex(DAY, "a day as YYYY-MM-DD");
@@ -61,10 +72,21 @@ export const Against = z
   .array(
     z.object({
       target: z.string().describe("A codex entry (boss, enemy, NPC): its id or exact name"),
-      note: z.string().optional().describe("How it helps: fire against a weak spot, throw before the second phase"),
+      effect: z.enum(EFFECTS).optional().describe("good (the default): use it on them. bad: leave it at home, they resist it or heal from it"),
+      note: z.string().optional().describe("How: fire against a weak spot, throw before the second phase; or why not: it heals from fire"),
     }),
   )
-  .describe("What the item is good against");
+  .describe("What the item is good or bad against");
+
+export const ItemKinds = z
+  .array(
+    z.object({
+      key: z.string().describe("What items' kind holds: amulet, ring, consumable; an existing group's key renames it"),
+      name: z.string().optional().describe("The group's name in English, as a heading: Amulets, Rings, Talismans"),
+      localName: z.string().nullable().optional().describe("The name in the game's own language: Amulette"),
+    }),
+  )
+  .describe("The game's inventory groups: games call them differently, so the player names and orders them");
 
 export const CodexInput = z.object({
   id: z.string().optional().describe("An existing entry's id, from codex or briefing"),
@@ -173,7 +195,9 @@ export const RecordInput = z.object({
         kind: z
           .string()
           .optional()
-          .describe(`One of ${ITEM_KINDS.join(", ")} where it fits (the inventory groups by it), else the game's term`),
+          .describe(
+            `The inventory group: a key, name or local name of one of the game's groups (game.itemKinds), else a new group in the game's terms (${ITEM_KINDS.join(", ")}, ring, talisman)`,
+          ),
         quantity: z.number().int().min(0).optional().describe("How many the player has now, for consumables, materials and collectibles"),
         attributes: Attributes.optional(),
         against: Against.optional(),
@@ -186,6 +210,9 @@ export const RecordInput = z.object({
     )
     .optional()
     .describe("The player's inventory: items they found, used up, equipped or put away"),
+  itemKinds: ItemKinds.optional().describe(
+    "Names the game's inventory groups when the player says what the game calls them; a group named by key gets the names, a new one goes last",
+  ),
   codex: z
     .array(CodexInput)
     .optional()
@@ -250,7 +277,8 @@ export const ChangeInput = z.object({
   rank: z.number().int().min(1).optional().describe("goal: its place in the order, 1 first"),
   quantity: z.number().int().min(0).nullable().optional().describe("item: how many; null when it isn't counted"),
   attributes: Attributes.optional().describe("item: its numbers, all of them: a key left out is dropped"),
-  against: Against.optional().describe("item: what it is good against, all of it: a link left out is dropped"),
+  against: Against.optional().describe("item: what it is good or bad against, all of it: a link left out is dropped"),
+  itemKinds: ItemKinds.optional().describe("game: its inventory groups, all of them in the player's order; one that items still use can't go"),
   attempts: z.number().int().min(0).nullable().optional().describe("codex (boss): the tries so far"),
   weaknesses: z.array(z.string()).optional().describe("codex: all of them"),
   resistances: z.array(z.string()).optional().describe("codex: all of them"),

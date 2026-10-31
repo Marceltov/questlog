@@ -7,6 +7,7 @@ import { correct } from "./correct";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { itemsOf } from "./items";
 import { record } from "./record";
+import { getPlaythrough } from "./games";
 import { HINT, SPOILER_ITEM, seed, type Seed } from "./testing/fixtures";
 import { toolByName } from "./tools";
 
@@ -52,9 +53,13 @@ test("record files a boss, a consumable with its count and what it is good again
     counters: { item: { name: string; quantity: number }; note: string }[];
   }[];
   expect(entry).toMatchObject({ name: "Parade Master", weaknesses: ["Fire"], attempts: 3 });
-  expect(entry.counters).toEqual([{ item: expect.objectContaining({ name: "Fire Abrasive", quantity: 4 }), note: "Coat the blade before the fight" }]);
+  expect(entry.counters).toEqual([
+    { item: expect.objectContaining({ name: "Fire Abrasive", quantity: 4 }), effect: "good", note: "Coat the blade before the fight" },
+  ]);
   const [item] = await itemsOf(s.a, s.liesOfP, { name: "fire abrasive" });
-  expect(item.against).toEqual([{ codex: expect.objectContaining({ name: "Parade Master", kind: "boss" }), note: "Coat the blade before the fight" }]);
+  expect(item.against).toEqual([
+    { codex: expect.objectContaining({ name: "Parade Master", kind: "boss" }), effect: "good", note: "Coat the blade before the fight" },
+  ]);
 });
 
 test("briefing names the bosses in the way with their tries; beating one dates it and takes it off", async () => {
@@ -67,6 +72,47 @@ test("briefing names the bosses in the way with their tries; beating one dates i
   const [e] = await codexOf(s.a, s.liesOfP, { name: "Parade Master" });
   expect([e.status, e.beatenOn, e.attempts]).toEqual(["beaten", "2026-10-31", 5]);
   expect((await briefing(s.a, { playthroughId: s.liesOfP })).bosses).toEqual([]);
+});
+
+test("an item can be bad against a boss too: the codex says what to leave at home, and a later record can turn a link around", async () => {
+  await record(
+    s.a,
+    session({
+      codex: [boss],
+      items: [
+        { name: "Fire Abrasive", against: [{ target: "Parade Master" }] },
+        { name: "Electric Blitz Abrasive", against: [{ target: "Parade Master", effect: "bad", note: "He shrugs off electricity" }] },
+      ],
+    }),
+  );
+  const [e] = await codexOf(s.a, s.liesOfP);
+  expect(e.counters.map((c) => [c.item.name, c.effect, c.note])).toEqual([
+    ["Fire Abrasive", "good", null],
+    ["Electric Blitz Abrasive", "bad", "He shrugs off electricity"],
+  ]);
+  const looked = await toolByName("codex")!.run(s.a, { playthroughId: s.liesOfP, name: "parade" });
+  expect(next(looked)).toMatch(/leave at home/);
+  await record(s.a, session({ items: [{ name: "Fire Abrasive", against: [{ target: "Parade Master", effect: "bad" }] }] }));
+  const [item] = await itemsOf(s.a, s.liesOfP, { name: "fire abrasive" });
+  expect(item.against.map((a) => a.effect)).toEqual(["bad"]);
+});
+
+test("the inventory groups are the game's: a new kind adds one, the player names and orders them, and one in use can't go", async () => {
+  const keys = async () => (await getPlaythrough(s.a, s.liesOfP)).game.itemKinds.map((k) => k.key);
+  expect(await keys()).toEqual(["weapon", "key"]);
+  const out = await toolByName("record")!.run(s.a, session({ items: [{ name: "Fire Ring", kind: "Ring" }] }));
+  expect(out.newItemKinds).toEqual(["ring"]);
+  expect(next(out)).toMatch(/New inventory group for Lies of P: Ring, key ring\. Check the names with the player/);
+  await record(s.a, session({ itemKinds: [{ key: "ring", name: "Rings", localName: "Ringe" }], items: [{ name: "Ice Ring", kind: "Ringe" }] }));
+  const [ring] = await itemsOf(s.a, s.liesOfP, { name: "ice ring" });
+  expect(ring.kind).toBe("ring");
+  const game = (await getPlaythrough(s.a, s.liesOfP)).game;
+  expect(game.itemKinds.find((k) => k.key === "ring")).toEqual({ key: "ring", name: "Rings", localName: "Ringe" });
+
+  await correct(s.a, [{ what: "game", id: game.id, itemKinds: [{ key: "ring" }, { key: "weapon", name: "Weapons" }, { key: "key", name: "Key items" }] }]);
+  expect(await keys()).toEqual(["ring", "weapon", "key"]);
+  expect((await getPlaythrough(s.a, s.liesOfP)).game.itemKinds[0].localName).toBe("Ringe");
+  await expect(correct(s.a, [{ what: "game", id: game.id, itemKinds: [{ key: "weapon" }, { key: "key" }] }])).rejects.toThrow(/still filed under ring/);
 });
 
 test("weaknesses and resistances add up; the same name in two kinds needs the kind or the id", async () => {

@@ -22,7 +22,7 @@ export { itemsOf, type ItemView } from "./items";
 export { questsOf, type QuestView } from "./quests";
 export { getSession, sessionsOf, type SessionSummary, type SessionView } from "./sessions";
 export { NotFoundError } from "./errors";
-export { CODEX_KINDS, ITEM_KINDS, OPEN_STATUSES, SPOILER_LEVELS, type Player, type QuestStatus, type SpoilerLevel } from "./types";
+export { CODEX_KINDS, EFFECTS, OPEN_STATUSES, SPOILER_LEVELS, type ItemKind, type Player, type QuestStatus, type SpoilerLevel } from "./types";
 
 // The health probe asks the database a trivial question; opening it (and migrating) is part of answering.
 setDbProbe(async () => sql`select 1`.execute(await db()));

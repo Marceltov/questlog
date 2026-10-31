@@ -41,5 +41,5 @@ Read it from the top: the player talks, Claude files through questlog's MCP endp
 - **"Where was I?"** A briefing gives you the last session, the open quests with their next steps, your current build and what is equipped.
 - **No spoilers.** Every quest entry and item has a spoiler level, and one function decides what you see. Hints show only when you ask for them, behind a warning.
 - **Your log is yours.** Everyone who signs in has their own games and playthroughs; nobody else on the instance sees them.
-- **Any game.** Stat names and item kinds are data, kept in the game's own language next to the English.
+- **Any game.** Stat names and inventory groups are data, kept in the game's own language next to the English.
 - **One container.** Next.js and SQLite on your own server; nothing calls home.
