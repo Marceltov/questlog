@@ -111,3 +111,26 @@ test("a tag only a spoiler carries stays hidden with it", async () => {
   expect(tagsInUse(await itemsOf(s.a, s.liesOfP))).toEqual([]);
   expect(tagsInUse(await itemsOf(s.a, s.liesOfP, { reveal: "full" }))).toEqual([{ name: "workshop", count: 1 }]);
 });
+
+test("record tags items, codex entries and quests, reports the tags it made, and leaves tags alone when it names none", async () => {
+  const r = await record(s.a, {
+    playthroughId: s.liesOfP,
+    summary: "Got ready for the fire boss.",
+    transcript: "Bought fire grease and a resistance pot for the Parade Master.",
+    items: [
+      { name: "Fire Grease", kind: "consumable", tags: ["fire"] },
+      { name: "Puppet Saber", tags: ["Fire", "motivity"] },
+    ],
+    codex: [{ kind: "boss", name: "Parade Master", tags: ["fire"] }],
+    quests: [{ id: s.venigni, name: "Venigni's Request", tags: ["workers"] }],
+  });
+  expect(r.newTags.sort()).toEqual(["fire", "motivity", "workers"]);
+  const items = await itemsOf(s.a, s.liesOfP, { tag: "fire" });
+  expect(items.map((i) => i.name).sort()).toEqual(["Fire Grease", "Puppet Saber"]);
+  expect((await codexOf(s.a, s.liesOfP, { tag: "fire" })).map((e) => e.name)).toEqual(["Parade Master"]);
+  expect((await questsOf(s.a, s.liesOfP)).find((q) => q.id === s.venigni)!.tags).toEqual(["workers"]);
+
+  const again = await record(s.a, { playthroughId: s.liesOfP, summary: "Used the saber.", transcript: "Used the saber.", items: [{ name: "Puppet Saber", equipped: true }] });
+  expect(again.newTags).toEqual([]);
+  expect((await itemsOf(s.a, s.liesOfP, { tag: "motivity" })).map((i) => i.name)).toEqual(["Puppet Saber"]);
+});

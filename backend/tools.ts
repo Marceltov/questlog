@@ -242,6 +242,7 @@ const RecordedJson = z.object({
   quests: z.array(z.object({ id: z.string(), name: z.string(), status: z.enum(QUEST_STATUSES), created: z.boolean(), url: Url })),
   items: z.array(z.object({ id: z.string(), name: z.string(), created: z.boolean(), equipped: z.boolean(), url: Url })),
   newItemKinds: z.array(z.string()).describe("Inventory group keys this game hadn't had"),
+  newTags: z.array(z.string()).describe("Tags this game hadn't had"),
   stats: z.object({ id: z.string(), level: z.number().nullable(), newNames: z.array(z.string()).describe("Stat keys this game hadn't had") }).nullable(),
   build: z.boolean().describe("Whether the build plan or its goals changed"),
   goals: z
@@ -302,6 +303,8 @@ function recordNext(r: Recorded): Next {
     next.push(
       `New inventory group${r.newItemKinds.length === 1 ? "" : "s"} for ${t.game.title}: ${r.newItemKinds.map((k) => `${k.name}${k.localName ? ` (${k.localName})` : ""}, key ${k.key}`).join("; ")}. Check the names with the player, the game's own as localName (record itemKinds); if one is a group already there under another name, move its items with correct.`,
     );
+  if (r.newTags.length)
+    next.push(`New tag${r.newTags.length === 1 ? "" : "s"} for ${t.game.title}: ${r.newTags.join(", ")}. Tell the player.`);
   if (r.stats?.newNames.length)
     next.push(
       `New stat keys for ${t.game.title}: ${r.stats.newNames.map((n) => n.key).join(", ")}. Use these keys in every later snapshot; check that they match the game's stat screen.`,
@@ -540,6 +543,7 @@ export const TOOLS: Tool[] = [
         quests: r.quests,
         items: r.items,
         newItemKinds: r.newItemKinds.map((k) => k.key),
+        newTags: r.newTags,
         stats: r.stats && { id: r.stats.id, level: r.stats.level, newNames: r.stats.newNames.map((n) => n.key) },
         build: r.build,
         goals: r.goals,

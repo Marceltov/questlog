@@ -822,6 +822,16 @@
                           "description": "Who gave it",
                           "type": "string"
                         },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
+                        },
                         "location": {
                           "description": "Where it started",
                           "type": "string"
@@ -1124,6 +1134,16 @@
                           "description": "Where it was found",
                           "type": "string"
                         },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
+                        },
                         "equipped": {
                           "type": "boolean"
                         },
@@ -1306,6 +1326,16 @@
                               "url"
                             ]
                           }
+                        },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
                         }
                       },
                       "required": [

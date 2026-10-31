@@ -61,6 +61,8 @@ export type CodexInput = {
   notes?: string;
   spoiler?: SpoilerLevel;
   sources?: SourceInput[];
+  /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
+  tags?: string[];
 };
 
 export type FiledCodex = {
