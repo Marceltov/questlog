@@ -1075,15 +1075,18 @@
                                 "description": "A codex entry (boss, enemy, NPC): its id or exact name"
                               },
                               "effect": {
-                                "description": "good (the default): use it on them. bad: leave it at home, they resist it or heal from it",
+                                "description": "How well it works on them, as the player found or a guide says. very good: its weak spot; good (the default): use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires",
                                 "type": "string",
                                 "enum": [
+                                  "very good",
                                   "good",
-                                  "bad"
+                                  "neutral",
+                                  "bad",
+                                  "very bad"
                                 ]
                               },
                               "note": {
-                                "description": "How: fire against a weak spot, throw before the second phase; or why not: it heals from fire",
+                                "description": "How or why: fire against a weak spot, throw before the second phase; it heals from fire",
                                 "type": "string"
                               }
                             },
@@ -1091,7 +1094,7 @@
                               "target"
                             ]
                           },
-                          "description": "What the item is good or bad against"
+                          "description": "What the item works on, and how well"
                         },
                         "location": {
                           "description": "Where it was found",
@@ -1637,15 +1640,18 @@
                                 "description": "A codex entry (boss, enemy, NPC): its id or exact name"
                               },
                               "effect": {
-                                "description": "good (the default): use it on them. bad: leave it at home, they resist it or heal from it",
+                                "description": "How well it works on them, as the player found or a guide says. very good: its weak spot; good (the default): use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires",
                                 "type": "string",
                                 "enum": [
+                                  "very good",
                                   "good",
-                                  "bad"
+                                  "neutral",
+                                  "bad",
+                                  "very bad"
                                 ]
                               },
                               "note": {
-                                "description": "How: fire against a weak spot, throw before the second phase; or why not: it heals from fire",
+                                "description": "How or why: fire against a weak spot, throw before the second phase; it heals from fire",
                                 "type": "string"
                               }
                             },
@@ -2293,10 +2299,13 @@
                 "effect": {
                   "type": "string",
                   "enum": [
+                    "very good",
                     "good",
-                    "bad"
+                    "neutral",
+                    "bad",
+                    "very bad"
                   ],
-                  "description": "good: use it on them; bad: better not"
+                  "description": "very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"
                 },
                 "note": {
                   "type": [
@@ -2312,7 +2321,7 @@
               ],
               "additionalProperties": false
             },
-            "description": "Codex entries it is good or bad against"
+            "description": "Codex entries it works on, best first, from very good to very bad"
           },
           "location": {
             "description": "Where it was found",
@@ -2523,10 +2532,13 @@
                 "effect": {
                   "type": "string",
                   "enum": [
+                    "very good",
                     "good",
-                    "bad"
+                    "neutral",
+                    "bad",
+                    "very bad"
                   ],
-                  "description": "good: use it on them; bad: leave it at home"
+                  "description": "very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"
                 },
                 "note": {
                   "type": [
@@ -2542,7 +2554,7 @@
               ],
               "additionalProperties": false
             },
-            "description": "The player's items that are good or bad against it"
+            "description": "The player's items rated against it, best first, from very good to very bad"
           },
           "url": {
             "type": "string",

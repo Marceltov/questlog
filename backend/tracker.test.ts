@@ -74,21 +74,25 @@ test("briefing names the bosses in the way with their tries; beating one dates i
   expect((await briefing(s.a, { playthroughId: s.liesOfP })).bosses).toEqual([]);
 });
 
-test("an item can be bad against a boss too: the codex says what to leave at home, and a later record can turn a link around", async () => {
+test("an item is rated against a boss from very good to very bad: the codex lists the best first, and a later record can change a rating", async () => {
   await record(
     s.a,
     session({
       codex: [boss],
       items: [
         { name: "Fire Abrasive", against: [{ target: "Parade Master" }] },
-        { name: "Electric Blitz Abrasive", against: [{ target: "Parade Master", effect: "bad", note: "He shrugs off electricity" }] },
+        { name: "Electric Blitz Abrasive", against: [{ target: "Parade Master", effect: "very bad", note: "He shrugs off electricity" }] },
+        { name: "Acid Abrasive", against: [{ target: "Parade Master", effect: "neutral" }] },
+        { name: "Throwing Cell", against: [{ target: "Parade Master", effect: "very good", note: "Stuns him mid-spin" }] },
       ],
     }),
   );
   const [e] = await codexOf(s.a, s.liesOfP);
   expect(e.counters.map((c) => [c.item.name, c.effect, c.note])).toEqual([
+    ["Throwing Cell", "very good", "Stuns him mid-spin"],
     ["Fire Abrasive", "good", null],
-    ["Electric Blitz Abrasive", "bad", "He shrugs off electricity"],
+    ["Acid Abrasive", "neutral", null],
+    ["Electric Blitz Abrasive", "very bad", "He shrugs off electricity"],
   ]);
   const looked = await toolByName("codex")!.run(s.a, { playthroughId: s.liesOfP, name: "parade" });
   expect(next(looked)).toMatch(/leave at home/);

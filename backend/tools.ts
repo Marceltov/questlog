@@ -146,11 +146,13 @@ const ItemJson = z.object({
     .array(
       z.object({
         codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }),
-        effect: z.enum(EFFECTS).describe("good: use it on them; bad: better not"),
+        effect: z
+          .enum(EFFECTS)
+          .describe("very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"),
         note: z.string().nullable(),
       }),
     )
-    .describe("Codex entries it is good or bad against"),
+    .describe("Codex entries it works on, best first, from very good to very bad"),
   sources: z.array(SourceJson).describe("Where its facts come from"),
   url: Url,
 });
@@ -174,11 +176,13 @@ const CodexJson = z.object({
     .array(
       z.object({
         item: z.object({ id: z.string(), name: z.string(), kind: z.string().nullable(), quantity: z.number().nullable(), url: Url }),
-        effect: z.enum(EFFECTS).describe("good: use it on them; bad: leave it at home"),
+        effect: z
+          .enum(EFFECTS)
+          .describe("very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"),
         note: z.string().nullable(),
       }),
     )
-    .describe("The player's items that are good or bad against it, with how many they have"),
+    .describe("The player's items rated against it, best first, from very good to very bad, with how many they have"),
   url: Url,
 });
 
@@ -425,7 +429,7 @@ function codexNext(t: PlaythroughView | null, name: string | undefined, entries:
       `The player hasn't filed ${name} in the codex of ${t.game.title} ${t.label}. If they just met it, file it with record (codex, with its kind). Don't describe it from your own knowledge unless they ask.`,
     ];
   const next: Next = [
-    "Answer from these entries: weaknesses, the strategy, the player's own items that counter it (say when they have none left) and those to leave at home. Weigh it against the build and what is equipped.",
+    "Answer from these entries: weaknesses, the strategy, the player's own items that work on it, best first (say when they have none left), and those to leave at home. Weigh it against the build and what is equipped.",
   ];
   const bare = entries.filter((e) => (e.kind === "boss" || e.kind === "enemy") && !e.weaknesses.length && !e.strategy);
   if (bare.length)

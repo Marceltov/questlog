@@ -253,7 +253,7 @@ const migrations: Record<string, Migration> = {
           c
             .notNull()
             .defaultTo("good")
-            .check(oneOf("effect", ["good", "bad"])),
+            .check(oneOf("effect", ["very good", "good", "neutral", "bad", "very bad"])),
         )
         .addColumn("note", "text")
         .addColumn("created_at", "bigint", (c) => c.notNull())

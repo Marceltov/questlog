@@ -86,11 +86,13 @@ export const ItemJson = z
       .array(
         z.object({
           codex: z.object({ id: z.string(), name: z.string(), kind: z.enum(CODEX_KINDS), url: Url }),
-          effect: z.enum(EFFECTS).describe("good: use it on them; bad: better not"),
+          effect: z
+            .enum(EFFECTS)
+            .describe("very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"),
           note: z.string().nullable(),
         }),
       )
-      .describe("Codex entries it is good or bad against"),
+      .describe("Codex entries it works on, best first, from very good to very bad"),
     location: z.string().nullable().describe("Where it was found"),
     equipped: z.boolean(),
     verdict: z.string().nullable().describe("How it fits the build"),
@@ -120,11 +122,13 @@ export const CodexJson = z
       .array(
         z.object({
           item: z.object({ id: z.string(), name: z.string(), kind: z.string().nullable(), quantity: z.number().nullable(), url: Url }),
-          effect: z.enum(EFFECTS).describe("good: use it on them; bad: leave it at home"),
+          effect: z
+            .enum(EFFECTS)
+            .describe("very good: its weak spot; good: use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires"),
           note: z.string().nullable(),
         }),
       )
-      .describe("The player's items that are good or bad against it"),
+      .describe("The player's items rated against it, best first, from very good to very bad"),
     url: Url,
   })
   .meta({ id: "CodexEntry", description: "A boss, enemy, NPC or place the player met (ADR 0010)" });

@@ -53,8 +53,11 @@ export type ItemKind = { key: string; name: string; localName: string | null };
 /** The keys Claude reaches for first when a game has no group that fits; any other key is fine. */
 export const ITEM_KINDS = ["weapon", "armour", "amulet", "consumable", "material", "collectible", "key"] as const;
 
-/** What an item does against a codex entry: `good` to use on it, `bad` to leave at home (it resists it, it heals from it). */
-export const EFFECTS = ["good", "bad"] as const;
+/**
+ * What an item does against a codex entry, on a five-step scale from best to worst: `very good` (its weak spot), `good`, `neutral` (no
+ * better or worse than anything else), `bad` (it resists it), `very bad` (it heals from it, it makes things worse).
+ */
+export const EFFECTS = ["very good", "good", "neutral", "bad", "very bad"] as const;
 export type Effect = (typeof EFFECTS)[number];
 
 /** An item's numbers as the game shows them, by the game's names: { "Physical ATK": 119, "Technique": "C" }. */

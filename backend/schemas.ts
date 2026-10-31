@@ -72,11 +72,16 @@ export const Against = z
   .array(
     z.object({
       target: z.string().describe("A codex entry (boss, enemy, NPC): its id or exact name"),
-      effect: z.enum(EFFECTS).optional().describe("good (the default): use it on them. bad: leave it at home, they resist it or heal from it"),
-      note: z.string().optional().describe("How: fire against a weak spot, throw before the second phase; or why not: it heals from fire"),
+      effect: z
+        .enum(EFFECTS)
+        .optional()
+        .describe(
+          "How well it works on them, as the player found or a guide says. very good: its weak spot; good (the default): use it; neutral: no better or worse; bad: they resist it; very bad: they heal from it or it backfires",
+        ),
+      note: z.string().optional().describe("How or why: fire against a weak spot, throw before the second phase; it heals from fire"),
     }),
   )
-  .describe("What the item is good or bad against");
+  .describe("What the item works on, and how well");
 
 export const ItemKinds = z
   .array(
