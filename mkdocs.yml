@@ -69,6 +69,7 @@ nav:
       - Icons from lucide: adr/0012-icons.md
       - The in-app chat: adr/0013-in-app-chat.md
       - Tags across groups: adr/0014-tags.md
+      - Background and spoiler settings: adr/0016-background-and-spoilers.md
 
 theme:
   name: material

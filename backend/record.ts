@@ -12,6 +12,7 @@ import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { addNote } from "./notes";
 import { seen } from "./spoilers";
+import { addBackground, type BackgroundInput } from "./background";
 import { setTags } from "./tags";
 import { mergeSources, parseSources } from "./sources";
 import type { Attributes, EntryKind, GoalKind, ItemKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
@@ -24,6 +25,8 @@ export type QuestInput = {
   giver?: string;
   /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
   tags?: string[];
+  /** Background Claude adds about it (ADR 0016), each line with its spoiler level; added to the lines it has. */
+  background?: BackgroundInput[];
   location?: string;
   status?: QuestStatus;
   /** What the quest is about, as the game puts it; replaces the one it has. */
@@ -50,6 +53,8 @@ export type ItemInput = {
   sources?: SourceInput[];
   /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
   tags?: string[];
+  /** Background Claude adds about it (ADR 0016), each line with its spoiler level; added to the lines it has. */
+  background?: BackgroundInput[];
   /** How many the player has now. */
   quantity?: number;
   /** Its numbers, by the game's names; merged into those it has. */
@@ -284,6 +289,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
           })
           .execute();
       if (q.tags) newTags.push(...(await setTags(trx, p, t.game.id, "quest", id, q.tags)));
+      if (q.background) await addBackground(trx, p, "quest", id, q.background);
       const filed = entries.map((e) => ({ kind: e.kind, spoiler: e.spoiler ?? ("none" as const) }));
       const before = quests.find((x) => x.id === id);
       if (before) {
@@ -352,7 +358,10 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
 
     const codex = input.codex?.length ? await writeCodex(trx, p, t.id, sessionId, playedOn, input.codex) : [];
     // writeCodex files one entry per input, in order.
-    for (const [n, c] of (input.codex ?? []).entries()) if (c.tags) newTags.push(...(await setTags(trx, p, t.game.id, "codex", codex[n].id, c.tags)));
+    for (const [n, c] of (input.codex ?? []).entries()) {
+      if (c.tags) newTags.push(...(await setTags(trx, p, t.game.id, "codex", codex[n].id, c.tags)));
+      if (c.background) await addBackground(trx, p, "codex", codex[n].id, c.background);
+    }
 
     const kindsBefore = t.game.itemKinds.map((k) => k.key);
     if (input.itemKinds?.length) await setItemKinds(trx, p, t.game.id, input.itemKinds, "merge");
@@ -417,6 +426,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       }
       if (i.against?.length) await writeUses(trx, p, t.id, id, i.against);
       if (i.tags) newTags.push(...(await setTags(trx, p, t.game.id, "item", id, i.tags)));
+      if (i.background) await addBackground(trx, p, "item", id, i.background);
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 

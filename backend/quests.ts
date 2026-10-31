@@ -3,6 +3,7 @@ import { sql } from "kysely";
 import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { seen } from "./spoilers";
+import { backgroundOf, type BackgroundLine } from "./background";
 import { tagsOf } from "./tags";
 import type { EntryKind, Player, QuestStatus, SpoilerLevel } from "./types";
 import { questPath, sessionPath } from "./urls";
@@ -29,6 +30,8 @@ export type QuestView = {
   updatedAt: number;
   /** Its tags (ADR 0014), by name. */
   tags: string[];
+  /** What Claude added about it (ADR 0016), as far as the read reveals. */
+  background: BackgroundLine[];
   url: string;
 };
 
@@ -73,6 +76,13 @@ export async function questsOf(
     "quest",
     quests.map((x) => x.id),
   );
+  const background = await backgroundOf(
+    d,
+    p,
+    "quest",
+    quests.map((x) => x.id),
+    reveal,
+  );
   return quests.map((x) => {
     const mine = entries
       .filter((e) => e.quest_id === x.id)
@@ -98,6 +108,7 @@ export async function questsOf(
       entries: mine,
       updatedAt: x.updated_at,
       tags: tags.get(x.id) ?? [],
+      background: background.get(x.id) ?? [],
       url: questPath(playthroughId, x.id),
     };
   });

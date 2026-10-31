@@ -1,6 +1,7 @@
 // The pictures of the book (lucide): one per part of a playthrough's page, per inventory group, per kind of codex entry and per quest
 // status. An icon only ever repeats what a word next to it says, so it is hidden from screen readers (aria-hidden, lucide's default).
 import {
+  SlidersHorizontal,
   Backpack,
   BookOpen,
   CalendarDays,
@@ -39,6 +40,7 @@ export const PART_ICONS: Record<string, LucideIcon> = {
   codex: BookOpen,
   sessions: CalendarDays,
   notes: NotebookPen,
+  settings: SlidersHorizontal,
 };
 
 // By the keys questlog suggests (backend ITEM_KINDS) and a few a game may use; any other group gets the box.

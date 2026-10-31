@@ -86,20 +86,21 @@ function recent(turns: ChatTurn[]): ChatTurn[] {
   return first < 0 ? [] : last.slice(first);
 }
 
-// The row the chat was opened on, read through the gate as the page shows it (no spoilers); null when it isn't the player's, isn't in
-// this playthrough or is gone, so nothing about it shows.
+// The row the chat was opened on, read through the gate as the page shows it (as far as the player's spoiler setting, ADR 0016); null
+// when it isn't the player's, isn't in this playthrough or is gone, so nothing about it shows.
 async function selected(p: Player, playthroughId: string, about: NonNullable<ChatContext["about"]>): Promise<unknown> {
+  const reveal = (await getPlaythrough(p, playthroughId)).settings.spoilers;
   switch (about.kind) {
     case "quest":
-      return (await questsOf(p, playthroughId)).find((q) => q.id === about.id) ?? null;
+      return (await questsOf(p, playthroughId, { reveal })).find((q) => q.id === about.id) ?? null;
     case "entry": {
-      const quest = (await questsOf(p, playthroughId)).find((q) => q.entries.some((e) => e.id === about.id));
+      const quest = (await questsOf(p, playthroughId, { reveal })).find((q) => q.entries.some((e) => e.id === about.id));
       return quest ? { entry: quest.entries.find((e) => e.id === about.id), inQuest: quest } : null;
     }
     case "item":
-      return (await itemsOf(p, playthroughId, { reveal: "none" })).find((i) => i.id === about.id) ?? null;
+      return (await itemsOf(p, playthroughId, { reveal })).find((i) => i.id === about.id) ?? null;
     case "codex":
-      return (await codexOf(p, playthroughId, { reveal: "none" })).find((e) => e.id === about.id) ?? null;
+      return (await codexOf(p, playthroughId, { reveal })).find((e) => e.id === about.id) ?? null;
     case "goal":
       return (await goalsOf(p, playthroughId)).find((g) => g.id === about.id) ?? null;
     case "session":

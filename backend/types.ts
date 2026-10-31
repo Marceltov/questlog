@@ -11,6 +11,9 @@ export type Player = { id: string };
  */
 export const SPOILER_LEVELS = ["none", "hint", "full"] as const;
 export type SpoilerLevel = (typeof SPOILER_LEVELS)[number];
+/** How much Claude adds on its own when it files a session (ADR 0016), from nothing to everything worth knowing. */
+export const BACKGROUND_LEVELS = ["none", "light", "useful", "everything"] as const;
+export type BackgroundLevel = (typeof BACKGROUND_LEVELS)[number];
 
 /**
  * Where a quest stands. `open`: started and waiting on the player. `blocked`: started, waiting on the game (story progress, a boss

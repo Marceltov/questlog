@@ -5,6 +5,7 @@ import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
+import { backgroundOf, type BackgroundLine } from "./background";
 import { tagsOf } from "./tags";
 import { parseSources } from "./sources";
 import type { Attributes, CodexKind, Effect, Player, Source, SpoilerLevel } from "./types";
@@ -34,6 +35,8 @@ export type ItemView = {
   sources: Source[];
   /** Its tags (ADR 0014), by name. */
   tags: string[];
+  /** What Claude added about it (ADR 0016), as far as the read reveals. */
+  background: BackgroundLine[];
   url: string;
 };
 
@@ -70,6 +73,13 @@ export async function itemsOf(
     found.map((r) => r.id),
     opts.reveal ?? "none",
   );
+  const background = await backgroundOf(
+    await db(),
+    p,
+    "item",
+    found.map((r) => r.id),
+    opts.reveal ?? "none",
+  );
   return found.map((r) => ({
     id: r.id,
     name: r.name,
@@ -86,6 +96,7 @@ export async function itemsOf(
     spoiler: r.spoiler as SpoilerLevel,
     sources: parseSources(r.sources),
     tags: tags.get(r.id) ?? [],
+    background: background.get(r.id) ?? [],
     url: itemPath(playthroughId, r.id),
   }));
 }

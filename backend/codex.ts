@@ -11,6 +11,7 @@ import { norm } from "./names";
 import { addNote } from "./notes";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
+import { backgroundOf, type BackgroundInput, type BackgroundLine } from "./background";
 import { tagsOf } from "./tags";
 import { CODEX_KINDS, EFFECTS, type CodexKind, type CodexStatus, type Effect, type Player, type Source, type SourceInput, type SpoilerLevel } from "./types";
 import { codexPath, itemPath } from "./urls";
@@ -41,6 +42,8 @@ export type CodexView = {
   counters: { item: { id: string; name: string; kind: string | null; quantity: number | null; url: string }; effect: Effect; note: string | null }[];
   /** Its tags (ADR 0014), by name. */
   tags: string[];
+  /** What Claude added about it (ADR 0016), as far as the read reveals. */
+  background: BackgroundLine[];
   url: string;
 };
 
@@ -63,6 +66,8 @@ export type CodexInput = {
   sources?: SourceInput[];
   /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
   tags?: string[];
+  /** Background Claude adds about it (ADR 0016), each line with its spoiler level; added to the lines it has. */
+  background?: BackgroundInput[];
 };
 
 export type FiledCodex = {
@@ -117,6 +122,13 @@ export async function codexOf(
     rows.map((r) => r.id),
     reveal,
   );
+  const background = await backgroundOf(
+    d,
+    p,
+    "codex",
+    rows.map((r) => r.id),
+    reveal,
+  );
   const STATUS: Record<string, number> = { met: 0, beaten: 1, gone: 2 };
   return rows
     .sort(
@@ -145,6 +157,7 @@ export async function codexOf(
         .filter((c) => c.codexId === r.id)
         .map(({ item, effect, note }) => ({ item: { ...item, url: itemPath(playthroughId, item.id) }, effect, note })),
       tags: tags.get(r.id) ?? [],
+      background: background.get(r.id) ?? [],
       url: codexPath(playthroughId, r.id),
     }));
 }

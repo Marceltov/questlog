@@ -25,6 +25,7 @@
   --tab-codex: #56b4e9;
   --tab-sessions: #d55e00;
   --tab-notes: #009e73;
+  --tab-settings: #7c7f93;
   color-scheme: light;
 }
 
@@ -50,6 +51,7 @@
     --tab-codex: #7cc6ef;
     --tab-sessions: #ec7a2c;
     --tab-notes: #1fb487;
+    --tab-settings: #a5a8bd;
     color-scheme: dark;
   }
 }
@@ -323,6 +325,9 @@ body::before {
 .register[data-at="notes"] {
   --c: var(--tab-notes);
 }
+.register[data-at="settings"] {
+  --c: var(--tab-settings);
+}
 .register-tabs {
   --edge: color-mix(in oklab, var(--c) 80%, var(--ink));
   display: grid;
@@ -333,7 +338,7 @@ body::before {
 }
 @media (min-width: 40rem) {
   .register-tabs {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     position: sticky;
     top: -1.5rem;
     z-index: 5;
@@ -417,6 +422,9 @@ body::before {
 }
 .register-tab[data-tab="notes"] {
   --t: var(--tab-notes);
+}
+.register-tab[data-tab="settings"] {
+  --t: var(--tab-settings);
 }
 .register-panel {
   padding-top: 1.25rem;
@@ -771,4 +779,54 @@ body::before {
 }
 .chat-send {
   @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent disabled:opacity-40;
+}
+
+/* A playthrough's two settings (ADR 0016), under its title: each a row of levels in one rounded bar, the chosen level filled. Spoilers
+   above none fill in the hint colour, so a page that gives things away says so at a glance. */
+.settings {
+  @apply grid gap-6;
+}
+.dial legend {
+  @apply mb-1.5 flex flex-col;
+}
+.dial-label {
+  @apply text-sm font-semibold;
+}
+.dial-hint {
+  @apply text-xs text-muted;
+}
+.dial-levels {
+  @apply flex rounded-full border border-rule bg-surface p-0.5;
+}
+.dial-levels label {
+  @apply relative flex-1 cursor-pointer;
+}
+.dial-levels input {
+  @apply absolute inset-0 cursor-pointer opacity-0;
+}
+.dial-levels span {
+  @apply block rounded-full px-2 py-1 text-center text-sm text-muted transition-colors;
+}
+.dial-levels label:hover span {
+  @apply text-ink;
+}
+.dial-levels input:checked + span {
+  @apply bg-accent font-semibold;
+  color: var(--on-accent);
+}
+.dial-levels[data-warn] input:checked + span {
+  @apply bg-hint;
+  color: var(--surface);
+}
+.dial-levels input:focus-visible + span {
+  @apply outline-2 outline-offset-1 outline-accent;
+}
+.settings[aria-busy="true"] .dial-levels {
+  @apply opacity-70;
+}
+
+/* What Claude added about a card (ADR 0016): set off by a thin rule on the left, quieter than the player's own words. */
+.background {
+  @apply mt-2 space-y-1 border-l-2 pl-3 text-sm;
+  border-color: color-mix(in oklab, var(--c, var(--accent)) 35%, var(--surface));
 }

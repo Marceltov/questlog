@@ -7,20 +7,17 @@ import { Backpack, BookOpen, CalendarDays, Crosshair, Footprints, Gamepad2, Scro
 
 // The web app is one book (#12): a contents page, then one page per playthrough, most recently played first, so it opens on the game
 // being played now. Every page is rendered here; components/Pages.tsx lays them side by side and turns them. `at` is the playthrough
-// whose address was opened (null for the contents); only that page shows hints, and only when the player asked for them on it.
-export async function Book({ player, at, reveal = "none" }: { player: Player; at: string | null; reveal?: "none" | "hint" }) {
+// whose address was opened (null for the contents). Each page shows as much as its playthrough's spoiler setting (ADR 0016).
+export async function Book({ player, at }: { player: Player; at: string | null }) {
   const copy = await serverCopy();
   const runs = await listPlaythroughs(player);
-  const pages = [
-    { key: "contents", title: copy.contents, href: "/" },
-    ...runs.map((t) => ({ key: t.id, title: `${t.game.title} ${t.label}`, href: t.id === at && reveal === "hint" ? `${t.url}?hints=1` : t.url })),
-  ];
+  const pages = [{ key: "contents", title: copy.contents, href: "/" }, ...runs.map((t) => ({ key: t.id, title: `${t.game.title} ${t.label}`, href: t.url }))];
   const start = at ? runs.findIndex((t) => t.id === at) + 1 : 0;
   return (
     <Pages pages={pages} start={start} labels={{ previous: copy.previousPage, next: copy.nextPage, pages: copy.pages }}>
       <Contents player={player} runs={runs} />
       {runs.map((t) => (
-        <Sheet key={t.id} player={player} playthrough={t} reveal={t.id === at ? reveal : "none"} />
+        <Sheet key={t.id} player={player} playthrough={t} />
       ))}
     </Pages>
   );
@@ -63,11 +60,11 @@ async function Contents({ player, runs }: { player: Player; runs: PlaythroughVie
 async function RunCard({ player, run: t, page }: { player: Player; run: PlaythroughView; page: number }) {
   const copy = await serverCopy();
   const [open, build, sessions, items, codex] = await Promise.all([
-    questsOf(player, t.id, { statuses: ["open", "blocked"], reveal: "none" }),
+    questsOf(player, t.id, { statuses: ["open", "blocked"], reveal: t.settings.spoilers }),
     buildOf(player, t.id, 1),
     sessionsOf(player, t.id),
-    itemsOf(player, t.id, { reveal: "none" }),
-    codexOf(player, t.id, { reveal: "none" }),
+    itemsOf(player, t.id, { reveal: t.settings.spoilers }),
+    codexOf(player, t.id, { reveal: t.settings.spoilers }),
   ]);
   const last = sessions[0];
   const next = open.find((q) => q.status === "open" && q.nextStep) ?? open[0];

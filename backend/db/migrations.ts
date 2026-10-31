@@ -354,6 +354,57 @@ const migrations: Record<string, Migration> = {
       end`.execute(db);
     },
   },
+  "008_settings": {
+    // ADR 0016: how much Claude adds on its own and how many spoilers show, per playthrough; and what it adds, as background lines on
+    // items, codex entries and quests, each with its own spoiler level. A line points into one of three tables, so triggers delete a
+    // row's lines with the row, as 007's do for tag links.
+    async up(db: Kysely<any>) {
+      await db.schema
+        .alterTable("playthroughs")
+        .addColumn("background", "text", (c) =>
+          c
+            .notNull()
+            .defaultTo("none")
+            .check(oneOf("background", ["none", "light", "useful", "everything"])),
+        )
+        .execute();
+      await db.schema
+        .alterTable("playthroughs")
+        .addColumn("spoilers", "text", (c) =>
+          c
+            .notNull()
+            .defaultTo("none")
+            .check(oneOf("spoilers", ["none", "hint", "full"])),
+        )
+        .execute();
+      await db.schema
+        .createTable("background")
+        .addColumn("id", "text", (c) => c.primaryKey())
+        .addColumn("player_id", "text", (c) => c.notNull())
+        .addColumn("what", "text", (c) => c.notNull().check(oneOf("what", ["item", "codex", "quest"])))
+        .addColumn("row_id", "text", (c) => c.notNull())
+        .addColumn("text", "text", (c) => c.notNull())
+        .addColumn("spoiler", "text", (c) =>
+          c
+            .notNull()
+            .defaultTo("none")
+            .check(oneOf("spoiler", ["none", "hint", "full"])),
+        )
+        .addColumn("source_url", "text")
+        .addColumn("source_title", "text")
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex("background_by_row").on("background").columns(["what", "row_id"]).execute();
+      for (const [table, what] of [
+        ["items", "item"],
+        ["codex", "codex"],
+        ["quests", "quest"],
+      ])
+        await sql`create trigger ${sql.raw(`${table}_unbackground`)} after delete on ${sql.table(table)} begin
+          delete from background where what = ${sql.lit(what)} and row_id = old.id;
+        end`.execute(db);
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

@@ -26,6 +26,16 @@ items:
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: settings
+    status: done
+    date: 2026-11-01
+    icon: tune-variant
+    title: How much background, how many spoilers
+    title_de: Wie viel Hintergrund, wie viele Spoiler
+    summary: Two settings per playthrough, on its page or through Claude. Background is how much Claude adds on its own after each session, spoilers what shows without asking; above it Claude only offers.
+    summary_de: Zwei Einstellungen je Spieldurchgang, auf seiner Seite oder über Claude. Hintergrund ist, wie viel Claude nach jeder Sitzung von sich aus ergänzt, Spoiler, was ohne Nachfrage zu sehen ist; darüber bietet Claude nur an.
+    links:
+      - { label: "ADR 0016", url: "https://questlog.marceltov.de/adr/0016-background-and-spoilers/" }
   - id: tags
     status: done
     date: 2026-10-31
