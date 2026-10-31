@@ -7,6 +7,7 @@ import { CODEX_KINDS, CODEX_STATUSES, EFFECTS, ENTRY_KINDS, GOAL_KINDS, GOAL_STA
 import { ERROR_CODES } from "./errors";
 
 const Url = z.string().describe("Its page in the web app, as an absolute URL");
+const Tags = z.array(z.string()).describe("Its tags (free names across groups, e.g. fire), by name");
 
 export const ErrorJson = z
   .object({ error: z.string().describe("What went wrong, in English"), code: z.enum(ERROR_CODES) })
@@ -73,6 +74,7 @@ export const QuestJson = z
     status: z.enum(QUEST_STATUSES),
     nextStep: z.string().nullable().describe("The latest next step the request may show"),
     entries: z.array(EntryJson).describe("Oldest first"),
+    tags: Tags,
     url: Url,
   })
   .meta({ id: "Quest" });
@@ -105,6 +107,7 @@ export const ItemJson = z
     verdict: z.string().nullable().describe("How it fits the build"),
     spoiler: Spoiler,
     sources: z.array(SourceJson).describe("Where its facts come from"),
+    tags: Tags,
     url: Url,
   })
   .meta({ id: "Item" });
@@ -137,6 +140,7 @@ export const CodexJson = z
         }),
       )
       .describe("The player's items rated against it, best first, from very good to very bad"),
+    tags: Tags,
     url: Url,
   })
   .meta({ id: "CodexEntry", description: "A boss, enemy, NPC or place the player met (ADR 0010)" });

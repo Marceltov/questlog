@@ -13,6 +13,7 @@ import { goalLabel, reachGoals } from "./goals";
 import { norm } from "./names";
 import { mergeSources, parseSources } from "./sources";
 import { seen } from "./spoilers";
+import { gameOfRow, mergeTag, removeTag, renameTag, setTags } from "./tags";
 import {
   CODEX_STATUSES,
   ENTRY_KINDS,
@@ -41,7 +42,7 @@ const replaceSources = (before: string, next: SourceInput[] | undefined) => {
 };
 
 /** What a correction can name. */
-export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal", "codex"] as const;
+export const TARGETS = ["game", "playthrough", "session", "quest", "entry", "snapshot", "item", "goal", "codex", "tag"] as const;
 export type Target = (typeof TARGETS)[number];
 
 /** One change: the row (`what`, `id`), and either `remove` or the fields to set. A nullable field set to null is cleared. */
@@ -49,8 +50,10 @@ export type Correction = {
   what: Target;
   id: string;
   remove?: boolean;
-  /** A quest only: move its entries to this quest and remove it. */
+  /** A quest or a tag only: move its entries (a tag: its rows) to this one and remove it. */
   mergeInto?: string;
+  /** An item's, codex entry's or quest's tags, all of them (ADR 0014). */
+  tags?: string[];
   title?: string;
   platform?: string | null;
   label?: string;
@@ -105,12 +108,28 @@ const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
   game: ["title", "platform", "description", "notes", "sources", "itemKinds"],
   playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass", "notes"],
   session: ["summary", "playedOn", "notes"],
-  quest: ["name", "localName", "giver", "location", "status", "description", "notes"],
+  quest: ["name", "localName", "giver", "location", "status", "description", "notes", "tags"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn", "notes"],
-  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources", "quantity", "attributes", "against", "description", "notes"],
-  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "description", "notes", "spoiler", "sources"],
+  item: [
+    "name",
+    "localName",
+    "kind",
+    "location",
+    "equipped",
+    "verdict",
+    "spoiler",
+    "sources",
+    "quantity",
+    "attributes",
+    "against",
+    "description",
+    "notes",
+    "tags",
+  ],
+  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "description", "notes", "spoiler", "sources", "tags"],
   goal: ["target", "text", "status", "suggested", "rank", "spoiler", "notes"],
+  tag: ["name"],
 };
 
 export type Corrected = {
@@ -155,7 +174,8 @@ export async function correct(p: Player, changes: Correction[]): Promise<Correct
   for (const c of changes) {
     const extra = Object.keys(c).filter((k) => !["what", "id", "remove", "mergeInto", ...FIELDS[c.what]].includes(k) && c[k as keyof Correction] !== undefined);
     if (extra.length) throw new InvalidInputError(`${c.what} ${c.id}: ${extra.join(", ")} can't be set on a ${c.what} (it takes ${FIELDS[c.what].join(", ")})`);
-    if (c.mergeInto !== undefined && c.what !== "quest") throw new InvalidInputError(`${c.what} ${c.id}: only a quest can be merged`);
+    if (c.mergeInto !== undefined && c.what !== "quest" && c.what !== "tag")
+      throw new InvalidInputError(`${c.what} ${c.id}: only a quest or a tag can be merged`);
     const sets = FIELDS[c.what].some((f) => c[f] !== undefined);
     if ((c.remove || c.mergeInto) && sets) throw new InvalidInputError(`${c.what} ${c.id}: remove or merge it, or set fields, not both`);
     if (!c.remove && !c.mergeInto && !sets) throw new InvalidInputError(`${c.what} ${c.id}: nothing to change`);
@@ -168,7 +188,15 @@ export async function correct(p: Player, changes: Correction[]): Promise<Correct
   });
 }
 
-function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+async function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  const out = await target(trx, p, c);
+  // A row's tags last, once its own fields are set; the row is still there, as tags never come with remove.
+  if (c.tags !== undefined && (c.what === "item" || c.what === "codex" || c.what === "quest"))
+    await setTags(trx, p, (await gameOfRow(trx, p, c.what, c.id))!, c.what, c.id, c.tags);
+  return out;
+}
+
+function target(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   switch (c.what) {
     case "game":
       return game(trx, p, c);
@@ -188,7 +216,18 @@ function apply(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
       return goal(trx, p, c);
     case "codex":
       return codex(trx, p, c);
+    case "tag":
+      return tag(trx, p, c);
   }
+}
+
+async function tag(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
+  if (c.mergeInto) {
+    const m = await mergeTag(trx, p, c.id, c.mergeInto);
+    return done(c, m.name, null, null, m.into);
+  }
+  if (c.remove) return done(c, await removeTag(trx, p, c.id), null, null);
+  return done(c, await renameTag(trx, p, c.id, c.name ?? ""), null, null);
 }
 
 const done = (c: Correction, name: string, playthroughId: string | null, url: string | null, mergedInto: Corrected["mergedInto"] = null): Corrected => ({

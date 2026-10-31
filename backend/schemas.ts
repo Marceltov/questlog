@@ -17,6 +17,12 @@ import {
 } from "./types";
 
 export const Spoiler = z.enum(SPOILER_LEVELS);
+export const TagNames = z
+  .array(z.string().trim().min(1).max(40))
+  .max(10)
+  .describe(
+    "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them",
+  );
 export const Day = z.string().regex(DAY, "a day as YYYY-MM-DD");
 
 export const SourceInput = z.object({
@@ -119,6 +125,7 @@ export const CodexInput = z.object({
   notes: Notes.optional(),
   spoiler: Spoiler.optional().describe("Default none: what the player met. hint or full for what comes from your knowledge or a guide and gives away more"),
   sources: z.array(SourceInput).optional().describe("The pages its weaknesses or strategy come from, with the facts; merged by link"),
+  tags: TagNames.optional(),
 });
 
 export const RecordInput = z.object({
@@ -147,6 +154,7 @@ export const RecordInput = z.object({
         description: Description.optional(),
         notes: Notes.optional(),
         giver: z.string().optional().describe("Who gave it"),
+        tags: TagNames.optional(),
         location: z.string().optional().describe("Where it started"),
         status: z
           .enum(QUEST_STATUSES)
@@ -221,6 +229,7 @@ export const RecordInput = z.object({
         attributes: Attributes.optional(),
         against: Against.optional(),
         location: z.string().optional().describe("Where it was found"),
+        tags: TagNames.optional(),
         equipped: z.boolean().optional(),
         verdict: z.string().optional().describe("How it fits the build, with where you know it from"),
         spoiler: Spoiler.optional().describe("Default none. hint or full when the verdict names what the player hasn't reached"),
@@ -253,7 +262,7 @@ export const ChangeInput = z.object({
   what: z
     .enum(TARGETS)
     .describe(
-      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal or codex (a boss, enemy, NPC or place)",
+      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place) or tag",
     ),
   id: z.string().describe("Its id, as briefing, open_threads, item or record returned it"),
   remove: z
@@ -265,7 +274,9 @@ export const ChangeInput = z.object({
   mergeInto: z
     .string()
     .optional()
-    .describe("A quest only: the id of the quest it really is. Its entries move there and it is removed. Only after the player agreed"),
+    .describe(
+      "A quest or a tag only: the id of the one it really is. Its entries (a tag: its rows) move there and it is removed. Only after the player agreed",
+    ),
   title: z.string().optional().describe("game"),
   platform: Nullable(z.string(), "game"),
   label: z.string().optional().describe("playthrough: NG, NG+, …"),
@@ -278,7 +289,8 @@ export const ChangeInput = z.object({
     ),
   summary: z.string().optional().describe("session"),
   playedOn: Day.optional().describe("session (its snapshot moves with it) or snapshot: the day"),
-  name: z.string().optional().describe("quest, item or codex"),
+  name: z.string().optional().describe("quest, item, codex or tag"),
+  tags: TagNames.optional().describe("item, codex or quest: all its tags, by name; [] takes them all off"),
   localName: Nullable(z.string(), "quest, item or codex: the name in the game's own language"),
   giver: Nullable(z.string(), "quest"),
   location: Nullable(z.string(), "quest: where it started; item: where it was found; codex: where the player met it"),

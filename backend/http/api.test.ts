@@ -1,7 +1,12 @@
 // The REST API over the seed: each route as the player its token names, through the same gate as the tools (values V1, V2). Who a token
 // names is checked in oauth.test.ts; here a header stands in for it.
 import { beforeEach, expect, test, vi } from "vitest";
+import { db } from "../db/testing";
+import { getPlaythrough } from "../games";
+import { itemsOf } from "../items";
 import { questsOf } from "../quests";
+import { record } from "../record";
+import { setTags } from "../tags";
 import { A_FIRST, FULL, HINT, SPOILER_ITEM, seed, type Seed } from "../testing/fixtures";
 import { dispatch } from "./api";
 
@@ -113,4 +118,16 @@ test("an unknown path is 404, a wrong method 405 with Allow, and the description
   expect([wrong.status, wrong.headers.get("allow")]).toEqual([405, "GET, HEAD"]);
   const doc = await json(await call(s.a, "GET", "openapi.json"));
   expect(doc.body.openapi).toBe("3.1.1");
+});
+
+test("items and codex entries come with their tags, and ?tag= keeps only those that carry it", async () => {
+  await record(s.a, { playthroughId: s.liesOfP, summary: "Found grease.", transcript: "Found a fire grease.", items: [{ name: "Fire Grease" }] });
+  const items = await itemsOf(s.a, s.liesOfP);
+  expect(items.length).toBe(2);
+  const game = (await getPlaythrough(s.a, s.liesOfP)).game.id;
+  await (await db()).transaction().execute((trx) => setTags(trx, s.a, game, "item", items[0].id, ["fire"]));
+  const r = await json(await call(s.a, "GET", `playthroughs/${s.liesOfP}/items?tag=fire`));
+  expect(r.status).toBe(200);
+  expect(r.body.items.map((i: { id: string; tags: string[] }) => [i.id, i.tags])).toEqual([[items[0].id, ["fire"]]]);
+  expect((await json(await call(s.a, "GET", `playthroughs/${s.liesOfP}/codex?tag=fire`))).body.entries).toEqual([]);
 });

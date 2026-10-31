@@ -319,6 +319,15 @@
             }
           },
           {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "Only items that carry this tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "reveal",
             "in": "query",
             "required": false,
@@ -420,6 +429,15 @@
             "in": "query",
             "required": false,
             "description": "Only entries whose name, or name in the game's language, contains it",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "Only entries that carry this tag",
             "schema": {
               "type": "string"
             }
@@ -822,6 +840,16 @@
                           "description": "Who gave it",
                           "type": "string"
                         },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
+                        },
                         "location": {
                           "description": "Where it started",
                           "type": "string"
@@ -1124,6 +1152,16 @@
                           "description": "Where it was found",
                           "type": "string"
                         },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
+                        },
                         "equipped": {
                           "type": "boolean"
                         },
@@ -1306,6 +1344,16 @@
                               "url"
                             ]
                           }
+                        },
+                        "tags": {
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          },
+                          "description": "Its tags: free names to filter by across groups, like an element or a status effect. Reuse the game's tags (briefing, item and codex list them); a new one only for an idea none of them covers; one tag per idea (fire, not fire damage and fire resistance). Replaces the tags it has; leave it out to keep them"
                         }
                       },
                       "required": [
@@ -1462,9 +1510,10 @@
                             "snapshot",
                             "item",
                             "goal",
-                            "codex"
+                            "codex",
+                            "tag"
                           ],
-                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal or codex (a boss, enemy, NPC or place)"
+                          "description": "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place) or tag"
                         },
                         "id": {
                           "type": "string",
@@ -1475,7 +1524,7 @@
                           "type": "boolean"
                         },
                         "mergeInto": {
-                          "description": "A quest only: the id of the quest it really is. Its entries move there and it is removed. Only after the player agreed",
+                          "description": "A quest or a tag only: the id of the one it really is. Its entries (a tag: its rows) move there and it is removed. Only after the player agreed",
                           "type": "string"
                         },
                         "title": {
@@ -1514,8 +1563,18 @@
                           "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
                         },
                         "name": {
-                          "description": "quest, item or codex",
+                          "description": "quest, item, codex or tag",
                           "type": "string"
+                        },
+                        "tags": {
+                          "description": "item, codex or quest: all its tags, by name; [] takes them all off",
+                          "maxItems": 10,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 40
+                          }
                         },
                         "localName": {
                           "description": "quest, item or codex: the name in the game's own language; null clears it",
@@ -2279,6 +2338,13 @@
             },
             "description": "Oldest first"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2295,6 +2361,7 @@
           "status",
           "nextStep",
           "entries",
+          "tags",
           "url"
         ],
         "additionalProperties": false
@@ -2466,6 +2533,13 @@
             },
             "description": "Where its facts come from"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2486,6 +2560,7 @@
           "verdict",
           "spoiler",
           "sources",
+          "tags",
           "url"
         ],
         "additionalProperties": false
@@ -2676,6 +2751,13 @@
             },
             "description": "The player's items rated against it, best first, from very good to very bad"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2698,6 +2780,7 @@
           "spoiler",
           "sources",
           "counters",
+          "tags",
           "url"
         ],
         "additionalProperties": false,
@@ -3331,6 +3414,13 @@
                   },
                   "description": "Oldest first"
                 },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Its tags (free names across groups, e.g. fire), by name"
+                },
                 "url": {
                   "type": "string",
                   "description": "Its page in the web app, as an absolute URL"
@@ -3354,6 +3444,7 @@
                 "status",
                 "nextStep",
                 "entries",
+                "tags",
                 "url",
                 "hidden"
               ],
@@ -3851,7 +3942,8 @@
                     "snapshot",
                     "item",
                     "goal",
-                    "codex"
+                    "codex",
+                    "tag"
                   ]
                 },
                 "id": {

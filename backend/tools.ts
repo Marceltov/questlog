@@ -15,6 +15,8 @@ import { missed, STALE_AFTER, type Missed } from "./missed";
 import { questsOf, type QuestView } from "./quests";
 import { record, type Recorded } from "./record";
 import { ChangeInput, Day, RecordInput, Spoiler } from "./schemas";
+import { withIds } from "./tags";
+import { db } from "./db";
 import { goalLabel, type GoalView } from "./goals";
 import {
   CODEX_KINDS,
@@ -242,6 +244,7 @@ const RecordedJson = z.object({
   quests: z.array(z.object({ id: z.string(), name: z.string(), status: z.enum(QUEST_STATUSES), created: z.boolean(), url: Url })),
   items: z.array(z.object({ id: z.string(), name: z.string(), created: z.boolean(), equipped: z.boolean(), url: Url })),
   newItemKinds: z.array(z.string()).describe("Inventory group keys this game hadn't had"),
+  newTags: z.array(z.string()).describe("Tags this game hadn't had"),
   stats: z.object({ id: z.string(), level: z.number().nullable(), newNames: z.array(z.string()).describe("Stat keys this game hadn't had") }).nullable(),
   build: z.boolean().describe("Whether the build plan or its goals changed"),
   goals: z
@@ -302,6 +305,7 @@ function recordNext(r: Recorded): Next {
     next.push(
       `New inventory group${r.newItemKinds.length === 1 ? "" : "s"} for ${t.game.title}: ${r.newItemKinds.map((k) => `${k.name}${k.localName ? ` (${k.localName})` : ""}, key ${k.key}`).join("; ")}. Check the names with the player, the game's own as localName (record itemKinds); if one is a group already there under another name, move its items with correct.`,
     );
+  if (r.newTags.length) next.push(`New tag${r.newTags.length === 1 ? "" : "s"} for ${t.game.title}: ${r.newTags.join(", ")}. Tell the player.`);
   if (r.stats?.newNames.length)
     next.push(
       `New stat keys for ${t.game.title}: ${r.stats.newNames.map((n) => n.key).join(", ")}. Use these keys in every later snapshot; check that they match the game's stat screen.`,
@@ -318,6 +322,12 @@ const PlaythroughRefInput = {
   game: z.string().optional().describe("A game's title: its playthrough played most recently"),
 };
 
+// The tags in use in a playthrough (ADR 0014), counted over what the player has found there: a tag only a spoiler carries stays out.
+async function tagsHere(p: Player, t: { id: string; game: { id: string } }) {
+  const [items, codex, quests] = await Promise.all([itemsOf(p, t.id), codexOf(p, t.id), questsOf(p, t.id)]);
+  return withIds(await db(), p, t.game.id, [...items, ...codex, ...quests]);
+}
+
 const BriefingJson = z.object({
   playthrough: PlaythroughJson.nullable().describe("Null when the player has no playthrough yet (of that game)"),
   lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), notes: z.string().nullable(), url: Url }).nullable(),
@@ -330,6 +340,9 @@ const BriefingJson = z.object({
   equipped: z.array(ItemJson),
   bosses: z.array(CodexJson).describe("Bosses the player met and hasn't beaten yet, with their tries, weaknesses, strategy and counters"),
   others: z.array(PlaythroughJson).describe("The player's other playthroughs, most recently played first"),
+  tags: z
+    .array(z.object({ id: z.string(), name: z.string(), count: z.number() }))
+    .describe("The tags in use in this playthrough, most used first: reuse them when you file tags"),
 });
 
 const NO_ADDING =
@@ -393,6 +406,9 @@ const ItemLookupJson = z.object({
   playthrough: PlaythroughJson.nullable(),
   reveal: Spoiler.describe("What this call was allowed to show"),
   items: z.array(ItemDetailJson).describe("The player's items whose name contains the one asked for (all of them without a name), equipped first"),
+  tags: z
+    .array(z.object({ id: z.string(), name: z.string(), count: z.number() }))
+    .describe("The tags in use in this playthrough, most used first: reuse them when you file tags"),
   build: z.object({
     plan: PlanJson.nullable(),
     goals: z.array(GoalJson).describe("Open goals first, by rank, then the reached ones"),
@@ -433,6 +449,9 @@ const CodexLookupJson = z.object({
   playthrough: PlaythroughJson.nullable(),
   reveal: Spoiler.describe("What this call was allowed to show"),
   entries: z.array(CodexJson).describe("Bosses, then enemies, NPCs and places; what is still in the way first"),
+  tags: z
+    .array(z.object({ id: z.string(), name: z.string(), count: z.number() }))
+    .describe("The tags in use in this playthrough, most used first: reuse them when you file tags"),
   build: z.object({ plan: PlanJson.nullable(), current: SnapshotJson.nullable().describe("The latest snapshot") }),
   equipped: z.array(ItemDetailJson).describe("What the player has equipped now"),
 });
@@ -540,6 +559,7 @@ export const TOOLS: Tool[] = [
         quests: r.quests,
         items: r.items,
         newItemKinds: r.newItemKinds.map((k) => k.key),
+        newTags: r.newTags,
         stats: r.stats && { id: r.stats.id, level: r.stats.level, newNames: r.stats.newNames.map((n) => n.key) },
         build: r.build,
         goals: r.goals,
@@ -565,6 +585,7 @@ export const TOOLS: Tool[] = [
         build: { ...b.build, goals: b.build.goals.map(goalJson) },
         equipped: b.equipped,
         bosses: b.bosses,
+        tags: b.playthrough ? await tagsHere(p, b.playthrough) : [],
       };
       return ok(BriefingJson, body, briefingNext(b));
     },
@@ -593,27 +614,30 @@ export const TOOLS: Tool[] = [
     input: z.object({
       ...PlaythroughRefInput,
       name: z.string().optional().describe("The item's name, or part of it"),
+      tag: z.string().optional().describe('Only items that carry this tag ("what do I have against fire?")'),
       reveal: Spoiler.optional().describe("Default none. hint or full only when the player asked for spoilers just now"),
     }),
     output: ItemLookupJson,
     annotations: { readOnlyHint: true },
-    handler: async (p, { reveal = "none", name, ...ref }) => {
+    handler: async (p, { reveal = "none", name, tag, ...ref }) => {
       const t = await findPlaythrough(p, ref);
       if (!t)
         return ok(
           ItemLookupJson,
-          { playthrough: null, reveal, items: [], build: { plan: null, goals: [], current: null }, equipped: [] },
+          { playthrough: null, reveal, items: [], tags: [], build: { plan: null, goals: [], current: null }, equipped: [] },
           itemNext(t, name, [], reveal),
         );
-      const [items, build, equipped] = await Promise.all([
-        itemsOf(p, t.id, { name, reveal }),
+      const [items, build, equipped, tags] = await Promise.all([
+        itemsOf(p, t.id, { name, tag, reveal }),
         buildOf(p, t.id, 1),
         itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+        tagsHere(p, t),
       ]);
       const body = {
         playthrough: t,
         reveal,
         items,
+        tags,
         build: { plan: build.plan, goals: build.goals.map(goalJson), current: build.snapshots[0] ?? null },
         equipped,
       };
@@ -628,31 +652,33 @@ export const TOOLS: Tool[] = [
       ...PlaythroughRefInput,
       name: z.string().optional().describe("The entry's name, or part of it"),
       kind: z.enum(CODEX_KINDS).optional().describe("Only bosses, enemies, NPCs or places"),
+      tag: z.string().optional().describe("Only entries that carry this tag"),
       reveal: Spoiler.optional().describe("Default none. hint or full only when the player asked for hints or spoilers just now"),
     }),
     output: CodexLookupJson,
     annotations: { readOnlyHint: true },
-    handler: async (p, { reveal = "none", name, kind, ...ref }) => {
+    handler: async (p, { reveal = "none", name, kind, tag, ...ref }) => {
       const t = await findPlaythrough(p, ref);
       if (!t)
         return ok(
           CodexLookupJson,
-          { playthrough: null, reveal, entries: [], build: { plan: null, current: null }, equipped: [] },
+          { playthrough: null, reveal, entries: [], tags: [], build: { plan: null, current: null }, equipped: [] },
           codexNext(t, name, [], reveal),
         );
-      const [entries, build, equipped] = await Promise.all([
-        codexOf(p, t.id, { name, kind, reveal }),
+      const [entries, build, equipped, tags] = await Promise.all([
+        codexOf(p, t.id, { name, kind, tag, reveal }),
         buildOf(p, t.id, 1),
         itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
+        tagsHere(p, t),
       ]);
-      const body = { playthrough: t, reveal, entries, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
+      const body = { playthrough: t, reveal, entries, tags, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
       return ok(CodexLookupJson, body, codexNext(t, name, entries, reveal));
     },
   }),
   tool({
     name: "correct",
     description:
-      "Fix or remove what was filed: a game's title or inventory groups, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good or bad against), a goal, a codex entry (a boss, enemy, NPC or place). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
+      "Fix or remove what was filed: a game's title or inventory groups, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good or bad against), a goal, a codex entry (a boss, enemy, NPC or place), the tags of an item, codex entry or quest, a tag itself (rename it, merge it into another, remove it: only when the player asked). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
     input: z.object({ changes: z.array(ChangeInput).min(1).max(50) }),
     output: CorrectedJson,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },

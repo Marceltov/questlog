@@ -38,3 +38,4 @@ export { CODEX_KINDS, EFFECTS, OPEN_STATUSES, SPOILER_LEVELS, type ItemKind, typ
 
 // The health probe asks the database a trivial question; opening it (and migrating) is part of answering.
 setDbProbe(async () => sql`select 1`.execute(await db()));
+export { tagsInUse } from "./tags";

@@ -101,12 +101,13 @@ const OPS: AnyOp[] = [
     query: z.object({
       name: z.string().optional().describe("Only items whose name, or name in the game's language, contains it"),
       equipped: z.enum(["true"]).optional().describe("Only what is equipped"),
+      tag: z.string().optional().describe("Only items that carry this tag"),
       reveal: RevealQuery,
     }),
     responses: { 200: { description: "Equipped first, then the newest", schema: ItemListJson }, 400: E400, 401: E401, 404: E404 },
   }).handle(async ({ player, params, query }) => ({
     status: 200,
-    body: { items: await itemsOf(player, params.id, { name: query.name, equippedOnly: query.equipped === "true", reveal: query.reveal }) },
+    body: { items: await itemsOf(player, params.id, { name: query.name, tag: query.tag, equippedOnly: query.equipped === "true", reveal: query.reveal }) },
   })),
   op({
     method: "GET",
@@ -119,12 +120,13 @@ const OPS: AnyOp[] = [
     query: z.object({
       kind: z.enum(CODEX_KINDS).optional().describe("Only bosses, enemies, NPCs or places"),
       name: z.string().optional().describe("Only entries whose name, or name in the game's language, contains it"),
+      tag: z.string().optional().describe("Only entries that carry this tag"),
       reveal: RevealQuery,
     }),
     responses: { 200: { description: "Bosses first, what is still in the way first", schema: CodexListJson }, 400: E400, 401: E401, 404: E404 },
   }).handle(async ({ player, params, query }) => ({
     status: 200,
-    body: { entries: await codexOf(player, params.id, { kind: query.kind, name: query.name, reveal: query.reveal }) },
+    body: { entries: await codexOf(player, params.id, { kind: query.kind, name: query.name, tag: query.tag, reveal: query.reveal }) },
   })),
   op({
     method: "GET",
