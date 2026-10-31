@@ -16,15 +16,15 @@
   --vignette: rgb(60 40 25 / 0.25);
   --column: rgb(246 242 234 / 0.88);
   --glass: rgb(255 253 248 / 0.84);
-  /* The register's tabs (components/Register.tsx): the Okabe-Ito colours, told apart with every common kind of colour blindness, in
-     alternating lightness so neighbours differ even in grey; each tab carries its name as well, never the colour alone. */
+  /* The register's tabs (components/Register.tsx): the Okabe-Ito colours, told apart with every common kind of colour blindness, warm and
+     cool in turn, so neighbours stay apart with red-green colour blindness and in grey; each tab carries its name as well, never the colour alone. */
   --tab-overview: #cc79a7;
-  --tab-character: #009e73;
+  --tab-character: #e69f00;
   --tab-quests: #0072b2;
   --tab-items: #f0e442;
-  --tab-codex: #e69f00;
+  --tab-codex: #56b4e9;
   --tab-sessions: #d55e00;
-  --tab-notes: #56b4e9;
+  --tab-notes: #009e73;
   color-scheme: light;
 }
 
@@ -44,12 +44,12 @@
     --column: rgb(22 23 29 / 0.86);
     --glass: rgb(31 32 40 / 0.8);
     --tab-overview: #d98cb6;
-    --tab-character: #1fb487;
+    --tab-character: #e69f00;
     --tab-quests: #3a9ad9;
     --tab-items: #f0e442;
-    --tab-codex: #e69f00;
+    --tab-codex: #7cc6ef;
     --tab-sessions: #ec7a2c;
-    --tab-notes: #7cc6ef;
+    --tab-notes: #1fb487;
     color-scheme: dark;
   }
 }
