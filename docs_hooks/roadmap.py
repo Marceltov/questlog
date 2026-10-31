@@ -1,5 +1,8 @@
 """MkDocs hook: renders docs/roadmap.yml as a timeline in place of the <!-- roadmap --> marker of docs/roadmap.md.
 
+In another language (docs/roadmap.de.md, mkdocs-static-i18n) an entry's `title_de`, `summary_de`, `when_de` and `details_de` stand
+in for the English ones when it has them.
+
 The markup has no blank lines (a blank line would end the raw HTML block in Python-Markdown) and every piece of text from
 the data file is escaped. Icons are Material Design icons, taken from the installed mkdocs-material and inlined.
 """
@@ -64,18 +67,32 @@ def blocks(text: str) -> str:
     return "\n".join(parts)
 
 
-def nice_date(value) -> str:
+MONTHS = {"de": ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."]}
+DETAILS = {"en": "Details", "de": "Einzelheiten"}
+
+
+def nice_date(value, lang: str = "en") -> str:
     day = datetime.date.fromisoformat(str(value))
+    if lang in MONTHS:
+        return f"{day.day}. {MONTHS[lang][day.month - 1]} {day.year}"
     return f"{day.day} {day:%b %Y}"
 
 
-def row(entry: dict, icon) -> str:
+def localized(entry: dict, lang: str) -> dict:
+    """The entry with its fields in `lang` where it has them."""
+    if lang == "en":
+        return entry
+    return {**entry, **{k: entry[f"{k}_{lang}"] for k in ("title", "summary", "when", "details") if entry.get(f"{k}_{lang}")}}
+
+
+def row(entry: dict, icon, lang: str = "en") -> str:
+    entry = localized(entry, lang)
     done = entry["status"] == "done"
-    when = html.escape(nice_date(entry["date"]) if done else entry["when"])
+    when = html.escape(nice_date(entry["date"], lang) if done else entry["when"])
     links = "".join(f'<a href="{html.escape(link["url"], quote=True)}">{html.escape(link["label"])}</a>' for link in entry.get("links", []))
     details = ""
     if entry.get("details"):
-        details = f'<details class="ql-tl-details"><summary>Details</summary>\n{blocks(entry["details"])}\n</details>'
+        details = f'<details class="ql-tl-details"><summary>{DETAILS.get(lang, "Details")}</summary>\n{blocks(entry["details"])}\n</details>'
     lines = [
         f'<div class="ql-tl-row ql-{html.escape(entry["status"])}" id="{html.escape(entry["id"])}">',
         f'<div class="ql-tl-when">{when}</div>',
@@ -91,21 +108,23 @@ def row(entry: dict, icon) -> str:
     return "\n".join(lines)
 
 
-def render(data: dict, icon=load_icon) -> str:
+def render(data: dict, icon=load_icon, lang: str = "en") -> str:
     items = data["items"]
     open_items = [i for i in items if i["status"] != "done"]
     done = sorted((i for i in items if i["status"] == "done"), key=lambda i: str(i["date"]), reverse=True)  # stable
-    return '<div class="ql-timeline">\n' + "\n".join(row(i, icon) for i in open_items + done) + "\n</div>"
+    return '<div class="ql-timeline">\n' + "\n".join(row(i, icon, lang) for i in open_items + done) + "\n</div>"
 
 
 def on_page_markdown(markdown, page, config, files):
-    if page.file.src_uri != "roadmap.md":
+    found = re.fullmatch(r"roadmap(?:\.(\w+))?\.md", page.file.src_uri)
+    if not found:
         return markdown
+    lang = found.group(1) or config["theme"]["language"] or "en"
     if MARKER not in markdown:
         from mkdocs.exceptions import PluginError
 
         raise PluginError(f"docs/roadmap.md has no {MARKER} marker for the timeline")
-    return markdown.replace(MARKER, render(yaml.safe_load(DATA.read_text())))
+    return markdown.replace(MARKER, render(yaml.safe_load(DATA.read_text()), lang=lang))
 
 
 def on_serve(server, config, builder):

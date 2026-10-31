@@ -9,6 +9,38 @@ copyright: Copyright &copy; 2026 Marcel Bruckner. Licensed under <a href="https:
 hooks:
   - docs_hooks/roadmap.py
 
+# English is the site; German pages sit next to their English ones (index.de.md) and are built under /de/. A page with no German version
+# shows the English one there (#10).
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: de
+          name: Deutsch
+          build: true
+          site_description: Ein spoilerfreies Questlog, Build-Tracker und Inventar für die Spiele, die du spielst. Du erzählst es Claude beim Spielen; questlog merkt es sich und zeigt nie, was du noch nicht gefunden hast.
+          nav_translations:
+            Home: Start
+            What questlog stands for: Wofür questlog steht
+            Where questlog is going: Wohin questlog geht
+            Self-hosting: Selbst hosten
+            Configuration: Konfiguration
+            Connect Claude: Claude verbinden
+            Reference: Referenz
+            MCP tools: MCP-Werkzeuge
+            Internals: Interna
+            How it works: Wie es funktioniert
+            Development: Entwicklung
+            Decisions: Entscheidungen
+
 nav:
   - Home: index.md
   - What questlog stands for: values.md
@@ -57,9 +89,9 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+  # No navigation.instant: the language switch keeps you on the same page only without it (mkdocs-static-i18n).
   features:
     - navigation.sections
-    - navigation.instant
     - navigation.footer
     - navigation.top
     - toc.follow

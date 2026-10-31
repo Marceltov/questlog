@@ -44,8 +44,12 @@ QUESTLOG_OIDC_AUTHENTIK_LABEL=authentik
 
 A sign-in through a provider joins an existing player with the same address only when the provider says the address is verified ([ADR 0006](../adr/0006-better-auth-wiring.md)).
 
+When a provider refuses a sign-in, the login page shows its error code, and questlog's log has a line for it.
+
 ## Data and backups
 
 Back up `DATA_DIR`. `questlog.sqlite` is the log; `auth.sqlite` holds accounts, sessions and the connected clients, so a copy of the log alone holds no tokens ([ADR 0004](../adr/0004-sign-in-with-better-auth.md)). Losing `auth.sqlite` signs everyone out and loses who is who: keep both.
+
+SQLite runs in WAL mode: new data sits in `questlog.sqlite-wal` for a while. Back up the whole directory, or copy with `sqlite3 questlog.sqlite ".backup copy.sqlite"`; the main file alone can be nearly empty.
 
 `GET /health` answers `{"status":"ok"}` while the database answers; the image's `HEALTHCHECK` uses it.

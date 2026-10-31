@@ -52,7 +52,7 @@ questlog runs as one container on your own server, with one SQLite file. Every f
 
 ### V8. Any game, any language
 
-questlog is not built for one game. Stats, item types and quest states are data, not code, so a new game needs no release. The UI is English first; the game's own language (German stat names, say) is kept next to the English one.
+questlog is not built for one game. Stats, item types and quest states are data, not code, so a new game needs no release. The UI is English first, and German too; the game's own language (German stat names, say) is kept next to the English one.
 
 **Rules out:** game-specific tables or code paths, hard-coded stat lists, a UI only in one language.
 
