@@ -45,6 +45,20 @@ export const en = {
   status: { playing: "Playing", finished: "Finished", dropped: "Dropped" } as Record<string, string>,
 
   // A playthrough
+  tabs: {
+    label: "Parts of this page",
+    overview: "Overview",
+    quests: "Quests",
+    character: "Character",
+    items: "Items",
+    codex: "Codex",
+    sessions: "Sessions",
+    notes: "Notes",
+  },
+  nextSteps: "Next steps",
+  noCodex: "Nobody and nowhere recorded yet. Tell Claude who you met.",
+  noSessions: "No sessions yet.",
+  noNotes: "No notes yet. Tell Claude what you think of the game, or which sites you trust for it.",
   lastSession: "Last session",
   openQuests: "Open quests",
   noOpenQuests: "No open quests.",

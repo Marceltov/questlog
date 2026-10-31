@@ -26,6 +26,17 @@ items:
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: register
+    status: done
+    date: 2026-10-31
+    icon: tab
+    title: A register for each playthrough
+    title_de: Ein Register für jeden Spieldurchlauf
+    summary: Coloured tabs, readable with colour blindness, split a playthrough's page into overview, character, quests, items, codex, sessions and notes; flags switch the language.
+    summary_de: Farbige Reiter, auch bei Farbenblindheit lesbar, teilen die Seite eines Durchlaufs in Überblick, Charakter, Quests, Inventar, Kodex, Sessions und Notizen; Flaggen wechseln die Sprache.
+    links:
+      - { label: "#31", url: "https://github.com/Marceltov/questlog/pull/31" }
+
   - id: languages
     status: done
     date: 2026-10-31
