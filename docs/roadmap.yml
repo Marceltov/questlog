@@ -26,6 +26,16 @@ items:
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: tags
+    status: done
+    date: 2026-10-31
+    icon: tag-multiple-outline
+    title: Tags across groups
+    title_de: Tags quer zu den Gruppen
+    summary: Free tags on items, codex entries and quests, made up and reused by Claude as it files; a tag row filters the tab you are on.
+    summary_de: Freie Tags an Gegenständen, Codex-Einträgen und Quests, die Claude beim Ablegen anlegt und wiederverwendet; eine Tag-Leiste filtert den Reiter, auf dem du bist.
+    links:
+      - { label: "ADR 0014", url: "https://questlog.marceltov.de/adr/0014-tags/" }
   - id: in-app-chat
     status: done
     date: 2026-10-31
