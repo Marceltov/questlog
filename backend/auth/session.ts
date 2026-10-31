@@ -58,6 +58,16 @@ export async function clientName(headers: Headers, clientId: string): Promise<st
   }
 }
 
+export type PasskeyView = { id: string; name: string | null; createdAt: string };
+
+/** The signed-in player's passkeys, newest first, for the account page. */
+export async function passkeysOf(headers: Headers): Promise<PasskeyView[]> {
+  const list = await (await auth()).api.listPasskeys({ headers });
+  return list
+    .map((p) => ({ id: p.id, name: p.name || null, createdAt: new Date(p.createdAt).toISOString() }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 /** The signed-in user's display name or address, for the consent page. */
 export async function signedInAs(headers: Headers): Promise<string | null> {
   const s = await (await auth()).api.getSession({ headers });

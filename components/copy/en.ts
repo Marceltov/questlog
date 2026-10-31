@@ -15,12 +15,27 @@ export const en = {
   signIn: "Sign in",
   otherAddress: "Use another address",
   withProvider: (label: string) => `Continue with ${label}`,
+  withPasskey: "Sign in with a passkey",
+  passkeyFailed: "No passkey signed you in. Try again, or sign in another way.",
   or: "or",
   noMethods: "This instance has no way to sign in yet: set QUESTLOG_SMTP_URL or an OpenID Connect provider (see the configuration docs).",
   signInFailed: "That didn't work. Check the code, or ask for a new one.",
   sendFailed: "No code could be sent. Try again in a minute.",
   refused: (provider: string | null, code: string) => `${provider ?? "The sign-in provider"} refused the sign-in: ${code}`,
   signOut: "Sign out",
+
+  // Passkeys, on the account page
+  passkeys: "Passkeys",
+  passkeysLead:
+    "Sign in with your fingerprint, face or screen lock instead of a code. The passkey stays on your device or in your password manager; questlog keeps only its public key.",
+  noPasskeys: "No passkeys yet.",
+  passkeyName: "Name (optional)",
+  passkeyNameHint: "Which device or password manager it's on",
+  addPasskey: "Add a passkey",
+  addPasskeyFailed: "No passkey was added.",
+  unnamedPasskey: "Passkey",
+  passkeyAdded: (date: string) => `Added ${date}`,
+  removePasskey: (name: string) => `Remove ${name}`,
   updating: "Updating",
   language: "Language",
 

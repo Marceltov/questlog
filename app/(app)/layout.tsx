@@ -1,3 +1,4 @@
+import { KeyRound } from "lucide-react";
 import Link from "next/link";
 import { chatEnabled, voiceEnabled } from "@/backend";
 import { Follow } from "@/components/Follow";
@@ -21,6 +22,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </Link>
         <div className="flex items-center gap-3">
           <LanguageSwitch />
+          <Link href="/account" className="flex items-center gap-1 text-sm text-muted hover:text-accent">
+            <KeyRound aria-hidden="true" className="size-4" />
+            {copy.passkeys}
+          </Link>
           <SignOutButton />
         </div>
       </header>

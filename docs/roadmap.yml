@@ -12,20 +12,17 @@
 
 items:
   # ---- open ------------------------------------------------------------------------------------------------------------
-  - id: passkeys
-    status: later
-    when: Later
-    when_de: Später
-    icon: key-variant
-    title: Passkeys and magic links
-    title_de: Passkeys und Magic Links
-    summary: More ways to sign in, set up while signed in; a mail still holds only a code during an MCP sign-in.
-    summary_de: Mehr Wege zur Anmeldung, eingerichtet im angemeldeten Zustand; bei einer MCP-Anmeldung enthält eine Mail weiterhin nur einen Code.
-    links:
-      - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
-      - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
-
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: passkeys
+    status: done
+    date: 2026-10-31
+    icon: key-variant
+    title: Passkeys and sign-in links
+    title_de: Passkeys und Anmeldelinks
+    summary: Sign in with a passkey, added on the account page; outside an MCP sign-in the code mail also holds a link.
+    summary_de: Mit einem Passkey anmelden, hinzugefügt auf der Kontoseite; außerhalb einer MCP-Anmeldung enthält die Code-Mail auch einen Link.
+    links:
+      - { label: "ADR 0015", url: "https://questlog.marceltov.de/adr/0015-passkeys-and-sign-in-links/" }
   - id: tags
     status: done
     date: 2026-10-31
