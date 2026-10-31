@@ -1,7 +1,7 @@
 // Tags (ADR 0014): free names per game on items, codex entries and quests, made up as they're needed, cleaned up with the rows they're on.
 import { beforeEach, expect, test } from "vitest";
 import { correct } from "./correct";
-import { NotFoundError } from "./errors";
+import { AmbiguousError, NotFoundError } from "./errors";
 import { db, newId, now } from "./db/testing";
 import { getPlaythrough } from "./games";
 import { codexOf } from "./codex";
@@ -133,4 +133,49 @@ test("record tags items, codex entries and quests, reports the tags it made, and
   const again = await record(s.a, { playthroughId: s.liesOfP, summary: "Used the saber.", transcript: "Used the saber.", items: [{ name: "Puppet Saber", equipped: true }] });
   expect(again.newTags).toEqual([]);
   expect((await itemsOf(s.a, s.liesOfP, { tag: "motivity" })).map((i) => i.name)).toEqual(["Puppet Saber"]);
+});
+
+const tagId = async (name: string) => (await (await db()).selectFrom("tags").select("id").where("name", "=", name).executeTakeFirstOrThrow()).id;
+
+test("correct sets the tags of an item, a codex entry and a quest", async () => {
+  const item = await saber();
+  const entry = await boss();
+  await correct(s.a, [
+    { what: "item", id: item, tags: ["fire"] },
+    { what: "codex", id: entry, tags: ["fire", "boss rush"] },
+    { what: "quest", id: s.venigni, tags: [] },
+  ]);
+  expect((await itemsOf(s.a, s.liesOfP, { tag: "fire" })).map((i) => i.id)).toEqual([item]);
+  expect((await codexOf(s.a, s.liesOfP)).find((e) => e.id === entry)!.tags).toEqual(["boss rush", "fire"]);
+});
+
+test("a tag is renamed, and a name another tag has is refused with that tag's id", async () => {
+  await write("item", await saber(), ["fire"]);
+  await write("quest", s.venigni, ["flame"]);
+  const [r] = await correct(s.a, [{ what: "tag", id: await tagId("flame"), name: "Flames" }]);
+  expect(r.name).toBe("Flames");
+  expect((await questsOf(s.a, s.liesOfP)).find((q) => q.id === s.venigni)!.tags).toEqual(["Flames"]);
+  const fire = await tagId("fire");
+  await expect(correct(s.a, [{ what: "tag", id: await tagId("Flames"), name: "FIRE" }])).rejects.toThrow(AmbiguousError);
+  await expect(correct(s.a, [{ what: "tag", id: await tagId("Flames"), name: "FIRE" }])).rejects.toThrow(fire);
+});
+
+test("merging a tag a row carries both of leaves that row with one", async () => {
+  const item = await saber();
+  await write("item", item, ["fire", "flame"]);
+  await write("quest", s.venigni, ["flame"]);
+  await correct(s.a, [{ what: "tag", id: await tagId("flame"), mergeInto: await tagId("fire") }]);
+  expect((await itemsOf(s.a, s.liesOfP)).find((i) => i.id === item)!.tags).toEqual(["fire"]);
+  expect((await questsOf(s.a, s.liesOfP)).find((q) => q.id === s.venigni)!.tags).toEqual(["fire"]);
+  expect(await tags()).toEqual([{ name: "fire" }]);
+});
+
+test("a removed tag comes off every row; another player's tag isn't found", async () => {
+  const item = await saber();
+  await write("item", item, ["fire"]);
+  const fire = await tagId("fire");
+  await expect(correct(s.b, [{ what: "tag", id: fire, remove: true }])).rejects.toThrow(NotFoundError);
+  await correct(s.a, [{ what: "tag", id: fire, remove: true }]);
+  expect((await itemsOf(s.a, s.liesOfP)).find((i) => i.id === item)!.tags).toEqual([]);
+  expect(await links()).toEqual([]);
 });

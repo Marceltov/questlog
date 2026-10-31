@@ -262,7 +262,7 @@ export const ChangeInput = z.object({
   what: z
     .enum(TARGETS)
     .describe(
-      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal or codex (a boss, enemy, NPC or place)",
+      "The kind of row: game, playthrough, session, quest, entry (a quest's log line), snapshot (stats), item, goal, codex (a boss, enemy, NPC or place) or tag",
     ),
   id: z.string().describe("Its id, as briefing, open_threads, item or record returned it"),
   remove: z
@@ -274,7 +274,9 @@ export const ChangeInput = z.object({
   mergeInto: z
     .string()
     .optional()
-    .describe("A quest only: the id of the quest it really is. Its entries move there and it is removed. Only after the player agreed"),
+    .describe(
+      "A quest or a tag only: the id of the one it really is. Its entries (a tag: its rows) move there and it is removed. Only after the player agreed",
+    ),
   title: z.string().optional().describe("game"),
   platform: Nullable(z.string(), "game"),
   label: z.string().optional().describe("playthrough: NG, NG+, …"),
@@ -287,7 +289,8 @@ export const ChangeInput = z.object({
     ),
   summary: z.string().optional().describe("session"),
   playedOn: Day.optional().describe("session (its snapshot moves with it) or snapshot: the day"),
-  name: z.string().optional().describe("quest, item or codex"),
+  name: z.string().optional().describe("quest, item, codex or tag"),
+  tags: TagNames.optional().describe("item, codex or quest: all its tags, by name; [] takes them all off"),
   localName: Nullable(z.string(), "quest, item or codex: the name in the game's own language"),
   giver: Nullable(z.string(), "quest"),
   location: Nullable(z.string(), "quest: where it started; item: where it was found; codex: where the player met it"),

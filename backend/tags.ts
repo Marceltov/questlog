@@ -4,7 +4,7 @@
 import type { Kysely, Transaction } from "kysely";
 import { newId, now } from "./db";
 import type { Schema } from "./db/schema";
-import { NotFoundError } from "./errors";
+import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { seen } from "./spoilers";
 import type { Player } from "./types";
@@ -21,12 +21,7 @@ export const tagName = (s: string): string => s.replace(/\s+/g, " ").trim();
 /** Gives one of the player's rows in `gameId` exactly the tags `names`, reusing the game's tags by their norm form. The names of the
  * tags it had to create. A tag no row carries any more goes (a trigger). */
 export async function setTags(trx: Transaction<Schema>, p: Player, gameId: string, what: TagTarget, rowId: string, names: string[]): Promise<string[]> {
-  const row = await seen(trx.selectFrom(TABLES[what]), p, TABLES[what], "full")
-    .innerJoin("playthroughs", "playthroughs.id", `${TABLES[what]}.playthrough_id`)
-    .select("playthroughs.game_id")
-    .where(`${TABLES[what]}.id`, "=", rowId)
-    .executeTakeFirst();
-  if (!row || row.game_id !== gameId) throw new NotFoundError(`No ${what} with id ${rowId} in this game`);
+  if ((await gameOfRow(trx, p, what, rowId)) !== gameId) throw new NotFoundError(`No ${what} with id ${rowId} in this game`);
 
   const wanted = new Map<string, string>();
   for (const n of names.map(tagName).filter(Boolean)) if (!wanted.has(norm(n))) wanted.set(norm(n), n);
@@ -55,6 +50,62 @@ export async function setTags(trx: Transaction<Schema>, p: Player, gameId: strin
       .onConflict((oc) => oc.doNothing())
       .execute();
   return created;
+}
+
+/** The game one of the player's items, codex entries or quests is in; undefined when there is no such row of theirs. */
+export async function gameOfRow(d: Db, p: Player, what: TagTarget, rowId: string): Promise<string | undefined> {
+  const row = await seen(d.selectFrom(TABLES[what]), p, TABLES[what], "full")
+    .innerJoin("playthroughs", "playthroughs.id", `${TABLES[what]}.playthrough_id`)
+    .select("playthroughs.game_id")
+    .where(`${TABLES[what]}.id`, "=", rowId)
+    .executeTakeFirst();
+  return row?.game_id;
+}
+
+async function tagRow(trx: Transaction<Schema>, p: Player, id: string) {
+  const row = await seen(trx.selectFrom("tags"), p, "tags").select(["id", "game_id", "name"]).where("id", "=", id).executeTakeFirst();
+  if (!row) throw new NotFoundError(`No tag with id ${id}`);
+  return row;
+}
+
+/** Renames one of the player's tags; a name another tag of the game has is refused with that tag's id, to merge into instead. */
+export async function renameTag(trx: Transaction<Schema>, p: Player, id: string, name: string): Promise<string> {
+  const row = await tagRow(trx, p, id);
+  const kept = tagName(name);
+  if (!kept) throw new InvalidInputError("name: a tag needs a name");
+  const clash = await seen(trx.selectFrom("tags"), p, "tags")
+    .select(["id", "name"])
+    .where("game_id", "=", row.game_id)
+    .where("norm", "=", norm(kept))
+    .where("id", "!=", id)
+    .executeTakeFirst();
+  if (clash) throw new AmbiguousError(`The game has a tag ${clash.name} already (id ${clash.id}): merge into it with mergeInto instead`);
+  await seen(trx.updateTable("tags"), p, "tags").set({ name: kept, norm: norm(kept) }).where("id", "=", id).execute();
+  return kept;
+}
+
+/** Moves a tag's rows to another tag of the same game and removes it; a row that carried both keeps one. Its name, and the other's. */
+export async function mergeTag(trx: Transaction<Schema>, p: Player, id: string, intoId: string): Promise<{ name: string; into: { id: string; name: string } }> {
+  const row = await tagRow(trx, p, id);
+  const into = await tagRow(trx, p, intoId).catch(() => null);
+  if (!into || into.game_id !== row.game_id) throw new NotFoundError(`No tag with id ${intoId} in the same game`);
+  if (into.id === row.id) throw new InvalidInputError("mergeInto: a tag can't be merged into itself");
+  const moved = await seen(trx.selectFrom("tag_links"), p, "tag_links").select(["what", "row_id"]).where("tag_id", "=", id).execute();
+  if (moved.length)
+    await trx
+      .insertInto("tag_links")
+      .values(moved.map((l) => ({ tag_id: into.id, player_id: p.id, what: l.what, row_id: l.row_id })))
+      .onConflict((oc) => oc.doNothing())
+      .execute();
+  await seen(trx.deleteFrom("tags"), p, "tags").where("id", "=", id).execute();
+  return { name: row.name, into: { id: into.id, name: into.name } };
+}
+
+/** Removes one of the player's tags from every row. Its name. */
+export async function removeTag(trx: Transaction<Schema>, p: Player, id: string): Promise<string> {
+  const row = await tagRow(trx, p, id);
+  await seen(trx.deleteFrom("tags"), p, "tags").where("id", "=", id).execute();
+  return row.name;
 }
 
 /** The names of the tags each of `rowIds` carries, by name. Rows without tags are missing from the map. */

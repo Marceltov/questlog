@@ -656,7 +656,7 @@ export const TOOLS: Tool[] = [
   tool({
     name: "correct",
     description:
-      "Fix or remove what was filed: a game's title or inventory groups, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good or bad against), a goal, a codex entry (a boss, enemy, NPC or place). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
+      "Fix or remove what was filed: a game's title or inventory groups, a playthrough's label, status or character, a session's day, a quest's name or status, a log entry, a stat snapshot, an item (its count, numbers and what it is good or bad against), a goal, a codex entry (a boss, enemy, NPC or place), the tags of an item, codex entry or quest, a tag itself (rename it, merge it into another, remove it: only when the player asked). Each change names one row by what and id and sets some of its fields, or removes it. Only what the player said is wrong; never merge two quests (mergeInto) without asking them first.",
     input: z.object({ changes: z.array(ChangeInput).min(1).max(50) }),
     output: CorrectedJson,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
