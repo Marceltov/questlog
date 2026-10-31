@@ -319,6 +319,15 @@
             }
           },
           {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "Only items that carry this tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "reveal",
             "in": "query",
             "required": false,
@@ -420,6 +429,15 @@
             "in": "query",
             "required": false,
             "description": "Only entries whose name, or name in the game's language, contains it",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "Only entries that carry this tag",
             "schema": {
               "type": "string"
             }

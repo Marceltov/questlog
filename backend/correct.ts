@@ -111,7 +111,22 @@ const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
   quest: ["name", "localName", "giver", "location", "status", "description", "notes", "tags"],
   entry: ["kind", "text", "spoiler"],
   snapshot: ["level", "values", "playedOn", "notes"],
-  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources", "quantity", "attributes", "against", "description", "notes", "tags"],
+  item: [
+    "name",
+    "localName",
+    "kind",
+    "location",
+    "equipped",
+    "verdict",
+    "spoiler",
+    "sources",
+    "quantity",
+    "attributes",
+    "against",
+    "description",
+    "notes",
+    "tags",
+  ],
   codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "description", "notes", "spoiler", "sources", "tags"],
   goal: ["target", "text", "status", "suggested", "rank", "spoiler", "notes"],
   tag: ["name"],
@@ -159,7 +174,8 @@ export async function correct(p: Player, changes: Correction[]): Promise<Correct
   for (const c of changes) {
     const extra = Object.keys(c).filter((k) => !["what", "id", "remove", "mergeInto", ...FIELDS[c.what]].includes(k) && c[k as keyof Correction] !== undefined);
     if (extra.length) throw new InvalidInputError(`${c.what} ${c.id}: ${extra.join(", ")} can't be set on a ${c.what} (it takes ${FIELDS[c.what].join(", ")})`);
-    if (c.mergeInto !== undefined && c.what !== "quest" && c.what !== "tag") throw new InvalidInputError(`${c.what} ${c.id}: only a quest or a tag can be merged`);
+    if (c.mergeInto !== undefined && c.what !== "quest" && c.what !== "tag")
+      throw new InvalidInputError(`${c.what} ${c.id}: only a quest or a tag can be merged`);
     const sets = FIELDS[c.what].some((f) => c[f] !== undefined);
     if ((c.remove || c.mergeInto) && sets) throw new InvalidInputError(`${c.what} ${c.id}: remove or merge it, or set fields, not both`);
     if (!c.remove && !c.mergeInto && !sets) throw new InvalidInputError(`${c.what} ${c.id}: nothing to change`);

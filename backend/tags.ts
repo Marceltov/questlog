@@ -26,7 +26,11 @@ export async function setTags(trx: Transaction<Schema>, p: Player, gameId: strin
   const wanted = new Map<string, string>();
   for (const n of names.map(tagName).filter(Boolean)) if (!wanted.has(norm(n))) wanted.set(norm(n), n);
   const existing = wanted.size
-    ? await seen(trx.selectFrom("tags"), p, "tags").select(["id", "norm"]).where("game_id", "=", gameId).where("norm", "in", [...wanted.keys()]).execute()
+    ? await seen(trx.selectFrom("tags"), p, "tags")
+        .select(["id", "norm"])
+        .where("game_id", "=", gameId)
+        .where("norm", "in", [...wanted.keys()])
+        .execute()
     : [];
   const ids = new Map(existing.map((t) => [t.norm, t.id]));
   const created: string[] = [];
@@ -80,7 +84,10 @@ export async function renameTag(trx: Transaction<Schema>, p: Player, id: string,
     .where("id", "!=", id)
     .executeTakeFirst();
   if (clash) throw new AmbiguousError(`The game has a tag ${clash.name} already (id ${clash.id}): merge into it with mergeInto instead`);
-  await seen(trx.updateTable("tags"), p, "tags").set({ name: kept, norm: norm(kept) }).where("id", "=", id).execute();
+  await seen(trx.updateTable("tags"), p, "tags")
+    .set({ name: kept, norm: norm(kept) })
+    .where("id", "=", id)
+    .execute();
   return kept;
 }
 
@@ -127,7 +134,13 @@ export async function tagsOf(d: Db, p: Player, what: TagTarget, rowIds: string[]
 export function tagsInUse(rows: { tags: string[] }[]): { name: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const r of rows) for (const t of r.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-  return [...counts]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || norm(a.name).localeCompare(norm(b.name)));
+  return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || norm(a.name).localeCompare(norm(b.name)));
+}
+
+/** The tags in use on `rows` (views that came through the gate), with their ids for correct. */
+export async function withIds(d: Db, p: Player, gameId: string, rows: { tags: string[] }[]): Promise<{ id: string; name: string; count: number }[]> {
+  const used = tagsInUse(rows);
+  if (!used.length) return [];
+  const ids = new Map((await seen(d.selectFrom("tags"), p, "tags").select(["id", "name"]).where("game_id", "=", gameId).execute()).map((t) => [t.name, t.id]));
+  return used.flatMap((t) => (ids.has(t.name) ? [{ id: ids.get(t.name)!, ...t }] : []));
 }

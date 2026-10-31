@@ -10,6 +10,7 @@ import { questsOf } from "./quests";
 import { record } from "./record";
 import { setTags, tagsInUse, tagsOf } from "./tags";
 import { SPOILER_ITEM, seed, type Seed } from "./testing/fixtures";
+import { toolByName } from "./tools";
 
 let s: Seed;
 
@@ -88,7 +89,12 @@ test("tagsInUse counts tags over rows, most used first, then by name", () => {
 });
 
 const boss = async () => {
-  await record(s.a, { playthroughId: s.liesOfP, summary: "Fought the Parade Master.", transcript: "The Parade Master burns.", codex: [{ kind: "boss", name: "Parade Master" }] });
+  await record(s.a, {
+    playthroughId: s.liesOfP,
+    summary: "Fought the Parade Master.",
+    transcript: "The Parade Master burns.",
+    codex: [{ kind: "boss", name: "Parade Master" }],
+  });
   return (await codexOf(s.a, s.liesOfP)).find((e) => e.name === "Parade Master")!.id;
 };
 
@@ -130,7 +136,12 @@ test("record tags items, codex entries and quests, reports the tags it made, and
   expect((await codexOf(s.a, s.liesOfP, { tag: "fire" })).map((e) => e.name)).toEqual(["Parade Master"]);
   expect((await questsOf(s.a, s.liesOfP)).find((q) => q.id === s.venigni)!.tags).toEqual(["workers"]);
 
-  const again = await record(s.a, { playthroughId: s.liesOfP, summary: "Used the saber.", transcript: "Used the saber.", items: [{ name: "Puppet Saber", equipped: true }] });
+  const again = await record(s.a, {
+    playthroughId: s.liesOfP,
+    summary: "Used the saber.",
+    transcript: "Used the saber.",
+    items: [{ name: "Puppet Saber", equipped: true }],
+  });
   expect(again.newTags).toEqual([]);
   expect((await itemsOf(s.a, s.liesOfP, { tag: "motivity" })).map((i) => i.name)).toEqual(["Puppet Saber"]);
 });
@@ -178,4 +189,25 @@ test("a removed tag comes off every row; another player's tag isn't found", asyn
   await correct(s.a, [{ what: "tag", id: fire, remove: true }]);
   expect((await itemsOf(s.a, s.liesOfP)).find((i) => i.id === item)!.tags).toEqual([]);
   expect(await links()).toEqual([]);
+});
+
+const run = (name: string, args: unknown) => toolByName(name)!.run(s.a, args) as Promise<Record<string, unknown>>;
+
+test("briefing, item and codex list the tags in use with their ids, and item and codex filter by one", async () => {
+  const item = await saber();
+  const entry = await boss();
+  await write("item", item, ["fire"]);
+  await write("codex", entry, ["fire"]);
+  await write("quest", s.venigni, ["workers"]);
+  const key = (await itemsOf(s.a, s.liesOfP, { reveal: "full" })).find((i) => i.name === SPOILER_ITEM)!.id;
+  await write("item", key, ["secret"]);
+  const fire = { id: await tagId("fire"), name: "fire", count: 2 };
+  const workers = { id: await tagId("workers"), name: "workers", count: 1 };
+  expect((await run("briefing", { playthroughId: s.liesOfP })).tags).toEqual([fire, workers]);
+  const items = await run("item", { playthroughId: s.liesOfP, tag: "fire" });
+  expect((items.items as { id: string }[]).map((i) => i.id)).toEqual([item]);
+  expect(items.tags).toEqual([fire, workers]);
+  const codex = await run("codex", { playthroughId: s.liesOfP, tag: "fire" });
+  expect((codex.entries as { id: string }[]).map((e) => e.id)).toEqual([entry]);
+  expect(codex.tags).toEqual([fire, workers]);
 });

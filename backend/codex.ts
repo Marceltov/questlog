@@ -88,7 +88,13 @@ const union = (before: string[], added: string[] | undefined) => {
 export async function codexOf(
   p: Player,
   playthroughId: string,
-  opts: { kind?: CodexKind; name?: string; reveal?: SpoilerLevel; statuses?: readonly CodexStatus[]; /** Only entries that carry this tag. */ tag?: string } = {},
+  opts: {
+    kind?: CodexKind;
+    name?: string;
+    reveal?: SpoilerLevel;
+    statuses?: readonly CodexStatus[];
+    /** Only entries that carry this tag. */ tag?: string;
+  } = {},
 ): Promise<CodexView[]> {
   await getPlaythrough(p, playthroughId); // NotFoundError for another player's
   const d = await db();
