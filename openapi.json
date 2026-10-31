@@ -501,6 +501,64 @@
         }
       }
     },
+    "/playthroughs/{id}/tags": {
+      "get": {
+        "operationId": "listTags",
+        "summary": "The tags in use in a playthrough",
+        "description": "Free tags across the groups (ADR 0014), with how many of what the player found carry each; filter items and codex entries by one with ?tag=.",
+        "tags": [
+          "Playthroughs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most used first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TagList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid access token for this API (`unauthorized`); `WWW-Authenticate` points to how to get one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such thing, or one of another player's (`not_found`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/playthroughs/{id}/build": {
       "get": {
         "operationId": "getBuild",
@@ -2799,6 +2857,40 @@
         },
         "required": [
           "entries"
+        ],
+        "additionalProperties": false
+      },
+      "TagList": {
+        "type": "object",
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number",
+                  "description": "How many of the items, codex entries and quests carry it"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "count"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Most used first"
+          }
+        },
+        "required": [
+          "tags"
         ],
         "additionalProperties": false
       },

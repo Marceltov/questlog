@@ -275,6 +275,14 @@ export const CorrectedJson = z
   })
   .meta({ id: "Corrected" });
 
+export const TagListJson = z
+  .object({
+    tags: z
+      .array(z.object({ id: z.string(), name: z.string(), count: z.number().describe("How many of the items, codex entries and quests carry it") }))
+      .describe("Most used first"),
+  })
+  .meta({ id: "TagList" });
+
 export const COMPONENTS = [
   ErrorJson,
   SourceJson,
@@ -287,6 +295,7 @@ export const COMPONENTS = [
   ItemListJson,
   CodexJson,
   CodexListJson,
+  TagListJson,
   SnapshotJson,
   GoalJson,
   BuildJson,

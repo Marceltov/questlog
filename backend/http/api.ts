@@ -11,6 +11,7 @@ import { itemsOf } from "../items";
 import { missed } from "../missed";
 import { questsOf } from "../quests";
 import { record } from "../record";
+import { tagsInPlaythrough } from "../tags-in-use";
 import { ChangeInput, RecordInput, Spoiler } from "../schemas";
 import { getSession, sessionsOf } from "../sessions";
 import { CODEX_KINDS, QUEST_STATUSES } from "../types";
@@ -20,6 +21,7 @@ import {
   BriefingJson,
   BuildJson,
   CodexListJson,
+  TagListJson,
   COMPONENTS,
   CorrectedJson,
   ErrorJson,
@@ -128,6 +130,16 @@ const OPS: AnyOp[] = [
     status: 200,
     body: { entries: await codexOf(player, params.id, { kind: query.kind, name: query.name, tag: query.tag, reveal: query.reveal }) },
   })),
+  op({
+    method: "GET",
+    path: `${API_PREFIX}/playthroughs/{id}/tags`,
+    operationId: "listTags",
+    summary: "The tags in use in a playthrough",
+    description: "Free tags across the groups (ADR 0014), with how many of what the player found carry each; filter items and codex entries by one with ?tag=.",
+    tags: ["Playthroughs"],
+    params: { id: Id },
+    responses: { 200: { description: "Most used first", schema: TagListJson }, 401: E401, 404: E404 },
+  }).handle(async ({ player, params }) => ({ status: 200, body: { tags: await tagsInPlaythrough(player, params.id) } })),
   op({
     method: "GET",
     path: `${API_PREFIX}/playthroughs/{id}/build`,
