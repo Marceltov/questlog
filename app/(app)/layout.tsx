@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Follow } from "@/components/Follow";
+import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { SignOutButton } from "@/components/SignOutButton";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 import { pagePlayer } from "./viewer";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const copy = await serverCopy();
   await pagePlayer();
   return (
     // The window doesn't scroll: the header stays, and what is under it scrolls on its own (each page of the book, or a session).
@@ -15,7 +17,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <img src="/icon.svg" alt="" width={24} height={24} />
           {copy.appName}
         </Link>
-        <SignOutButton />
+        <div className="flex items-center gap-3">
+          <LanguageSwitch />
+          <SignOutButton />
+        </div>
       </header>
       <Follow>{children}</Follow>
     </div>

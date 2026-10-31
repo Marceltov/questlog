@@ -1,12 +1,13 @@
 import { listPlaythroughs, mcpUrl, type Player, type PlaythroughView } from "@/backend";
 import { Pages } from "@/components/Pages";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 import { Sheet } from "./Sheet";
 
 // The web app is one book (#12): a contents page, then one page per playthrough, most recently played first, so it opens on the game
 // being played now. Every page is rendered here; components/Pages.tsx lays them side by side and turns them. `at` is the playthrough
 // whose address was opened (null for the contents); only that page shows hints, and only when the player asked for them on it.
 export async function Book({ player, at, reveal = "none" }: { player: Player; at: string | null; reveal?: "none" | "hint" }) {
+  const copy = await serverCopy();
   const runs = await listPlaythroughs(player);
   const pages = [
     { key: "contents", title: copy.contents, href: "/" },
@@ -25,7 +26,8 @@ export async function Book({ player, at, reveal = "none" }: { player: Player; at
 
 // The table of contents: every game, and under it its playthroughs with their page numbers. A link turns to the page (data-page), or,
 // without JavaScript, opens its address.
-function Contents({ runs }: { runs: PlaythroughView[] }) {
+async function Contents({ runs }: { runs: PlaythroughView[] }) {
+  const copy = await serverCopy();
   if (!runs.length)
     return (
       <div className="space-y-4">

@@ -13,7 +13,7 @@ import {
   type PlaythroughView,
   type QuestView,
 } from "@/backend";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
 
 // A link's site, for a source without a title.
@@ -28,6 +28,7 @@ const siteOf = (url: string) => {
 // One playthrough's page of the book: where the player is, then everything else. Hints show only after the player asks on this page,
 // behind a warning (values V1); full spoilers never do here.
 export async function Sheet({ player: p, playthrough: t, reveal }: { player: Player; playthrough: PlaythroughView; reveal: "none" | "hint" }) {
+  const copy = await serverCopy();
   const id = t.id;
   const [threads, all, build, items, sessions, codex] = await Promise.all([
     questsOf(p, id, { statuses: ["open", "blocked"], reveal }),
@@ -255,7 +256,8 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
   );
 }
 
-function Quests({ quests }: { quests: QuestView[] }) {
+async function Quests({ quests }: { quests: QuestView[] }) {
+  const copy = await serverCopy();
   return (
     <ul className="space-y-2">
       {quests.map((q) => (
@@ -288,7 +290,8 @@ function Quests({ quests }: { quests: QuestView[] }) {
 }
 
 // One thing in the inventory: its count, its numbers as the game shows them, and what it is good against.
-function Item({ item: i }: { item: ItemView }) {
+async function Item({ item: i }: { item: ItemView }) {
+  const copy = await serverCopy();
   const numbers = Object.entries(i.attributes);
   return (
     <li id={`item-${i.id}`} className="card">
@@ -353,7 +356,8 @@ function Item({ item: i }: { item: ItemView }) {
 }
 
 // A boss, enemy, NPC or place: what is still in the way stands out, what is beaten or gone is quieter.
-function CodexEntry({ entry: e }: { entry: CodexView }) {
+async function CodexEntry({ entry: e }: { entry: CodexView }) {
+  const copy = await serverCopy();
   const state =
     e.status === "beaten" ? (e.beatenOn ? copy.beatenOn(e.beatenOn) : null) : e.status === "gone" ? copy.gone : e.attempts ? copy.tries(e.attempts) : null;
   return (
