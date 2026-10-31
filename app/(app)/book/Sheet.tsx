@@ -18,6 +18,7 @@ import { Notes } from "@/components/Notes";
 import { Groups } from "@/components/Groups";
 import { Register } from "@/components/Register";
 import { CODEX_ICONS, Group, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
+import { TalkAbout } from "@/components/chat/Chat";
 import { CalendarDays, Crosshair, Footprints, Sparkles, Sword } from "lucide-react";
 
 // A link's site, for a source without a title.
@@ -113,7 +114,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           {build.goals.some((g) => g.status === "open") && (
             <section>
               <Heading icon={Crosshair}>{copy.goals}</Heading>
-              <Goals goals={build.goals.filter((g) => g.status === "open")} />
+              <Goals goals={build.goals.filter((g) => g.status === "open")} run={t.id} />
             </section>
           )}
           {equipped.length > 0 && (
@@ -140,12 +141,15 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           <section>
             <Heading icon={Crosshair}>{copy.goals}</Heading>
-            {build.goals.length === 0 ? <p className="card text-muted">{copy.noGoals}</p> : <Goals goals={build.goals} />}
+            {build.goals.length === 0 ? <p className="card text-muted">{copy.noGoals}</p> : <Goals goals={build.goals} run={t.id} />}
           </section>
           <section>
             <Heading icon={Sparkles}>{copy.build}</Heading>
             <div className="card space-y-2">
-              {build.plan?.mainStat && <p className="font-semibold">{copy.mainStat(build.plan.mainStat)}</p>}
+              <div className="flex items-start justify-between gap-3">
+                {build.plan?.mainStat ? <p className="font-semibold">{copy.mainStat(build.plan.mainStat)}</p> : <span />}
+                {current && <TalkAbout kind="stats" id={current.id} name={copy.build} playthroughId={t.id} />}
+              </div>
               {build.plan?.summary && <p className="text-muted">{build.plan.summary}</p>}
               {current ? (
                 <>
@@ -188,12 +192,12 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               </Link>
             </div>
             {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
-            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
+            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} run={t.id} />}
           </section>
           {closed.length > 0 && (
             <section>
               <Heading icon={QUEST_ICONS.done}>{copy.closedQuests}</Heading>
-              <Quests quests={closed} />
+              <Quests quests={closed} run={t.id} />
             </section>
           )}
         </div>
@@ -214,7 +218,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               <Group key={label} icon={itemIcon(key)} label={label} count={list.length}>
                 <ul className="grid gap-2 lg:grid-cols-2">
                   {list.map((i) => (
-                    <Item key={i.id} item={i} />
+                    <Item key={i.id} item={i} run={t.id} />
                   ))}
                 </ul>
               </Group>
@@ -239,7 +243,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                 <Group key={k} icon={CODEX_ICONS[k]} label={copy.codexKinds[k]} count={entries.length}>
                   <ul className="grid gap-2 lg:grid-cols-2">
                     {entries.map((e) => (
-                      <CodexEntry key={e.id} entry={e} />
+                      <CodexEntry key={e.id} entry={e} run={t.id} />
                     ))}
                   </ul>
                 </Group>
@@ -253,11 +257,12 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         ) : (
           <ul className="card divide-y divide-rule py-1">
             {sessions.map((s) => (
-              <li key={s.id}>
-                <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
+              <li key={s.id} className="flex items-center gap-2">
+                <Link href={s.url} className="flex flex-1 gap-3 py-2 hover:text-accent">
                   <span className="shrink-0 text-sm text-muted tabular-nums">{s.playedOn}</span>
                   <span>{s.summary}</span>
                 </Link>
+                <TalkAbout kind="session" id={s.id} name={s.playedOn} playthroughId={t.id} />
               </li>
             ))}
           </ul>
@@ -313,7 +318,7 @@ async function SessionCard({ session: s }: { session: { url: string; playedOn: s
 }
 
 // The plan is a sequence: the goals in their order, then what was reached, quieter.
-async function Goals({ goals }: { goals: Awaited<ReturnType<typeof buildOf>>["goals"] }) {
+async function Goals({ goals, run }: { goals: Awaited<ReturnType<typeof buildOf>>["goals"]; run: string }) {
   const copy = await serverCopy();
   return (
     <ol className="card space-y-3">
@@ -348,6 +353,13 @@ async function Goals({ goals }: { goals: Awaited<ReturnType<typeof buildOf>>["go
                       ? copy.goalProgress(g.current!, g.target!)
                       : ""}
               </span>
+              <TalkAbout
+                kind="goal"
+                id={g.id}
+                name={g.stat ? `${g.stat.name} ${g.target}` : (g.item?.name ?? g.text ?? copy.goals)}
+                playthroughId={run}
+                small
+              />
             </div>
             {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
             <Notes notes={g.notes} />
@@ -363,7 +375,7 @@ async function Goals({ goals }: { goals: Awaited<ReturnType<typeof buildOf>>["go
   );
 }
 
-async function Quests({ quests }: { quests: QuestView[] }) {
+async function Quests({ quests, run }: { quests: QuestView[]; run: string }) {
   const copy = await serverCopy();
   return (
     <ul className="space-y-2">
@@ -376,6 +388,7 @@ async function Quests({ quests }: { quests: QuestView[] }) {
               {q.localName && <span className="font-normal text-muted"> · {q.localName}</span>}
             </span>
             <span className="shrink-0 text-sm text-muted">{q.status === "blocked" ? copy.waitingOnGame : copy.questStatus[q.status]}</span>
+            <TalkAbout kind="quest" id={q.id} name={q.name} playthroughId={run} />
           </div>
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
           <Notes description={q.description} notes={q.notes} />
@@ -386,7 +399,7 @@ async function Quests({ quests }: { quests: QuestView[] }) {
                   {e.on && <span className="text-muted tabular-nums">{e.on} </span>}
                   {e.spoiler !== "none" && <span className="font-bold">{copy.spoilerTag[e.spoiler]}: </span>}
                   {copy.entryKind[e.kind]}
-                  {e.text}
+                  {e.text} <TalkAbout kind="entry" id={e.id} name={`${q.name}, ${e.on ?? ""}`.replace(/, $/, "")} playthroughId={run} small />
                 </li>
               ))}
             </ul>
@@ -398,7 +411,7 @@ async function Quests({ quests }: { quests: QuestView[] }) {
 }
 
 // One thing in the inventory: its count, its numbers as the game shows them, and what it is good against.
-async function Item({ item: i }: { item: ItemView }) {
+async function Item({ item: i, run }: { item: ItemView; run: string }) {
   const copy = await serverCopy();
   const numbers = Object.entries(i.attributes);
   return (
@@ -413,6 +426,7 @@ async function Item({ item: i }: { item: ItemView }) {
           {i.quantity !== null && <span className="font-semibold tabular-nums">{copy.quantity(i.quantity)}</span>}
           {i.equipped && <span className="text-sm font-semibold text-accent">{copy.equipped}</span>}
         </span>
+        <TalkAbout kind="item" id={i.id} name={i.name} playthroughId={run} />
       </div>
       {i.location && <p className="text-sm text-muted">{i.location}</p>}
       {numbers.length > 0 && (
@@ -465,7 +479,7 @@ async function Item({ item: i }: { item: ItemView }) {
 }
 
 // A boss, enemy, NPC or place: what is still in the way stands out, what is beaten or gone is quieter.
-async function CodexEntry({ entry: e }: { entry: CodexView }) {
+async function CodexEntry({ entry: e, run }: { entry: CodexView; run: string }) {
   const copy = await serverCopy();
   const state =
     e.status === "beaten" ? (e.beatenOn ? copy.beatenOn(e.beatenOn) : null) : e.status === "gone" ? copy.gone : e.attempts ? copy.tries(e.attempts) : null;
@@ -478,6 +492,7 @@ async function CodexEntry({ entry: e }: { entry: CodexView }) {
           {e.localName && <span className="font-normal text-muted"> · {e.localName}</span>}
         </span>
         {state && <span className={`shrink-0 text-sm tabular-nums ${e.status === "met" ? "text-accent" : "text-muted"}`}>{state}</span>}
+        <TalkAbout kind="codex" id={e.id} name={e.name} playthroughId={run} />
       </div>
       {e.location && <p className="text-sm text-muted">{e.location}</p>}
       {(e.weaknesses.length > 0 || e.resistances.length > 0) && (

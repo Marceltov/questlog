@@ -146,5 +146,7 @@ export interface Schema {
     updated_at: number;
     description: string | null;
   };
+  /** Messages a player sent to the in-app chat on a day, against QUESTLOG_CHAT_DAILY_LIMIT (ADR 0013). */
+  chat_usage: { player_id: string; day: string; count: number };
   item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

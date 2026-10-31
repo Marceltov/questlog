@@ -677,3 +677,72 @@ body::before {
 .group-heading .group-count {
   @apply bg-surface px-2 py-0.5 text-sm text-ink;
 }
+
+/* The in-app chat (components/chat/Chat.tsx): a frosted sheet that rises over the book, the player's words in ink on the right, Claude's
+   on paper on the left, the rows it changed as chips that open them. The button to open it sits at the bottom right of every page, and a
+   small one on every card opens it about that card. */
+.chat-fab {
+  @apply glass fixed right-4 bottom-4 z-30 inline-flex items-center gap-2 rounded-full border border-accent py-2 pr-4 pl-3 font-semibold text-ink shadow-lg hover:bg-surface lg:right-8 lg:bottom-6;
+}
+.chat-fab svg {
+  @apply h-5 w-5 text-accent;
+}
+.chat-fab:focus-visible,
+.talk-about:focus-visible,
+.chat-icon-button:focus-visible,
+.chat-tool:focus-visible,
+.chat-send:focus-visible,
+.chat-link:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ink;
+}
+.talk-about {
+  @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-accent;
+}
+.talk-about svg {
+  @apply h-4 w-4;
+}
+.talk-about-small {
+  @apply -my-1 h-6 w-6 align-middle;
+}
+.talk-about-small svg {
+  @apply h-3.5 w-3.5;
+}
+.chat-overlay {
+  @apply fixed inset-0 z-40;
+}
+.chat-backdrop {
+  @apply absolute inset-0 bg-black/35;
+}
+.chat-sheet {
+  @apply absolute inset-x-0 bottom-0 mx-auto flex h-[85dvh] max-w-2xl flex-col rounded-t-3xl border border-b-0 border-rule bg-paper shadow-2xl;
+}
+.chat-tool {
+  @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm hover:bg-surface-2;
+}
+.chat-icon-button {
+  @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-ink;
+}
+.chat-chip {
+  @apply inline-flex items-center gap-1 self-center rounded-full bg-surface-2 py-1 pr-1 pl-3 text-sm text-muted;
+}
+.chat-chip-x {
+  @apply inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-rule;
+}
+.chat-bubble {
+  @apply max-w-[85%] rounded-2xl px-3.5 py-2.5 whitespace-pre-wrap;
+}
+.chat-mine {
+  @apply self-end rounded-br-md bg-ink text-paper;
+}
+.chat-theirs {
+  @apply self-start rounded-bl-md border border-rule bg-surface;
+}
+.chat-link {
+  @apply rounded-full border border-accent px-2.5 py-1 text-xs font-semibold text-accent hover:bg-surface-2;
+}
+.chat-form {
+  @apply m-3 flex items-end gap-2 rounded-3xl border-2 border-rule bg-surface py-1.5 pr-1.5 pl-4 focus-within:border-accent;
+}
+.chat-send {
+  @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-on-accent disabled:opacity-40;
+}

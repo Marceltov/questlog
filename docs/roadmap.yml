@@ -26,6 +26,19 @@ items:
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: in-app-chat
+    status: done
+    date: 2026-10-31
+    icon: chat-processing-outline
+    title: Talk to Claude in the app
+    title_de: Mit Claude in der App sprechen
+    summary: Ask, tell or correct without leaving questlog, typed or spoken, from any card with that card as what you mean.
+    summary_de: Fragen, erzählen oder korrigieren, ohne questlog zu verlassen, getippt oder gesprochen, von jeder Karte aus mit dieser Karte als Bezug.
+    links:
+      - { label: "#35", url: "https://github.com/Marceltov/questlog/pull/35" }
+      - { label: "#34", url: "https://github.com/Marceltov/questlog/issues/34" }
+      - { label: "ADR 0013", url: "https://questlog.marceltov.de/adr/0013-in-app-chat/" }
+
   - id: game-cards
     status: done
     date: 2026-10-31
