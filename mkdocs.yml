@@ -66,6 +66,7 @@ nav:
       - Goals and the character: adr/0009-goals-and-the-character.md
       - The tracker, inventory and codex: adr/0010-the-tracker.md
       - Notes and descriptions: adr/0011-notes-and-descriptions.md
+      - Icons from lucide: adr/0012-icons.md
 
 theme:
   name: material

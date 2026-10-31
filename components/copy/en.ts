@@ -41,6 +41,11 @@ export const en = {
   nothingYet: "Nothing recorded yet.",
   connectHint: (url: string) => `Add ${url} to Claude as a custom connector, then tell Claude what you are playing.`,
   lastPlayed: (day: string) => `Last played ${day}`,
+  pageNumber: (n: number) => `Page ${n}`,
+  moreOpen: (n: number) => `and ${n} more open`,
+  questCount: (n: number) => `${n} open ${n === 1 ? "quest" : "quests"}`,
+  itemCount: (n: number) => `${n} ${n === 1 ? "item" : "items"}`,
+  codexCount: (n: number) => `${n} in the codex`,
   notPlayedYet: "Not played yet",
   status: { playing: "Playing", finished: "Finished", dropped: "Dropped" } as Record<string, string>,
 
