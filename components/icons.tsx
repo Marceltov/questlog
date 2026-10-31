@@ -78,7 +78,7 @@ export function GroupHeading({ icon: Icon, count, children }: { icon: LucideIcon
     <h3 className="group-heading">
       <Icon aria-hidden="true" />
       <span className="flex-1">{children}</span>
-      <span className="text-sm font-semibold text-muted tabular-nums">{count}</span>
+      <span className="group-count">{count}</span>
     </h3>
   );
 }
