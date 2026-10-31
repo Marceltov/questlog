@@ -18,6 +18,8 @@ export {
 } from "./auth/session";
 export type { SignInMethods } from "./auth/methods";
 export { mcpRoute } from "./mcp";
+export { chatEnabled, chatRoute, voiceEnabled, voiceRoute } from "./chat-route";
+export type { AboutKind, ChatLink } from "./chat";
 export { dispatch as apiRoute } from "./http/api";
 export { apiResourceMetadataRoute } from "./http/metadata";
 export { mcpResource as mcpUrl, safeNext } from "./urls";

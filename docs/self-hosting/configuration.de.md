@@ -27,6 +27,11 @@ Aktualisieren: `docker compose pull && docker compose up -d`. `:main` folgt dem 
 | `QUESTLOG_OIDC_<NAME>_CLIENT_ID` | (Pflicht mit Issuer) | Die Client-ID, die questlog bei diesem Anbieter hat. |
 | `QUESTLOG_OIDC_<NAME>_CLIENT_SECRET` | leer | Ihr Secret, für einen vertraulichen Client. |
 | `QUESTLOG_OIDC_<NAME>_LABEL` | der Name | Der Text des Knopfs: „Weiter mit `<LABEL>`". |
+| `QUESTLOG_ANTHROPIC_API_KEY` | nicht gesetzt: kein Chat | Ein Claude-API-Schlüssel: schaltet den Chat in der Web-App ein ([ADR 0013](../adr/0013-in-app-chat.md)). Die Nachrichten bezahlt, wer die Instanz betreibt. |
+| `QUESTLOG_ANTHROPIC_MODEL` | `claude-opus-5-5` | Das Modell, das der Chat nutzt. |
+| `QUESTLOG_CHAT_DAILY_LIMIT` | `100` | Wie viele Chat-Nachrichten ein Spieler am Tag senden darf. |
+| `QUESTLOG_TRANSCRIBE_URL` | nicht gesetzt: nur Tippen | Ein Whisper-Server, um in den Chat zu sprechen, mit dem OpenAI-kompatiblen `/v1/audio/transcriptions`, etwa [speaches](https://speaches.ai). Ohne Schrägstrich am Ende. |
+| `QUESTLOG_TRANSCRIBE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | Das Modell, das der Whisper-Server nutzt. |
 | `QUESTLOG_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug` oder `silent`. |
 
 Mindestens ein Weg zur Anmeldung ist nötig: SMTP für E-Mail-Codes, oder ein Anbieter.
@@ -45,6 +50,25 @@ QUESTLOG_OIDC_AUTHENTIK_LABEL=authentik
 Eine Anmeldung über einen Anbieter wird mit einem bestehenden Spieler gleicher Adresse nur verbunden, wenn der Anbieter die Adresse als bestätigt meldet ([ADR 0006](../adr/0006-better-auth-wiring.md)).
 
 Lehnt ein Anbieter eine Anmeldung ab, zeigt die Anmeldeseite seinen Fehlercode, und questlogs Log hat eine Zeile dazu.
+
+## Der Chat in der Web-App
+
+Mit `QUESTLOG_ANTHROPIC_API_KEY` hat jede Seite einen Knopf **Frag Claude** und jede Karte einen kleinen, der den Chat zu dieser Karte öffnet. Der Chat nutzt dieselben Werkzeuge wie Claude über MCP, als der angemeldete Spieler, sieht also nichts, was der Spieler nicht sehen könnte, und nichts, was er noch nicht gefunden hat ([ADR 0013](../adr/0013-in-app-chat.md)). Das Gespräch bleibt auf dem Gerät des Spielers.
+
+Um hineinzusprechen, lass neben questlog einen Whisper-Server laufen und richte `QUESTLOG_TRANSCRIBE_URL` darauf. Die Aufnahme geht nur dorthin und wird nie gespeichert. Mit speaches im Compose-Netz:
+
+```yaml
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    restart: unless-stopped
+    environment:
+      WHISPER__COMPUTE_TYPE: int8
+      WHISPER__TTL: "-1"
+    volumes:
+      - whisper-models:/home/ubuntu/.cache/huggingface/hub
+```
+
+und `QUESTLOG_TRANSCRIBE_URL=http://whisper:8000` in der `.env`. Die erste Umwandlung lädt das Modell herunter.
 
 ## Daten und Backups
 

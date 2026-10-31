@@ -67,6 +67,7 @@ nav:
       - The tracker, inventory and codex: adr/0010-the-tracker.md
       - Notes and descriptions: adr/0011-notes-and-descriptions.md
       - Icons from lucide: adr/0012-icons.md
+      - The in-app chat: adr/0013-in-app-chat.md
 
 theme:
   name: material

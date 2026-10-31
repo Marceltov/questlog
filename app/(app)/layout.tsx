@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { chatEnabled, voiceEnabled } from "@/backend";
 import { Follow } from "@/components/Follow";
+import { ChatProvider } from "@/components/chat/Chat";
 import { LanguageSwitch } from "@/components/LanguageSwitch";
 import { SignOutButton } from "@/components/SignOutButton";
 import { serverCopy } from "@/components/copy/server";
@@ -7,7 +9,7 @@ import { pagePlayer } from "./viewer";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const copy = await serverCopy();
-  await pagePlayer();
+  const player = await pagePlayer();
   return (
     // The window doesn't scroll: the header stays, and what is under it scrolls on its own (each page of the book, or a session).
     <div className="column mx-auto flex h-dvh max-w-2xl flex-col lg:max-w-6xl">
@@ -22,7 +24,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <SignOutButton />
         </div>
       </header>
-      <Follow>{children}</Follow>
+      <ChatProvider enabled={chatEnabled()} voice={voiceEnabled()} playerId={player.id}>
+        <Follow>{children}</Follow>
+      </ChatProvider>
     </div>
   );
 }
