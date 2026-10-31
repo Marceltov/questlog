@@ -4,12 +4,13 @@
 // card, with that card as what the chat is about (a chip the player can remove). The conversation is kept on this device; the server
 // gets it whole with every message (backend/chat-route.ts). When Claude filed or changed something, the page fetches again. Modelled on
 // freundebuch's ChatSheet.
-import { AudioLines, MessageCircle, MessageSquareText, Mic, SendHorizontal, SquarePen, Trash2, X } from "lucide-react";
+import { AudioLines, MessageSquareText, Mic, SendHorizontal, SquarePen, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { AboutKind, ChatLink } from "@/backend";
 import { useCopy, useLocale } from "../copy/client";
+import { ClaudeMark } from "./ClaudeMark";
 import { canRecord, useVoice } from "./useVoice";
 
 /** What a card's button hands the chat: the row, its name for the chip, and the playthrough it is in. */
@@ -66,9 +67,8 @@ export function ChatProvider({ enabled, voice, playerId, children }: { enabled: 
     <ChatContext.Provider value={{ enabled, open }}>
       {children}
       {enabled && !state && (
-        <button type="button" className="chat-fab" onClick={() => open()}>
-          <MessageCircle aria-hidden="true" />
-          <span>{copy.askClaude}</span>
+        <button type="button" className="chat-fab" aria-label={copy.askClaude} title={copy.askClaude} onClick={() => open()}>
+          <ClaudeMark />
         </button>
       )}
       {enabled && state && <ChatSheet playerId={playerId} voice={voice} about={state.about} onClose={close} />}
@@ -235,9 +235,7 @@ function ChatSheet({ playerId, voice, about: opened, onClose }: { playerId: stri
       >
         <header className="flex items-center gap-2 px-4 pt-4 pb-2">
           <h2 className="flex flex-1 items-center gap-2 text-xl font-bold">
-            <span className="seal">
-              <MessageCircle aria-hidden="true" />
-            </span>
+            <ClaudeMark className="h-7 w-7" />
             {copy.chatTitle}
           </h2>
           <button type="button" onClick={reset} className="chat-tool">
