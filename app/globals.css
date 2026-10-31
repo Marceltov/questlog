@@ -649,6 +649,31 @@ body::before {
   @apply h-5 w-5 shrink-0;
   color: color-mix(in oklab, var(--c, var(--accent)) 45%, var(--ink));
 }
+/* The band folds its group: the browser's marker gives way to the chevron, which turns when the group is folded. */
+.group-heading {
+  cursor: pointer;
+  list-style: none;
+}
+.group-heading::-webkit-details-marker {
+  display: none;
+}
+.group-heading:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ink;
+}
+.group-heading .group-chevron {
+  @apply h-5 w-5 transition-transform duration-150;
+}
+.group-fold:not([open]) .group-chevron {
+  transform: rotate(-90deg);
+}
+.group-fold:not([open]) > .group-heading {
+  @apply mb-0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .group-heading .group-chevron {
+    transition: none;
+  }
+}
 .group-heading .group-count {
   @apply bg-surface px-2 py-0.5 text-sm text-ink;
 }

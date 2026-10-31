@@ -22,6 +22,8 @@ export function Register({ tabs, start, label, children }: { tabs: Tab[]; start:
     if (!part) return false;
     // Inside a group the row has hidden (components/Groups.tsx): show them all again first.
     if (el?.closest("[data-group][hidden]")) el.dispatchEvent(new CustomEvent("questlog:reveal", { bubbles: true }));
+    // Inside a folded group: unfold it.
+    for (let d = el?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
     target.current = elementId;
     setAt(part);
     setFollowed((n) => n + 1);

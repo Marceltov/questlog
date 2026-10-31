@@ -17,7 +17,7 @@ import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
 import { Groups } from "@/components/Groups";
 import { Register } from "@/components/Register";
-import { CODEX_ICONS, GroupHeading, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
+import { CODEX_ICONS, Group, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
 import { CalendarDays, Crosshair, Footprints, Sparkles, Sword } from "lucide-react";
 
 // A link's site, for a source without a title.
@@ -211,16 +211,13 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             })}
           >
             {groups.map(([label, key, list]) => (
-              <div key={label}>
-                <GroupHeading icon={itemIcon(key)} count={list.length}>
-                  {label}
-                </GroupHeading>
+              <Group key={label} icon={itemIcon(key)} label={label} count={list.length}>
                 <ul className="grid gap-2 lg:grid-cols-2">
                   {list.map((i) => (
                     <Item key={i.id} item={i} />
                   ))}
                 </ul>
-              </div>
+              </Group>
             ))}
           </Groups>
         )}
@@ -239,16 +236,13 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {codexKinds.map((k) => {
               const entries = codex.filter((e) => e.kind === k);
               return (
-                <div key={k}>
-                  <GroupHeading icon={CODEX_ICONS[k]} count={entries.length}>
-                    {copy.codexKinds[k]}
-                  </GroupHeading>
+                <Group key={k} icon={CODEX_ICONS[k]} label={copy.codexKinds[k]} count={entries.length}>
                   <ul className="grid gap-2 lg:grid-cols-2">
                     {entries.map((e) => (
                       <CodexEntry key={e.id} entry={e} />
                     ))}
                   </ul>
-                </div>
+                </Group>
               );
             })}
           </Groups>

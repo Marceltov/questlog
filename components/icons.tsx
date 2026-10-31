@@ -4,6 +4,7 @@ import {
   Backpack,
   BookOpen,
   CalendarDays,
+  ChevronDown,
   CircleCheck,
   CircleDot,
   CircleSlash,
@@ -72,14 +73,19 @@ export function Heading({ icon: Icon, children, className = "" }: { icon: Lucide
   );
 }
 
-/** A group's heading inside a part (Weapons, Bosses): wider and larger than a chip of the group row above it, with how many it holds. */
-export function GroupHeading({ icon: Icon, count, children }: { icon: LucideIcon; count: number; children: ReactNode }) {
+/** A group inside a part (Weapons, Bosses), folding: its band is a native disclosure (keyboard and screen readers know it), larger than
+ * a chip of the group row above it, with how many it holds and a chevron that turns when it folds. Open to start with. */
+export function Group({ icon: Icon, label, count, children }: { icon: LucideIcon; label: ReactNode; count: number; children: ReactNode }) {
   return (
-    <h3 className="group-heading">
-      <Icon aria-hidden="true" />
-      <span className="flex-1">{children}</span>
-      <span className="group-count">{count}</span>
-    </h3>
+    <details open className="group-fold">
+      <summary className="group-heading">
+        <Icon aria-hidden="true" />
+        <h3 className="flex-1">{label}</h3>
+        <span className="group-count">{count}</span>
+        <ChevronDown aria-hidden="true" className="group-chevron" />
+      </summary>
+      {children}
+    </details>
   );
 }
 
