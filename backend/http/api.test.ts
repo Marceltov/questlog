@@ -131,3 +131,19 @@ test("items and codex entries come with their tags, and ?tag= keeps only those t
   expect(r.body.items.map((i: { id: string; tags: string[] }) => [i.id, i.tags])).toEqual([[items[0].id, ["fire"]]]);
   expect((await json(await call(s.a, "GET", `playthroughs/${s.liesOfP}/codex?tag=fire`))).body.entries).toEqual([]);
 });
+
+test("GET …/tags lists the tags in use with their ids and counts, leaving out a tag only a spoiler carries", async () => {
+  const items = await itemsOf(s.a, s.liesOfP, { reveal: "full" });
+  const game = (await getPlaythrough(s.a, s.liesOfP)).game.id;
+  const saber = items.find((i) => i.name === "Puppet Saber")!.id;
+  const key = items.find((i) => i.name === SPOILER_ITEM)!.id;
+  await (await db()).transaction().execute(async (trx) => {
+    await setTags(trx, s.a, game, "item", saber, ["fire"]);
+    await setTags(trx, s.a, game, "item", key, ["secret"]);
+  });
+  const r = await json(await call(s.a, "GET", `playthroughs/${s.liesOfP}/tags`));
+  expect(r.status).toBe(200);
+  expect(r.body.tags.map((t: { name: string; count: number }) => [t.name, t.count])).toEqual([["fire", 1]]);
+  expect(typeof r.body.tags[0].id).toBe("string");
+  expect((await call(s.b, "GET", `playthroughs/${s.liesOfP}/tags`)).status).toBe(404);
+});

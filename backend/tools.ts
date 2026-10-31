@@ -15,8 +15,7 @@ import { missed, STALE_AFTER, type Missed } from "./missed";
 import { questsOf, type QuestView } from "./quests";
 import { record, type Recorded } from "./record";
 import { ChangeInput, Day, RecordInput, Spoiler } from "./schemas";
-import { withIds } from "./tags";
-import { db } from "./db";
+import { tagsInPlaythrough } from "./tags-in-use";
 import { goalLabel, type GoalView } from "./goals";
 import {
   CODEX_KINDS,
@@ -322,12 +321,6 @@ const PlaythroughRefInput = {
   game: z.string().optional().describe("A game's title: its playthrough played most recently"),
 };
 
-// The tags in use in a playthrough (ADR 0014), counted over what the player has found there: a tag only a spoiler carries stays out.
-async function tagsHere(p: Player, t: { id: string; game: { id: string } }) {
-  const [items, codex, quests] = await Promise.all([itemsOf(p, t.id), codexOf(p, t.id), questsOf(p, t.id)]);
-  return withIds(await db(), p, t.game.id, [...items, ...codex, ...quests]);
-}
-
 const BriefingJson = z.object({
   playthrough: PlaythroughJson.nullable().describe("Null when the player has no playthrough yet (of that game)"),
   lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), notes: z.string().nullable(), url: Url }).nullable(),
@@ -585,7 +578,7 @@ export const TOOLS: Tool[] = [
         build: { ...b.build, goals: b.build.goals.map(goalJson) },
         equipped: b.equipped,
         bosses: b.bosses,
-        tags: b.playthrough ? await tagsHere(p, b.playthrough) : [],
+        tags: b.playthrough ? await tagsInPlaythrough(p, b.playthrough.id) : [],
       };
       return ok(BriefingJson, body, briefingNext(b));
     },
@@ -631,7 +624,7 @@ export const TOOLS: Tool[] = [
         itemsOf(p, t.id, { name, tag, reveal }),
         buildOf(p, t.id, 1),
         itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
-        tagsHere(p, t),
+        tagsInPlaythrough(p, t.id),
       ]);
       const body = {
         playthrough: t,
@@ -669,7 +662,7 @@ export const TOOLS: Tool[] = [
         codexOf(p, t.id, { name, kind, tag, reveal }),
         buildOf(p, t.id, 1),
         itemsOf(p, t.id, { equippedOnly: true, reveal: "none" }),
-        tagsHere(p, t),
+        tagsInPlaythrough(p, t.id),
       ]);
       const body = { playthrough: t, reveal, entries, tags, build: { plan: build.plan, current: build.snapshots[0] ?? null }, equipped };
       return ok(CodexLookupJson, body, codexNext(t, name, entries, reveal));

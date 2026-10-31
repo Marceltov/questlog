@@ -20,9 +20,15 @@ export function TagFilter({ tags, label, children }: { tags: TagCount[]; label: 
     return () => el.removeEventListener("questlog:reveal", reveal);
   }, []);
 
+  // A tag no card carries any more (a refresh after a correction) is let go.
+  const picked = tag !== null && tags.some((t) => t.name === tag) ? tag : null;
+
+  // After every render, not only when the tag changes: a refresh after a chat correction brings new cards and counts from the server,
+  // and they must be filtered too.
   useEffect(() => {
     const el = root.current;
     if (!el) return;
+    const tag = picked;
     for (const card of el.querySelectorAll<HTMLElement>("[data-tags]"))
       card.hidden = tag !== null && !(JSON.parse(card.dataset.tags ?? "[]") as string[]).includes(tag);
     for (const scope of el.querySelectorAll<HTMLElement>("[data-tag-scope]")) {
@@ -31,7 +37,7 @@ export function TagFilter({ tags, label, children }: { tags: TagCount[]; label: 
       const count = scope.querySelector<HTMLElement>("[data-tag-count]");
       if (count) count.textContent = tag === null ? count.dataset.tagCount! : String(left);
     }
-  }, [tag]);
+  });
 
   return (
     <div ref={root} className="space-y-4">
@@ -44,7 +50,7 @@ export function TagFilter({ tags, label, children }: { tags: TagCount[]; label: 
             {label}
           </span>
           {tags.map((t) => (
-            <button key={t.name} type="button" className="tag-chip" aria-pressed={tag === t.name} onClick={() => setTag(tag === t.name ? null : t.name)}>
+            <button key={t.name} type="button" className="tag-chip" aria-pressed={picked === t.name} onClick={() => setTag(picked === t.name ? null : t.name)}>
               {/* The tag's shape is clipped (a notch and a hole); the button around it keeps a whole focus ring. */}
               <span className="tag-shape">
                 {t.name}
