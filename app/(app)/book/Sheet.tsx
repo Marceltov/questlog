@@ -16,6 +16,8 @@ import {
 import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
 import { Register } from "@/components/Register";
+import { CODEX_ICONS, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
+import { CalendarDays, Crosshair, Footprints, Sparkles, Sword } from "lucide-react";
 
 // A link's site, for a source without a title.
 const siteOf = (url: string) => {
@@ -42,15 +44,18 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
   // The inventory by the game's groups, in the player's order, under the game's own name when it has one; an item without one goes last.
   const kinds = t.game.itemKinds;
   const known = (k: string | null) => kinds.some((x) => x.key === k);
-  const groups: [string, ItemView[]][] = [
-    ...kinds.map((k): [string, ItemView[]] => [k.localName ?? k.name, items.filter((i) => i.kind === k.key)]),
-    [copy.otherItems, items.filter((i) => !known(i.kind))],
-  ].filter(([, list]) => list.length > 0) as [string, ItemView[]][];
+  const groups: [string, string | null, ItemView[]][] = [
+    ...kinds.map((k): [string, string | null, ItemView[]] => [k.localName ?? k.name, k.key, items.filter((i) => i.kind === k.key)]),
+    [copy.otherItems, null, items.filter((i) => !known(i.kind))] as [string, string | null, ItemView[]],
+  ].filter(([, , list]) => list.length > 0);
   const open = [...threads.filter((q) => q.status === "open"), ...threads.filter((q) => q.status === "blocked")];
   const closed = all.filter((q) => q.status !== "open" && q.status !== "blocked");
   const current = build.snapshots[0];
   const last = sessions[0];
-  const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes"] as const).map((key) => ({ key, label: copy.tabs[key] }));
+  const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes"] as const).map((key) => {
+    const Icon = PART_ICONS[key];
+    return { key, label: copy.tabs[key], icon: <Icon aria-hidden="true" /> };
+  });
   const equipped = items.filter((i) => i.equipped);
   const hasNotes = t.game.description || t.game.notes || t.notes || t.game.sources.length > 0;
   return (
@@ -75,25 +80,28 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         <div className="space-y-6">
           {last && (
             <section>
-              <h3 className="section-title">{copy.lastSession}</h3>
+              <Heading icon={CalendarDays}>{copy.lastSession}</Heading>
               <SessionCard session={last} />
             </section>
           )}
           <section>
-            <h3 className="section-title">{copy.nextSteps}</h3>
+            <Heading icon={Footprints}>{copy.nextSteps}</Heading>
             {open.length === 0 ? (
               <p className="card text-muted">{copy.noOpenQuests}</p>
             ) : (
               <ul className="card divide-y divide-rule py-1">
                 {open.map((q) => (
                   <li key={q.id}>
-                    <a href={`#quest-${q.id}`} className="block py-2 hover:text-accent">
-                      <span className="font-semibold">{q.name}</span>
-                      {q.status === "blocked" ? (
-                        <span className="block text-sm text-muted">{copy.waitingOnGame}</span>
-                      ) : (
-                        q.nextStep && <span className="block text-sm">{q.nextStep}</span>
-                      )}
+                    <a href={`#quest-${q.id}`} className="flex items-center gap-3 py-2 hover:text-accent">
+                      <Tile icon={QUEST_ICONS[q.status]} muted={q.status === "blocked"} />
+                      <span className="min-w-0">
+                        <span className="font-semibold">{q.name}</span>
+                        {q.status === "blocked" ? (
+                          <span className="block text-sm text-muted">{copy.waitingOnGame}</span>
+                        ) : (
+                          q.nextStep && <span className="block text-sm">{q.nextStep}</span>
+                        )}
+                      </span>
                     </a>
                   </li>
                 ))}
@@ -102,18 +110,19 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           </section>
           {build.goals.some((g) => g.status === "open") && (
             <section>
-              <h3 className="section-title">{copy.goals}</h3>
+              <Heading icon={Crosshair}>{copy.goals}</Heading>
               <Goals goals={build.goals.filter((g) => g.status === "open")} />
             </section>
           )}
           {equipped.length > 0 && (
             <section>
-              <h3 className="section-title">{copy.equipped}</h3>
+              <Heading icon={Sword}>{copy.equipped}</Heading>
               <ul className="card divide-y divide-rule py-1">
                 {equipped.map((i) => (
                   <li key={i.id}>
-                    <a href={`#item-${i.id}`} className="flex items-baseline justify-between gap-3 py-2 hover:text-accent">
-                      <span className="font-semibold">
+                    <a href={`#item-${i.id}`} className="flex items-center gap-3 py-2 hover:text-accent">
+                      <Tile icon={itemIcon(i.kind)} />
+                      <span className="flex-1 font-semibold">
                         {i.name}
                         {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
                       </span>
@@ -128,11 +137,11 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
 
         <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           <section>
-            <h3 className="section-title">{copy.goals}</h3>
+            <Heading icon={Crosshair}>{copy.goals}</Heading>
             {build.goals.length === 0 ? <p className="card text-muted">{copy.noGoals}</p> : <Goals goals={build.goals} />}
           </section>
           <section>
-            <h3 className="section-title">{copy.build}</h3>
+            <Heading icon={Sparkles}>{copy.build}</Heading>
             <div className="card space-y-2">
               {build.plan?.mainStat && <p className="font-semibold">{copy.mainStat(build.plan.mainStat)}</p>}
               {build.plan?.summary && <p className="text-muted">{build.plan.summary}</p>}
@@ -169,7 +178,9 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         <div className="space-y-6">
           <section>
             <div className="mb-2 flex items-baseline justify-between">
-              <h3 className="section-title mb-0">{copy.openQuests}</h3>
+              <Heading icon={QUEST_ICONS.open} className="mb-0">
+                {copy.openQuests}
+              </Heading>
               <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
                 {reveal === "hint" ? copy.hideHints : copy.showHints}
               </Link>
@@ -179,7 +190,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           </section>
           {closed.length > 0 && (
             <section>
-              <h3 className="section-title">{copy.closedQuests}</h3>
+              <Heading icon={QUEST_ICONS.done}>{copy.closedQuests}</Heading>
               <Quests quests={closed} />
             </section>
           )}
@@ -190,9 +201,9 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           <p className="card text-muted">{copy.noItems}</p>
         ) : (
           <div className="space-y-6">
-            {groups.map(([label, list]) => (
+            {groups.map(([label, key, list]) => (
               <div key={label}>
-                <h4 className="group-title">{label}</h4>
+                <Heading icon={itemIcon(key)}>{label}</Heading>
                 <ul className="grid gap-2 lg:grid-cols-2">
                   {list.map((i) => (
                     <Item key={i.id} item={i} />
@@ -211,7 +222,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               const entries = codex.filter((e) => e.kind === k);
               return entries.length === 0 ? null : (
                 <div key={k}>
-                  <h4 className="group-title">{copy.codexKinds[k]}</h4>
+                  <Heading icon={CODEX_ICONS[k]}>{copy.codexKinds[k]}</Heading>
                   <ul className="grid gap-2 lg:grid-cols-2">
                     {entries.map((e) => (
                       <CodexEntry key={e.id} entry={e} />
@@ -344,12 +355,13 @@ async function Quests({ quests }: { quests: QuestView[] }) {
     <ul className="space-y-2">
       {quests.map((q) => (
         <li key={q.id} id={`quest-${q.id}`} className="card">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="font-semibold">
+          <div className="card-head">
+            <Tile icon={QUEST_ICONS[q.status]} muted={q.status !== "open"} />
+            <span className="flex-1 font-semibold">
               {q.name}
               {q.localName && <span className="font-normal text-muted"> · {q.localName}</span>}
             </span>
-            <span className="text-xs font-bold text-muted uppercase">{q.status === "blocked" ? copy.waitingOnGame : copy.questStatus[q.status]}</span>
+            <span className="shrink-0 text-sm text-muted">{q.status === "blocked" ? copy.waitingOnGame : copy.questStatus[q.status]}</span>
           </div>
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
           <Notes description={q.description} notes={q.notes} />
@@ -377,14 +389,15 @@ async function Item({ item: i }: { item: ItemView }) {
   const numbers = Object.entries(i.attributes);
   return (
     <li id={`item-${i.id}`} className="card">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-semibold">
+      <div className="card-head">
+        <Tile icon={itemIcon(i.kind)} />
+        <span className="flex-1 font-semibold">
           {i.name}
           {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
         </span>
         <span className="flex shrink-0 items-baseline gap-2">
           {i.quantity !== null && <span className="font-semibold tabular-nums">{copy.quantity(i.quantity)}</span>}
-          {i.equipped && <span className="text-xs font-bold text-accent uppercase">{copy.equipped}</span>}
+          {i.equipped && <span className="text-sm font-semibold text-accent">{copy.equipped}</span>}
         </span>
       </div>
       {i.location && <p className="text-sm text-muted">{i.location}</p>}
@@ -444,8 +457,9 @@ async function CodexEntry({ entry: e }: { entry: CodexView }) {
     e.status === "beaten" ? (e.beatenOn ? copy.beatenOn(e.beatenOn) : null) : e.status === "gone" ? copy.gone : e.attempts ? copy.tries(e.attempts) : null;
   return (
     <li id={`codex-${e.id}`} className={`card ${e.status === "met" ? "" : "opacity-70"}`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-semibold">
+      <div className="card-head">
+        <Tile icon={CODEX_ICONS[e.kind]} muted={e.status !== "met"} />
+        <span className="flex-1 font-semibold">
           {e.name}
           {e.localName && <span className="font-normal text-muted"> · {e.localName}</span>}
         </span>

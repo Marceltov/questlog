@@ -26,6 +26,18 @@ items:
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: game-cards
+    status: done
+    date: 2026-10-31
+    icon: shape-outline
+    title: Game cards and icons
+    title_de: Spielkarten und Symbole
+    summary: The start page shows where you are in each playthrough; icons on the tabs, headings and cards say what each thing is.
+    summary_de: Die Startseite zeigt, wo du in jedem Durchlauf stehst; Symbole auf Reitern, Überschriften und Karten zeigen, was etwas ist.
+    links:
+      - { label: "#33", url: "https://github.com/Marceltov/questlog/pull/33" }
+      - { label: "#32", url: "https://github.com/Marceltov/questlog/issues/32" }
+
   - id: register
     status: done
     date: 2026-10-31

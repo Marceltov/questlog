@@ -43,6 +43,11 @@ export const de: Copy = {
   nothingYet: "Noch nichts aufgezeichnet.",
   connectHint: (url: string) => `Füge ${url} in Claude als eigenen Connector hinzu und erzähl Claude dann, was du spielst.`,
   lastPlayed: (day: string) => `Zuletzt gespielt ${day}`,
+  pageNumber: (n: number) => `Seite ${n}`,
+  moreOpen: (n: number) => `und ${n} weitere offen`,
+  questCount: (n: number) => `${n} offene ${n === 1 ? "Quest" : "Quests"}`,
+  itemCount: (n: number) => `${n} ${n === 1 ? "Gegenstand" : "Gegenstände"}`,
+  codexCount: (n: number) => `${n} im Kodex`,
   notPlayedYet: "Noch nicht gespielt",
   status: { playing: "Läuft", finished: "Durchgespielt", dropped: "Abgebrochen" } as Record<string, string>,
 

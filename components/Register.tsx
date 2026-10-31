@@ -4,7 +4,7 @@
 // the part it is in and scrolls to it, on the first load and when it is followed on the page.
 import { Children, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 
-export type Tab = { key: string; label: string };
+export type Tab = { key: string; label: string; icon?: ReactNode };
 
 export function Register({ tabs, start, label, children }: { tabs: Tab[]; start: string; label: string; children: ReactNode }) {
   const panels = Children.toArray(children);
@@ -92,7 +92,8 @@ export function Register({ tabs, start, label, children }: { tabs: Tab[]; start:
             onClick={() => open(t.key)}
             onKeyDown={(e) => onKey(e, i)}
           >
-            {t.label}
+            {t.icon}
+            <span className="register-label">{t.label}</span>
           </button>
         ))}
       </div>
