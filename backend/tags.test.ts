@@ -4,9 +4,12 @@ import { correct } from "./correct";
 import { NotFoundError } from "./errors";
 import { db, newId, now } from "./db/testing";
 import { getPlaythrough } from "./games";
+import { codexOf } from "./codex";
 import { itemsOf } from "./items";
+import { questsOf } from "./quests";
+import { record } from "./record";
 import { setTags, tagsInUse, tagsOf } from "./tags";
-import { seed, type Seed } from "./testing/fixtures";
+import { SPOILER_ITEM, seed, type Seed } from "./testing/fixtures";
 
 let s: Seed;
 
@@ -82,4 +85,29 @@ test("tagsInUse counts tags over rows, most used first, then by name", () => {
     { name: "bleed", count: 1 },
     { name: "frost", count: 1 },
   ]);
+});
+
+const boss = async () => {
+  await record(s.a, { playthroughId: s.liesOfP, summary: "Fought the Parade Master.", transcript: "The Parade Master burns.", codex: [{ kind: "boss", name: "Parade Master" }] });
+  return (await codexOf(s.a, s.liesOfP)).find((e) => e.name === "Parade Master")!.id;
+};
+
+test("items, codex entries and quests come with their tags, and a tag filter keeps only those that carry it", async () => {
+  const item = await saber();
+  const entry = await boss();
+  await write("item", item, ["fire", "motivity"]);
+  await write("codex", entry, ["fire"]);
+  await write("quest", s.venigni, ["workers"]);
+  expect((await itemsOf(s.a, s.liesOfP)).find((i) => i.id === item)!.tags).toEqual(["fire", "motivity"]);
+  expect((await questsOf(s.a, s.liesOfP)).find((q) => q.id === s.venigni)!.tags).toEqual(["workers"]);
+  expect((await itemsOf(s.a, s.liesOfP, { tag: "FIRE" })).map((i) => i.id)).toEqual([item]);
+  expect((await codexOf(s.a, s.liesOfP, { tag: "fire" })).map((e) => e.id)).toEqual([entry]);
+  expect(await itemsOf(s.a, s.liesOfP, { tag: "frost" })).toEqual([]);
+});
+
+test("a tag only a spoiler carries stays hidden with it", async () => {
+  const key = (await itemsOf(s.a, s.liesOfP, { reveal: "full" })).find((i) => i.name === SPOILER_ITEM)!.id;
+  await write("item", key, ["workshop"]);
+  expect(tagsInUse(await itemsOf(s.a, s.liesOfP))).toEqual([]);
+  expect(tagsInUse(await itemsOf(s.a, s.liesOfP, { reveal: "full" }))).toEqual([{ name: "workshop", count: 1 }]);
 });

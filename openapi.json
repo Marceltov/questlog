@@ -2279,6 +2279,13 @@
             },
             "description": "Oldest first"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2295,6 +2302,7 @@
           "status",
           "nextStep",
           "entries",
+          "tags",
           "url"
         ],
         "additionalProperties": false
@@ -2466,6 +2474,13 @@
             },
             "description": "Where its facts come from"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2486,6 +2501,7 @@
           "verdict",
           "spoiler",
           "sources",
+          "tags",
           "url"
         ],
         "additionalProperties": false
@@ -2676,6 +2692,13 @@
             },
             "description": "The player's items rated against it, best first, from very good to very bad"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its tags (free names across groups, e.g. fire), by name"
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2698,6 +2721,7 @@
           "spoiler",
           "sources",
           "counters",
+          "tags",
           "url"
         ],
         "additionalProperties": false,
@@ -3331,6 +3355,13 @@
                   },
                   "description": "Oldest first"
                 },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Its tags (free names across groups, e.g. fire), by name"
+                },
                 "url": {
                   "type": "string",
                   "description": "Its page in the web app, as an absolute URL"
@@ -3354,6 +3385,7 @@
                 "status",
                 "nextStep",
                 "entries",
+                "tags",
                 "url",
                 "hidden"
               ],

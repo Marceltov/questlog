@@ -3,6 +3,7 @@ import { sql } from "kysely";
 import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { seen } from "./spoilers";
+import { tagsOf } from "./tags";
 import type { EntryKind, Player, QuestStatus, SpoilerLevel } from "./types";
 import { questPath, sessionPath } from "./urls";
 
@@ -26,6 +27,8 @@ export type QuestView = {
   entries: QuestEntryView[];
   /** When it last changed, in milliseconds since the epoch. */
   updatedAt: number;
+  /** Its tags (ADR 0014), by name. */
+  tags: string[];
   url: string;
 };
 
@@ -64,6 +67,12 @@ export async function questsOf(
         ])
       : [],
   );
+  const tags = await tagsOf(
+    d,
+    p,
+    "quest",
+    quests.map((x) => x.id),
+  );
   return quests.map((x) => {
     const mine = entries
       .filter((e) => e.quest_id === x.id)
@@ -88,6 +97,7 @@ export async function questsOf(
       nextStep: mine.findLast((e) => e.kind === "next")?.text ?? null,
       entries: mine,
       updatedAt: x.updated_at,
+      tags: tags.get(x.id) ?? [],
       url: questPath(playthroughId, x.id),
     };
   });

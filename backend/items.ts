@@ -5,6 +5,7 @@ import { db } from "./db";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
 import { seen } from "./spoilers";
+import { tagsOf } from "./tags";
 import { parseSources } from "./sources";
 import type { Attributes, CodexKind, Effect, Player, Source, SpoilerLevel } from "./types";
 import { itemPath } from "./urls";
@@ -31,6 +32,8 @@ export type ItemView = {
   spoiler: SpoilerLevel;
   /** Where its facts come from (ADR 0008); shown with the item, so as far as the item is. */
   sources: Source[];
+  /** Its tags (ADR 0014), by name. */
+  tags: string[];
   url: string;
 };
 
@@ -38,7 +41,12 @@ export type ItemView = {
 export async function itemsOf(
   p: Player,
   playthroughId: string,
-  opts: { equippedOnly?: boolean; reveal?: SpoilerLevel; /** Only items whose name, or name in the game's language, contains it. */ name?: string } = {},
+  opts: {
+    equippedOnly?: boolean;
+    reveal?: SpoilerLevel;
+    /** Only items whose name, or name in the game's language, contains it. */ name?: string;
+    /** Only items that carry this tag (in its norm form). */ tag?: string;
+  } = {},
 ): Promise<ItemView[]> {
   await getPlaythrough(p, playthroughId); // NotFoundError for another player's
   let q = seen((await db()).selectFrom("items"), p, "items", opts.reveal ?? "none")
@@ -48,7 +56,14 @@ export async function itemsOf(
   const rows = await q.orderBy("equipped", "desc").orderBy("updated_at", "desc").execute();
   // A search within what came through the gate, in the norm form, so "puppet saber" finds "Puppet Saber" and "Saebel" finds "Säbel".
   const name = opts.name ? norm(opts.name) : "";
-  const found = rows.filter((r) => !name || norm(r.name).includes(name) || (r.local_name && norm(r.local_name).includes(name)));
+  const named = rows.filter((r) => !name || norm(r.name).includes(name) || (r.local_name && norm(r.local_name).includes(name)));
+  const tags = await tagsOf(
+    await db(),
+    p,
+    "item",
+    named.map((r) => r.id),
+  );
+  const found = opts.tag ? named.filter((r) => (tags.get(r.id) ?? []).some((t) => norm(t) === norm(opts.tag!))) : named;
   const uses = await usesOf(
     await db(),
     p,
@@ -70,6 +85,7 @@ export async function itemsOf(
     verdict: r.verdict,
     spoiler: r.spoiler as SpoilerLevel,
     sources: parseSources(r.sources),
+    tags: tags.get(r.id) ?? [],
     url: itemPath(playthroughId, r.id),
   }));
 }
