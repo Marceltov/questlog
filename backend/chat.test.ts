@@ -1,7 +1,10 @@
 // The in-app chat (ADR 0013): the tool loop runs as the player, a card's row goes along read through the gate, record's transcript is
 // the player's own words, and the daily limit and API failures end a message cleanly. Claude is a scripted stand-in.
 import Anthropic from "@anthropic-ai/sdk";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { chat, linksOf, type ChatModel } from "./chat";
 import { chatRoute, setChatModelForTests, voiceRoute } from "./chat-route";
 import { itemsOf } from "./items";
@@ -14,6 +17,7 @@ beforeEach(async () => {
   s = await seed();
 });
 afterEach(() => {
+  vi.unstubAllEnvs();
   delete process.env.QUESTLOG_CHAT_DAILY_LIMIT;
   setChatModelForTests(null);
   setTranscriberForTests(null);
@@ -117,6 +121,8 @@ test("links are the rows a result names with a url", () => {
 });
 
 test("the routes: 404 without a model, a bearer token or no session is refused", async () => {
+  // Looking for a session opens the sign-in database: a fresh one, not the default /data.
+  vi.stubEnv("DATA_DIR", mkdtempSync(join(tmpdir(), "questlog-")));
   const post = (path: string, headers: Record<string, string> = {}, body = "{}") => new Request(`http://localhost${path}`, { method: "POST", headers, body });
   expect((await chatRoute(post("/api/chat"))).status).toBe(404);
   setChatModelForTests(scripted());
