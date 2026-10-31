@@ -305,6 +305,18 @@ const migrations: Record<string, Migration> = {
       for (const table of ["games", "quests", "items", "codex"]) await db.schema.alterTable(table).addColumn("description", "text").execute();
     },
   },
+  "006_chat_usage": {
+    // ADR 0013: how many chat messages a player sent on a day, for the daily limit. Nothing of what was said.
+    async up(db: Kysely<any>) {
+      await db.schema
+        .createTable("chat_usage")
+        .addColumn("player_id", "text", (c) => c.notNull())
+        .addColumn("day", "text", (c) => c.notNull())
+        .addColumn("count", "integer", (c) => c.notNull().defaultTo(0))
+        .addPrimaryKeyConstraint("chat_usage_pk", ["player_id", "day"])
+        .execute();
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

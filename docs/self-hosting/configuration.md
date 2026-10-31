@@ -27,6 +27,11 @@ To update: `docker compose pull && docker compose up -d`. `:main` follows the ma
 | `QUESTLOG_OIDC_<NAME>_CLIENT_ID` | (required with an issuer) | The client id questlog has at that provider. |
 | `QUESTLOG_OIDC_<NAME>_CLIENT_SECRET` | empty | Its secret, for a confidential client. |
 | `QUESTLOG_OIDC_<NAME>_LABEL` | the name | The button's text: "Continue with `<LABEL>`". |
+| `QUESTLOG_ANTHROPIC_API_KEY` | unset: no chat | A Claude API key: turns on the chat in the web app ([ADR 0013](../adr/0013-in-app-chat.md)). The instance owner pays for its messages. |
+| `QUESTLOG_ANTHROPIC_MODEL` | `claude-opus-5-5` | The model the chat uses. |
+| `QUESTLOG_CHAT_DAILY_LIMIT` | `100` | How many chat messages a player may send a day. |
+| `QUESTLOG_TRANSCRIBE_URL` | unset: typing only | A Whisper server for speaking into the chat, with the OpenAI-compatible `/v1/audio/transcriptions`, such as [speaches](https://speaches.ai). No trailing slash. |
+| `QUESTLOG_TRANSCRIBE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | The model the Whisper server runs. |
 | `QUESTLOG_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug` or `silent`. |
 
 At least one way to sign in is needed: SMTP for email codes, or a provider.
@@ -45,6 +50,25 @@ QUESTLOG_OIDC_AUTHENTIK_LABEL=authentik
 A sign-in through a provider joins an existing player with the same address only when the provider says the address is verified ([ADR 0006](../adr/0006-better-auth-wiring.md)).
 
 When a provider refuses a sign-in, the login page shows its error code, and questlog's log has a line for it.
+
+## The chat in the web app
+
+With `QUESTLOG_ANTHROPIC_API_KEY` set, every page has an **Ask Claude** button, and every card a small one that opens the chat about that card. The chat uses the same tools as Claude over MCP, as the signed-in player, so it sees nothing the player couldn't, and nothing they haven't found ([ADR 0013](../adr/0013-in-app-chat.md)). The conversation stays on the player's device.
+
+To speak into it, run a Whisper server next to questlog and point `QUESTLOG_TRANSCRIBE_URL` at it. The recording goes only there and is never stored. With speaches on the compose network:
+
+```yaml
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    restart: unless-stopped
+    environment:
+      WHISPER__COMPUTE_TYPE: int8
+      WHISPER__TTL: "-1"
+    volumes:
+      - whisper-models:/home/ubuntu/.cache/huggingface/hub
+```
+
+and `QUESTLOG_TRANSCRIBE_URL=http://whisper:8000` in `.env`. The first transcription downloads the model.
 
 ## Data and backups
 

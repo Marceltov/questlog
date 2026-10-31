@@ -95,6 +95,17 @@ export const config = {
       .split(",")
       .map((n) => n.trim().toLowerCase())
       .filter(Boolean),
+  // The in-app chat (ADR 0013): on only with an API key. The model is settable; the daily limit counts messages per player.
+  anthropicKey: (): string | undefined => env("QUESTLOG_ANTHROPIC_API_KEY").trim() || undefined,
+  anthropicModel: (): string => env("QUESTLOG_ANTHROPIC_MODEL").trim() || "claude-opus-5-5",
+  chatDailyLimit: (): number => {
+    const n = Number.parseInt(env("QUESTLOG_CHAT_DAILY_LIMIT").trim(), 10);
+    return Number.isInteger(n) && n > 0 ? n : 100;
+  },
+  // Speaking into the chat: a Whisper server with the OpenAI-compatible POST /v1/audio/transcriptions (such as speaches); no trailing
+  // slash. Unset: the chat takes typing only.
+  transcribeUrl: (): string | undefined => env("QUESTLOG_TRANSCRIBE_URL").trim().replace(/\/+$/, "") || undefined,
+  transcribeModel: (): string => env("QUESTLOG_TRANSCRIBE_MODEL").trim() || "deepdml/faster-whisper-large-v3-turbo-ct2",
   // Unset, empty or not a level → info.
   logLevel: (): LogLevel => ((l) => ((LOG_LEVELS as readonly string[]).includes(l) ? (l as LogLevel) : "info"))(env("QUESTLOG_LOG_LEVEL").trim().toLowerCase()),
 };

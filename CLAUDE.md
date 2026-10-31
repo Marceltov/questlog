@@ -15,7 +15,7 @@ questlog: a spoiler-free quest log, build tracker and item list for the games yo
 
 ## Architecture
 
-- Three surfaces call the same domain layer in `backend/`: `/mcp` (`backend/mcp.ts`, tools in `backend/tools.ts`), `/api/v1` (route table in `backend/http/api.ts`) and the pages in `app/(app)`. See `docs/internals/how-it-works.md`.
+- Three surfaces call the same domain layer in `backend/`: `/mcp` (`backend/mcp.ts`, tools in `backend/tools.ts`), `/api/v1` (route table in `backend/http/api.ts`) and the pages in `app/(app)`. The in-app chat (`backend/chat.ts`, `/api/chat`, ADR 0013) runs the same tools over the Claude API as the signed-in player. See `docs/internals/how-it-works.md`.
 - Sign-in is Better Auth (`backend/auth/auth.ts`, ADR 0004 and 0006), its tables in `DATA_DIR/auth.sqlite`. A player is Better Auth's `user.id`, stored as `player_id` on every row of `questlog.sqlite`. `/mcp` takes only access tokens bound to `${PUBLIC_URL}/mcp`, `/api/v1` only those bound to `${PUBLIC_URL}/api/v1` (ADR 0007); pages only the session cookie.
 - One gate: `seen()` in `backend/spoilers.ts`. Every query on a table of `questlog.sqlite` goes through it, look-ups for writes and counts included: it scopes rows to the player (V2) and hides spoiler levels the read didn't ask for (V1, ADR 0005). Gate tests use the two-player seed in `backend/testing/fixtures.ts`; a new read path adds assertions to `spoilers.test.ts` and `isolation.test.ts`.
 - Migrations live in code (`backend/db/migrations.ts`). Never edit one that has shipped; add the next.
