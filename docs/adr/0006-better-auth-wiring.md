@@ -28,7 +28,7 @@ The options are listed per question, in the outcome.
 * **Client registration:** `cimd()` with the `mcp-2026-07-28` profile, and dynamic client registration without a session, because claude.ai registers that way (ADR 0004).
 * **Sign-up is closed by default:** `QUESTLOG_SIGNUP_ALLOW` lists addresses, `@domain` entries or `*`, checked in the user-creation hook. Empty lets nobody new in. No code is mailed to an address that may not sign up and isn't a player, so the instance can't be used to send mail to strangers.
 * **No trusted providers.** ADR 0004 says a second sign-in joins a player "when the provider says `email_verified: true` and is listed in `trustedProviders`". In Better Auth 1.7 a provider in `trustedProviders` joins even without `email_verified`. So the list stays empty, and a sign-in joins an existing player only when its provider says the address is verified, which is what ADR 0004 means.
-* **Email codes only, no magic link yet.** Codes are stored hashed (`storeOTP: "hashed"`), and a mail holds only the code, during an MCP sign-in or not. Magic links and passkeys can follow.
+* **Email codes only, no magic link yet.** Codes are stored hashed (`storeOTP: "hashed"`), and a mail holds only the code, during an MCP sign-in or not. Magic links and passkeys can follow (they did: [ADR 0015](0015-passkeys-and-sign-in-links.md)).
 * **OIDC providers** go through `genericOAuth`, one per `QUESTLOG_OIDC_<NAME>_*` block, with discovery and PKCE. In 1.7 they are social providers: `signIn.social` carries an MCP client's authorize request through the provider and back.
 * **The REST API (`/api/v1`) is not in the first version.** MCP comes first (V5); the API and its token audience follow in their own change.
 
