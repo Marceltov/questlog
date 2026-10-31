@@ -705,13 +705,13 @@ body::before {
 }
 
 /* The in-app chat (components/chat/Chat.tsx): a frosted sheet that rises over the book, the player's words in ink on the right, Claude's
-   on paper on the left, the rows it changed as chips that open them. The button to open it sits at the bottom right of every page, and a
+   on paper on the left, the rows it changed as chips that open them. The button to open it, Claude's mark on a round button, sits at the bottom right of every page, and a
    small one on every card opens it about that card. */
 .chat-fab {
-  @apply glass fixed right-4 bottom-4 z-30 inline-flex items-center gap-2 rounded-full border border-accent py-2 pr-4 pl-3 font-semibold text-ink shadow-lg hover:bg-surface lg:right-8 lg:bottom-6;
+  @apply fixed right-4 bottom-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-rule bg-surface shadow-lg hover:border-accent lg:right-8 lg:bottom-6;
 }
 .chat-fab svg {
-  @apply h-5 w-5 text-accent;
+  @apply h-8 w-8;
 }
 .chat-fab:focus-visible,
 .talk-about:focus-visible,
