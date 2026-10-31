@@ -23,11 +23,21 @@ export type PlaythroughView = {
   lastPlayedOn: string | null;
   /** Null until one is filed. */
   character: Character | null;
+  /** The player's own notes on this run (ADR 0011). */
+  notes: string | null;
   /**
    * `sources`: the pages the player trusts for this game (ADR 0008), for Claude to read when the player asks. `itemKinds`: its
-   * inventory groups, in the player's order.
+   * inventory groups, in the player's order. `description`: what the game is; `notes`: the player's own (ADR 0011).
    */
-  game: { id: string; title: string; platform: string | null; sources: Source[]; itemKinds: ItemKind[] };
+  game: {
+    id: string;
+    title: string;
+    platform: string | null;
+    description: string | null;
+    notes: string | null;
+    sources: Source[];
+    itemKinds: ItemKind[];
+  };
   url: string;
 };
 
@@ -40,9 +50,12 @@ const columns = [
   "playthroughs.character_name",
   "playthroughs.character_class",
   "playthroughs.character_local_class",
+  "playthroughs.notes",
   "games.id as game_id",
   "games.title",
   "games.platform",
+  "games.description",
+  "games.notes as game_notes",
   "games.sources",
   "games.item_kinds",
 ] as const;
@@ -56,9 +69,12 @@ type Row = {
   character_name: string | null;
   character_class: string | null;
   character_local_class: string | null;
+  notes: string | null;
   game_id: string;
   title: string;
   platform: string | null;
+  description: string | null;
+  game_notes: string | null;
   sources: string;
   item_kinds: string;
 };
@@ -73,7 +89,16 @@ const view = (r: Row): PlaythroughView => ({
     r.character_name || r.character_class || r.character_local_class
       ? { name: r.character_name, class: r.character_class, localClass: r.character_local_class }
       : null,
-  game: { id: r.game_id, title: r.title, platform: r.platform, sources: parseSources(r.sources), itemKinds: JSON.parse(r.item_kinds) as ItemKind[] },
+  notes: r.notes,
+  game: {
+    id: r.game_id,
+    title: r.title,
+    platform: r.platform,
+    description: r.description,
+    notes: r.game_notes,
+    sources: parseSources(r.sources),
+    itemKinds: JSON.parse(r.item_kinds) as ItemKind[],
+  },
   url: playthroughPath(r.id),
 });
 

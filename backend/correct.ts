@@ -94,20 +94,23 @@ export type Correction = {
   weaknesses?: string[];
   resistances?: string[];
   strategy?: string | null;
+  /** The player's own notes, all of them (ADR 0011): every target but an entry. */
   notes?: string | null;
+  /** What a game, quest, item or codex entry is. */
+  description?: string | null;
 };
 
 // The fields each target takes; any other field in a change is a refusal, so a typo doesn't pass silently.
 const FIELDS: Record<Target, readonly (keyof Correction)[]> = {
-  game: ["title", "platform", "sources", "itemKinds"],
-  playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass"],
-  session: ["summary", "playedOn"],
-  quest: ["name", "localName", "giver", "location", "status"],
+  game: ["title", "platform", "description", "notes", "sources", "itemKinds"],
+  playthrough: ["label", "language", "status", "characterName", "characterClass", "characterLocalClass", "notes"],
+  session: ["summary", "playedOn", "notes"],
+  quest: ["name", "localName", "giver", "location", "status", "description", "notes"],
   entry: ["kind", "text", "spoiler"],
-  snapshot: ["level", "values", "playedOn"],
-  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources", "quantity", "attributes", "against"],
-  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "notes", "spoiler", "sources"],
-  goal: ["target", "text", "status", "suggested", "rank", "spoiler"],
+  snapshot: ["level", "values", "playedOn", "notes"],
+  item: ["name", "localName", "kind", "location", "equipped", "verdict", "spoiler", "sources", "quantity", "attributes", "against", "description", "notes"],
+  codex: ["name", "localName", "location", "status", "attempts", "weaknesses", "resistances", "strategy", "description", "notes", "spoiler", "sources"],
+  goal: ["target", "text", "status", "suggested", "rank", "spoiler", "notes"],
 };
 
 export type Corrected = {
@@ -213,7 +216,14 @@ async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
     if (clash)
       throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). questlog doesn't merge games: ask the player what they want`);
   }
-  const set = given({ title, norm: title && norm(title), platform: nullable(c.platform), sources: replaceSources(row.sources, c.sources) });
+  const set = given({
+    title,
+    norm: title && norm(title),
+    platform: nullable(c.platform),
+    description: nullable(c.description),
+    notes: nullable(c.notes),
+    sources: replaceSources(row.sources, c.sources),
+  });
   if (Object.keys(set).length) await seen(trx.updateTable("games"), p, "games").set(set).where("id", "=", c.id).execute();
   if (c.itemKinds) await setItemKinds(trx, p, c.id, c.itemKinds, "replace");
   return done(c, title ?? row.title, null, null);
@@ -246,6 +256,7 @@ async function playthrough(trx: Trx, p: Player, c: Correction): Promise<Correcte
         character_name: nullable(c.characterName),
         character_class: nullable(c.characterClass),
         character_local_class: nullable(c.characterLocalClass),
+        notes: nullable(c.notes),
       }),
     )
     .where("id", "=", c.id)
@@ -278,7 +289,7 @@ async function session(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   }
   const summary = text("summary", c.summary);
   await seen(trx.updateTable("sessions"), p, "sessions")
-    .set(given({ summary, played_on: c.playedOn }))
+    .set(given({ summary, played_on: c.playedOn, notes: nullable(c.notes) }))
     .where("id", "=", c.id)
     .execute();
   if (c.playedOn) {
@@ -323,7 +334,16 @@ async function quest(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   const status = oneOf<QuestStatus>("status", c.status, QUEST_STATUSES);
   await seen(trx.updateTable("quests"), p, "quests", "full")
     .set({
-      ...given({ name, norm: name && norm(name), local_name: nullable(c.localName), giver: nullable(c.giver), location: nullable(c.location), status }),
+      ...given({
+        name,
+        norm: name && norm(name),
+        local_name: nullable(c.localName),
+        giver: nullable(c.giver),
+        location: nullable(c.location),
+        description: nullable(c.description),
+        notes: nullable(c.notes),
+        status,
+      }),
       updated_at: now(),
     })
     .where("id", "=", c.id)
@@ -374,7 +394,7 @@ async function snapshot(trx: Trx, p: Player, c: Correction): Promise<Corrected> 
     stats = JSON.stringify({ ...(JSON.parse(row.stats) as Record<string, number>), ...c.values });
   }
   await seen(trx.updateTable("stat_snapshots"), p, "stat_snapshots")
-    .set(given({ level: c.level, stats, taken_on: c.playedOn }))
+    .set(given({ level: c.level, stats, taken_on: c.playedOn, notes: nullable(c.notes) }))
     .where("id", "=", c.id)
     .execute();
   await reachGoals(trx, p, row.playthrough_id);
@@ -413,6 +433,8 @@ async function item(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         name,
         norm: name && norm(name),
         local_name: nullable(c.localName),
+        description: nullable(c.description),
+        notes: nullable(c.notes),
         kind: c.kind?.trim() ? (await fileItemKind(trx, p, game_id, c.kind)).key : nullable(c.kind),
         location: nullable(c.location),
         verdict: nullable(c.verdict),
@@ -476,6 +498,7 @@ async function goal(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         status,
         suggested: c.suggested === undefined ? undefined : c.suggested ? 1 : 0,
         rank: c.rank,
+        notes: nullable(c.notes),
         spoiler,
         reached_on: status === undefined ? undefined : status === "reached" ? (row.reached_on ?? today()) : null,
       }),
@@ -526,6 +549,7 @@ async function codex(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
         weaknesses: strings(c.weaknesses),
         resistances: strings(c.resistances),
         strategy: nullable(c.strategy),
+        description: nullable(c.description),
         notes: nullable(c.notes),
         spoiler,
         sources: replaceSources(row.sources, c.sources),

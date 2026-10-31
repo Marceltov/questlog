@@ -32,6 +32,11 @@ export const SourceInput = z.object({
     .describe("For an item: the facts you took from the page, in your own words (scaling, weight, where found), never its text"),
 });
 
+// ADR 0011: the player's own thoughts, in their words, never yours; added to the notes a row has.
+export const Notes = z.string().describe("The player's own thoughts on it, in their words (never yours); added to the notes it has");
+// What a thing is, as the game or a guide puts it; replaces the description it has.
+export const Description = z.string().describe("What it is, as the game describes it (from a screenshot or the player); replaces the one it has");
+
 export const EntryInput = z.object({
   kind: z.enum(ENTRY_KINDS).describe("log: what the player did or found out; next: the next step, in vague words; decision: a choice the player made"),
   text: z.string().min(1),
@@ -60,6 +65,7 @@ export const GoalInput = z.object({
     .describe("reached for an item or note goal the player finished (stat and level goals get there on their own), dropped when given up"),
   spoiler: Spoiler.optional().describe("Default none. hint or full when the goal names a place, item or outcome the player hasn't reached"),
   rank: z.number().int().min(1).optional().describe("Its place in the order, 1 first. Default: last; a replacing goal keeps the old one's place"),
+  notes: Notes.optional(),
 });
 
 export const Attributes = z
@@ -107,7 +113,10 @@ export const CodexInput = z.object({
   weaknesses: z.array(z.string()).optional().describe("What hurts it (fire, electric blitz, a weak spot); added to those it has"),
   resistances: z.array(z.string()).optional().describe("What it shrugs off; added to those it has"),
   strategy: z.string().optional().describe("How to go about it, as the player found or decided; from a guide, with sources and a spoiler level"),
-  notes: z.string().optional().describe("Anything else: an NPC's wares or wishes, a place's rest point and shortcuts"),
+  description: Description.optional().describe(
+    "What it is: an NPC's role and wares, a place's rest point and shortcuts, a boss's lore as the game tells it; replaces the one it has",
+  ),
+  notes: Notes.optional(),
   spoiler: Spoiler.optional().describe("Default none: what the player met. hint or full for what comes from your knowledge or a guide and gives away more"),
   sources: z.array(SourceInput).optional().describe("The pages its weaknesses or strategy come from, with the facts; merged by link"),
 });
@@ -135,6 +144,8 @@ export const RecordInput = z.object({
             "The quest's name, or the NPC's when the game names none. An exact match in the playthrough updates that quest; otherwise a new one starts",
           ),
         localName: z.string().optional().describe("The name in the game's own language, as the player said it"),
+        description: Description.optional(),
+        notes: Notes.optional(),
         giver: z.string().optional().describe("Who gave it"),
         location: z.string().optional().describe("Where it started"),
         status: z
@@ -162,6 +173,7 @@ export const RecordInput = z.object({
         )
         .optional()
         .describe("For a stat the game hasn't had yet: its English and its own name"),
+      notes: Notes.optional().describe("The player's own thoughts on where the build stands"),
     })
     .optional()
     .describe("A snapshot of the stats, as the player said them or a screenshot shows them"),
@@ -197,6 +209,8 @@ export const RecordInput = z.object({
         id: z.string().optional(),
         name: z.string(),
         localName: z.string().optional(),
+        description: Description.optional(),
+        notes: Notes.optional(),
         kind: z
           .string()
           .optional()
@@ -226,6 +240,11 @@ export const RecordInput = z.object({
     .array(SourceInput)
     .optional()
     .describe("Sites the player trusts for this game (a wiki, a guide), where you look things up when they ask; merged by link"),
+  notes: z
+    .object({ game: Notes.optional(), playthrough: Notes.optional(), session: Notes.optional() })
+    .optional()
+    .describe("The player's own thoughts on the game as a whole, on this run, or on this session; each added to the notes it has"),
+  gameDescription: Description.optional().describe("What the game is; replaces the one it has"),
 });
 
 export const Nullable = (s: z.ZodString, what: string) => s.nullable().optional().describe(`${what}; null clears it`);
@@ -288,5 +307,6 @@ export const ChangeInput = z.object({
   weaknesses: z.array(z.string()).optional().describe("codex: all of them"),
   resistances: z.array(z.string()).optional().describe("codex: all of them"),
   strategy: Nullable(z.string(), "codex"),
-  notes: Nullable(z.string(), "codex"),
+  description: Nullable(z.string(), "game, quest, item or codex: what it is"),
+  notes: Nullable(z.string(), "every target but entry: the player's own notes, all of them (this replaces them)"),
 });

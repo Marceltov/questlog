@@ -297,6 +297,14 @@ const migrations: Record<string, Migration> = {
       }
     },
   },
+  "005_notes": {
+    // ADR 0011: the player's own notes on everything they keep, and a description of what a thing is.
+    async up(db: Kysely<any>) {
+      for (const table of ["games", "playthroughs", "sessions", "quests", "stat_snapshots", "items", "goals"])
+        await db.schema.alterTable(table).addColumn("notes", "text").execute();
+      for (const table of ["games", "quests", "items", "codex"]) await db.schema.alterTable(table).addColumn("description", "text").execute();
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

@@ -810,6 +810,14 @@
                           "description": "The name in the game's own language, as the player said it",
                           "type": "string"
                         },
+                        "description": {
+                          "type": "string",
+                          "description": "What it is, as the game describes it (from a screenshot or the player); replaces the one it has"
+                        },
+                        "notes": {
+                          "type": "string",
+                          "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
+                        },
                         "giver": {
                           "description": "Who gave it",
                           "type": "string"
@@ -910,6 +918,10 @@
                             "key"
                           ]
                         }
+                      },
+                      "notes": {
+                        "description": "The player's own thoughts on where the build stands",
+                        "type": "string"
                       }
                     },
                     "required": [
@@ -1002,6 +1014,10 @@
                           "type": "integer",
                           "minimum": 1,
                           "maximum": 9007199254740991
+                        },
+                        "notes": {
+                          "type": "string",
+                          "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
                         }
                       }
                     }
@@ -1041,6 +1057,14 @@
                         },
                         "localName": {
                           "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "What it is, as the game describes it (from a screenshot or the player); replaces the one it has"
+                        },
+                        "notes": {
+                          "type": "string",
+                          "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
                         },
                         "kind": {
                           "description": "The inventory group: a key, name or local name of one of the game's groups (game.itemKinds), else a new group in the game's terms (weapon, armour, amulet, consumable, material, collectible, key, ring, talisman)",
@@ -1240,9 +1264,13 @@
                           "description": "How to go about it, as the player found or decided; from a guide, with sources and a spoiler level",
                           "type": "string"
                         },
-                        "notes": {
-                          "description": "Anything else: an NPC's wares or wishes, a place's rest point and shortcuts",
+                        "description": {
+                          "description": "What it is: an NPC's role and wares, a place's rest point and shortcuts, a boss's lore as the game tells it; replaces the one it has",
                           "type": "string"
+                        },
+                        "notes": {
+                          "type": "string",
+                          "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
                         },
                         "spoiler": {
                           "description": "Default none: what the player met. hint or full for what comes from your knowledge or a guide and gives away more",
@@ -1310,6 +1338,28 @@
                         "url"
                       ]
                     }
+                  },
+                  "notes": {
+                    "description": "The player's own thoughts on the game as a whole, on this run, or on this session; each added to the notes it has",
+                    "type": "object",
+                    "properties": {
+                      "game": {
+                        "type": "string",
+                        "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
+                      },
+                      "playthrough": {
+                        "type": "string",
+                        "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
+                      },
+                      "session": {
+                        "type": "string",
+                        "description": "The player's own thoughts on it, in their words (never yours); added to the notes it has"
+                      }
+                    }
+                  },
+                  "gameDescription": {
+                    "description": "What the game is; replaces the one it has",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -1721,8 +1771,15 @@
                             "null"
                           ]
                         },
+                        "description": {
+                          "description": "game, quest, item or codex: what it is; null clears it",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
                         "notes": {
-                          "description": "codex; null clears it",
+                          "description": "every target but entry: the player's own notes, all of them (this replaces them); null clears it",
                           "type": [
                             "string",
                             "null"
@@ -1981,6 +2038,13 @@
             ],
             "description": "Who the player plays in this run; null until filed"
           },
+          "notes": {
+            "description": "The player's own notes on this run",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "game": {
             "type": "object",
             "properties": {
@@ -1991,6 +2055,20 @@
                 "type": "string"
               },
               "platform": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "description": "What it is, as the game describes it",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "notes": {
+                "description": "The player's own notes",
                 "type": [
                   "string",
                   "null"
@@ -2036,6 +2114,8 @@
               "id",
               "title",
               "platform",
+              "description",
+              "notes",
               "sources",
               "itemKinds"
             ],
@@ -2053,6 +2133,7 @@
           "language",
           "lastPlayedOn",
           "character",
+          "notes",
           "game",
           "url"
         ],
@@ -2153,6 +2234,20 @@
               "null"
             ]
           },
+          "description": {
+            "description": "What the quest is about, as the game describes it",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "description": "The player's own notes",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "location": {
             "description": "Where it started",
             "type": [
@@ -2194,6 +2289,8 @@
           "name",
           "localName",
           "giver",
+          "description",
+          "notes",
           "location",
           "status",
           "nextStep",
@@ -2228,6 +2325,20 @@
             "type": "string"
           },
           "localName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "description": "What it is, as the game describes it",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "notes": {
+            "description": "The player's own notes",
             "type": [
               "string",
               "null"
@@ -2364,6 +2475,8 @@
           "id",
           "name",
           "localName",
+          "description",
+          "notes",
           "kind",
           "quantity",
           "attributes",
@@ -2412,6 +2525,13 @@
             "type": "string"
           },
           "localName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "description": "What it is, as the game describes it",
             "type": [
               "string",
               "null"
@@ -2566,6 +2686,7 @@
           "kind",
           "name",
           "localName",
+          "description",
           "location",
           "status",
           "attempts",
@@ -2607,6 +2728,13 @@
           "takenOn": {
             "type": "string",
             "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+          },
+          "notes": {
+            "description": "The player's own notes",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "level": {
             "type": [
@@ -2656,6 +2784,7 @@
         "required": [
           "id",
           "takenOn",
+          "notes",
           "level",
           "stats"
         ],
@@ -2757,6 +2886,13 @@
               "null"
             ]
           },
+          "notes": {
+            "description": "The player's own notes",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "rank": {
             "type": "number",
             "description": "1 is first"
@@ -2808,6 +2944,7 @@
           "current",
           "item",
           "text",
+          "notes",
           "rank",
           "status",
           "suggested",
@@ -2897,6 +3034,12 @@
           "summary": {
             "type": "string"
           },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2906,6 +3049,7 @@
           "id",
           "playedOn",
           "summary",
+          "notes",
           "url"
         ],
         "additionalProperties": false
@@ -2939,6 +3083,12 @@
           "summary": {
             "type": "string"
           },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "url": {
             "type": "string",
             "description": "Its page in the web app, as an absolute URL"
@@ -2955,6 +3105,7 @@
           "id",
           "playedOn",
           "summary",
+          "notes",
           "url",
           "transcript",
           "playthrough"
@@ -3135,6 +3286,20 @@
                     "null"
                   ]
                 },
+                "description": {
+                  "description": "What the quest is about, as the game describes it",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "notes": {
+                  "description": "The player's own notes",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "location": {
                   "description": "Where it started",
                   "type": [
@@ -3183,6 +3348,8 @@
                 "name",
                 "localName",
                 "giver",
+                "description",
+                "notes",
                 "location",
                 "status",
                 "nextStep",
@@ -3305,6 +3472,13 @@
                 ],
                 "description": "Who the player plays in this run; null until filed"
               },
+              "notes": {
+                "description": "The player's own notes on this run",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
               "game": {
                 "type": "object",
                 "properties": {
@@ -3315,6 +3489,20 @@
                     "type": "string"
                   },
                   "platform": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "description": {
+                    "description": "What it is, as the game describes it",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notes": {
+                    "description": "The player's own notes",
                     "type": [
                       "string",
                       "null"
@@ -3360,6 +3548,8 @@
                   "id",
                   "title",
                   "platform",
+                  "description",
+                  "notes",
                   "sources",
                   "itemKinds"
                 ],
@@ -3383,6 +3573,7 @@
               "language",
               "lastPlayedOn",
               "character",
+              "notes",
               "game",
               "url",
               "createdGame",

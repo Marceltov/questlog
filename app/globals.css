@@ -217,6 +217,11 @@ body::before {
 
 /* A group within a section (weapons, bosses): smaller than the section's title, on the same frosted backing so it reads over the
    backdrop. */
+/* The player's own notes (ADR 0011): their words, set apart from what the game says, paragraphs kept. */
+.player-note {
+  @apply mt-1 border-l-2 border-accent pl-2 text-sm whitespace-pre-line italic;
+}
+
 .group-title {
   @apply glass mb-1.5 w-fit rounded-full px-2.5 py-0.5 text-sm font-semibold text-muted;
 }

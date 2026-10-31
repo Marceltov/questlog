@@ -17,6 +17,8 @@ export interface Schema {
     item_kinds: Json;
     sources: Json;
     created_at: number;
+    description: string | null;
+    notes: string | null;
   };
   playthroughs: {
     id: string;
@@ -30,8 +32,18 @@ export interface Schema {
     character_class: string | null;
     character_local_class: string | null;
     created_at: number;
+    notes: string | null;
   };
-  sessions: { id: string; player_id: string; playthrough_id: string; played_on: string; summary: string; transcript: string; created_at: number };
+  sessions: {
+    id: string;
+    player_id: string;
+    playthrough_id: string;
+    played_on: string;
+    summary: string;
+    transcript: string;
+    created_at: number;
+    notes: string | null;
+  };
   quests: {
     id: string;
     player_id: string;
@@ -46,6 +58,8 @@ export interface Schema {
     session_id: string | null;
     created_at: number;
     updated_at: number;
+    description: string | null;
+    notes: string | null;
   };
   quest_entries: {
     id: string;
@@ -75,6 +89,7 @@ export interface Schema {
     reached_on: string | null;
     created_at: number;
     updated_at: number;
+    notes: string | null;
   };
   stat_snapshots: {
     id: string;
@@ -85,6 +100,7 @@ export interface Schema {
     level: number | null;
     stats: Json;
     created_at: number;
+    notes: string | null;
   };
   items: {
     id: string;
@@ -104,6 +120,8 @@ export interface Schema {
     attributes: Json;
     created_at: number;
     updated_at: number;
+    description: string | null;
+    notes: string | null;
   };
   codex: {
     id: string;
@@ -126,6 +144,7 @@ export interface Schema {
     sources: Json;
     created_at: number;
     updated_at: number;
+    description: string | null;
   };
   item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

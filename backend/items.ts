@@ -13,6 +13,10 @@ export type ItemView = {
   id: string;
   name: string;
   localName: string | null;
+  /** What it is, as the game describes it (ADR 0011). */
+  description: string | null;
+  /** The player's own notes on it. */
+  notes: string | null;
   /** The key of one of the game's inventory groups (ItemKind). */
   kind: string | null;
   /** How many the player has, for what comes in numbers; null when it isn't counted. */
@@ -55,6 +59,8 @@ export async function itemsOf(
     id: r.id,
     name: r.name,
     localName: r.local_name,
+    description: r.description,
+    notes: r.notes,
     kind: r.kind,
     quantity: r.quantity,
     attributes: JSON.parse(r.attributes) as Attributes,

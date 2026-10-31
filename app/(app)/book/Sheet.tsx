@@ -14,6 +14,7 @@ import {
   type QuestView,
 } from "@/backend";
 import { copy } from "@/components/copy";
+import { Notes } from "@/components/Notes";
 
 // A link's site, for a source without a title.
 const siteOf = (url: string) => {
@@ -61,6 +62,8 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {t.character.localClass && <span className="text-sm text-muted"> · {t.character.localClass}</span>}
           </p>
         )}
+        <Notes description={t.game.description} notes={t.game.notes} />
+        <Notes notes={t.notes} />
         {t.game.sources.length > 0 && (
           <p className="mt-1 text-sm text-muted">
             {copy.sources}:{" "}
@@ -85,6 +88,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               <Link href={last.url} className="card block hover:border-accent">
                 <span className="text-sm text-muted">{last.playedOn}</span>
                 <p>{last.summary}</p>
+                <Notes notes={last.notes} />
               </Link>
             </section>
           )}
@@ -166,6 +170,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                         </span>
                       </div>
                       {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
+                      <Notes notes={g.notes} />
                       {(measured || g.status === "reached") && (
                         <div className="goal-track" role="presentation">
                           <div className="goal-fill" style={{ width: `${share * 100}%` }} />
@@ -188,6 +193,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                     {current.takenOn}
                     {current.level !== null ? ` · ${copy.level(current.level)}` : ""}
                   </p>
+                  <Notes notes={current.notes} />
                   <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-1">
                     {current.stats.map((s) => (
                       <div key={s.key} className="flex justify-between gap-2">
@@ -262,6 +268,7 @@ function Quests({ quests }: { quests: QuestView[] }) {
             <span className="text-xs font-bold text-muted uppercase">{q.status === "blocked" ? copy.waitingOnGame : copy.questStatus[q.status]}</span>
           </div>
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
+          <Notes description={q.description} notes={q.notes} />
           {q.entries.length > 0 && (
             <ul className="mt-2 space-y-1 text-sm">
               {q.entries.map((e) => (
@@ -325,7 +332,9 @@ function Item({ item: i }: { item: ItemView }) {
           )
         );
       })}
+      <Notes description={i.description} />
       {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
+      <Notes notes={i.notes} />
       {i.sources.length > 0 && (
         <ul className="mt-1 space-y-0.5 text-sm text-muted">
           {i.sources.map((x) => (
@@ -373,8 +382,9 @@ function CodexEntry({ entry: e }: { entry: CodexView }) {
           )}
         </p>
       )}
+      <Notes description={e.description} />
       {e.strategy && <p className="mt-1 text-sm">{e.strategy}</p>}
-      {e.notes && <p className="mt-1 text-sm text-muted">{e.notes}</p>}
+      <Notes notes={e.notes} />
       {EFFECTS.map((effect) => {
         const list = e.counters.filter((c) => c.effect === effect);
         return (

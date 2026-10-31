@@ -32,10 +32,13 @@ export const PlaythroughJson = z
       .object({ name: z.string().nullable(), class: z.string().nullable(), localClass: z.string().nullable().describe("The class in the game's own language") })
       .nullable()
       .describe("Who the player plays in this run; null until filed"),
+    notes: z.string().nullable().describe("The player's own notes on this run"),
     game: z.object({
       id: z.string(),
       title: z.string(),
       platform: z.string().nullable(),
+      description: z.string().nullable().describe("What it is, as the game describes it"),
+      notes: z.string().nullable().describe("The player's own notes"),
       sources: z.array(SourceJson).describe("The sites the player trusts for this game"),
       itemKinds: z
         .array(z.object({ key: z.string().describe("What an item's kind holds"), name: z.string(), localName: z.string().nullable() }))
@@ -64,6 +67,8 @@ export const QuestJson = z
     name: z.string(),
     localName: z.string().nullable().describe("The name in the game's own language"),
     giver: z.string().nullable(),
+    description: z.string().nullable().describe("What the quest is about, as the game describes it"),
+    notes: z.string().nullable().describe("The player's own notes"),
     location: z.string().nullable().describe("Where it started"),
     status: z.enum(QUEST_STATUSES),
     nextStep: z.string().nullable().describe("The latest next step the request may show"),
@@ -79,6 +84,8 @@ export const ItemJson = z
     id: z.string(),
     name: z.string(),
     localName: z.string().nullable(),
+    description: z.string().nullable().describe("What it is, as the game describes it"),
+    notes: z.string().nullable().describe("The player's own notes"),
     kind: z.string().nullable().describe("The key of one of the game's inventory groups"),
     quantity: z.number().nullable().describe("How many the player has; null when it isn't counted"),
     attributes: z.record(z.string(), z.union([z.string(), z.number()])).describe("Its numbers, by the game's names"),
@@ -108,6 +115,7 @@ export const CodexJson = z
     kind: z.enum(CODEX_KINDS),
     name: z.string(),
     localName: z.string().nullable(),
+    description: z.string().nullable().describe("What it is, as the game describes it"),
     location: z.string().nullable().describe("Where the player met it"),
     status: z.enum(CODEX_STATUSES),
     attempts: z.number().nullable().describe("A boss: the player's tries so far"),
@@ -154,6 +162,7 @@ export const GoalJson = z
     current: z.number().nullable().describe("Where the latest snapshot is, for a stat or level goal"),
     item: z.object({ id: z.string(), name: z.string(), url: Url }).nullable().describe("An item goal's item"),
     text: z.string().nullable().describe("A note goal's goal, or why"),
+    notes: z.string().nullable().describe("The player's own notes"),
     rank: z.number().describe("1 is first"),
     status: z.enum(GOAL_STATUSES),
     suggested: z.boolean().describe("Proposed by Claude or a guide, not agreed to by the player yet"),
@@ -166,6 +175,7 @@ const SnapshotJson = z
   .object({
     id: z.string(),
     takenOn: Day,
+    notes: z.string().nullable().describe("The player's own notes"),
     level: z.number().nullable(),
     stats: z.array(
       z.object({
@@ -187,7 +197,9 @@ export const BuildJson = z
   })
   .meta({ id: "Build", description: "The build plan, its goals and the stat snapshots" });
 
-const SessionSummaryJson = z.object({ id: z.string(), playedOn: Day, summary: z.string(), url: Url }).meta({ id: "SessionSummary" });
+const SessionSummaryJson = z
+  .object({ id: z.string(), playedOn: Day, summary: z.string(), notes: z.string().nullable(), url: Url })
+  .meta({ id: "SessionSummary" });
 export const SessionListJson = z.object({ sessions: z.array(SessionSummaryJson).describe("Newest first") }).meta({ id: "SessionList" });
 export const SessionJson = SessionSummaryJson.extend({ transcript: z.string().describe("What the player said, verbatim"), playthrough: PlaythroughJson }).meta({
   id: "Session",

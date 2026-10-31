@@ -8,6 +8,7 @@ import type { Schema } from "./db/schema";
 import { AmbiguousError, InvalidInputError, NotFoundError } from "./errors";
 import { getPlaythrough } from "./games";
 import { norm } from "./names";
+import { addNote } from "./notes";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
 import { CODEX_KINDS, EFFECTS, type CodexKind, type CodexStatus, type Effect, type Player, type Source, type SourceInput, type SpoilerLevel } from "./types";
@@ -21,6 +22,8 @@ export type CodexView = {
   name: string;
   localName: string | null;
   location: string | null;
+  /** What it is, as the game or a guide puts it (ADR 0011). */
+  description: string | null;
   status: CodexStatus;
   /** A boss's tries so far, as the player counts them. */
   attempts: number | null;
@@ -29,6 +32,7 @@ export type CodexView = {
   resistances: string[];
   /** How to go about it, in the player's terms or from a guide (then with its source). */
   strategy: string | null;
+  /** The player's own notes. */
   notes: string | null;
   spoiler: SpoilerLevel;
   sources: Source[];
@@ -48,6 +52,9 @@ export type CodexInput = {
   weaknesses?: string[];
   resistances?: string[];
   strategy?: string;
+  /** What it is, as the game or a guide puts it; replaces the one it has. */
+  description?: string;
+  /** The player's own thoughts, added to its notes. */
   notes?: string;
   spoiler?: SpoilerLevel;
   sources?: SourceInput[];
@@ -106,6 +113,7 @@ export async function codexOf(
       name: r.name,
       localName: r.local_name,
       location: r.location,
+      description: r.description,
       status: r.status as CodexStatus,
       attempts: r.attempts,
       beatenOn: r.beaten_on,
@@ -198,7 +206,8 @@ export async function writeCodex(
           ...(c.location?.trim() ? { location: c.location.trim() } : {}),
           ...(c.attempts !== undefined ? { attempts: c.attempts } : {}),
           ...(c.strategy?.trim() ? { strategy: c.strategy.trim() } : {}),
-          ...(c.notes?.trim() ? { notes: c.notes.trim() } : {}),
+          ...(c.description?.trim() ? { description: c.description.trim() } : {}),
+          notes: addNote(existing.notes, c.notes),
           ...(c.spoiler ? { spoiler: c.spoiler } : {}),
           ...(c.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(existing.sources), c.sources, playedOn)) } : {}),
           updated_at: at,
@@ -241,7 +250,8 @@ export async function writeCodex(
         weaknesses: JSON.stringify(union([], c.weaknesses)),
         resistances: JSON.stringify(union([], c.resistances)),
         strategy: c.strategy?.trim() || null,
-        notes: c.notes?.trim() || null,
+        description: c.description?.trim() || null,
+        notes: addNote(null, c.notes),
         spoiler,
         sources: JSON.stringify(mergeSources([], c.sources ?? [], playedOn)),
         created_at: at,

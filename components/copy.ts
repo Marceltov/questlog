@@ -61,6 +61,7 @@ export const copy = {
   items: "Items",
   noItems: "No items recorded yet.",
   otherItems: "Other items",
+  yourNotes: "Your notes",
   quantity: (n: number) => `×${n}`,
   against: {
     "very good": "Very good against",

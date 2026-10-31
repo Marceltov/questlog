@@ -95,10 +95,13 @@ const PlaythroughJson = z.object({
     .object({ name: z.string().nullable(), class: z.string().nullable(), localClass: z.string().nullable().describe("The class in the game's own language") })
     .nullable()
     .describe("Who the player plays in this run; null until filed"),
+  notes: z.string().nullable().describe("The player's own notes on this run"),
   game: z.object({
     id: z.string(),
     title: z.string(),
     platform: z.string().nullable(),
+    description: z.string().nullable().describe("What it is, as the game describes it"),
+    notes: z.string().nullable().describe("The player's own notes"),
     sources: z.array(SourceJson).describe("The sites the player trusts for this game: where you look things up when they ask"),
     itemKinds: z
       .array(z.object({ key: z.string().describe("What an item's kind holds"), name: z.string(), localName: z.string().nullable() }))
@@ -120,6 +123,8 @@ const QuestJson = z.object({
   name: z.string(),
   localName: z.string().nullable().describe("The name in the game's own language"),
   giver: z.string().nullable(),
+  description: z.string().nullable().describe("What the quest is about, as the game describes it"),
+  notes: z.string().nullable().describe("The player's own notes"),
   location: z.string().nullable().describe("Where it started"),
   status: z.enum(QUEST_STATUSES),
   nextStep: z.string().nullable().describe("The latest next step this call may show"),
@@ -138,6 +143,8 @@ const ItemJson = z.object({
   id: z.string(),
   name: z.string(),
   localName: z.string().nullable(),
+  description: z.string().nullable().describe("What it is, as the game describes it"),
+  notes: z.string().nullable().describe("The player's own notes"),
   kind: z.string().nullable(),
   verdict: z.string().nullable(),
   quantity: z.number().nullable().describe("How many the player has; null when it isn't counted"),
@@ -162,6 +169,7 @@ const CodexJson = z.object({
   kind: z.enum(CODEX_KINDS),
   name: z.string(),
   localName: z.string().nullable(),
+  description: z.string().nullable().describe("What it is, as the game describes it"),
   location: z.string().nullable().describe("Where the player met it"),
   status: z.enum(CODEX_STATUSES),
   attempts: z.number().nullable().describe("A boss: the player's tries so far"),
@@ -207,13 +215,20 @@ const GoalJson = z.object({
   current: z.number().nullable().describe("Where the latest snapshot is, for a stat or level goal"),
   item: z.object({ id: z.string(), name: z.string(), url: Url }).nullable(),
   text: z.string().nullable().describe("A note goal's goal, or why"),
+  notes: z.string().nullable().describe("The player's own notes"),
   rank: z.number().describe("1 is first"),
   status: z.enum(GOAL_STATUSES),
   suggested: z.boolean().describe("Proposed by you or a guide; the player hasn't agreed yet"),
   reachedOn: Day.nullable(),
 });
 const goalJson = (g: GoalView): z.input<typeof GoalJson> => ({ ...g, label: goalLabel(g), stat: g.stat?.key ?? null });
-const SnapshotJson = z.object({ id: z.string().describe("For correct"), takenOn: Day, level: z.number().nullable(), stats: z.array(StatJson) });
+const SnapshotJson = z.object({
+  id: z.string().describe("For correct"),
+  takenOn: Day,
+  level: z.number().nullable(),
+  stats: z.array(StatJson),
+  notes: z.string().nullable().describe("The player's own notes"),
+});
 
 const playthroughJson = (t: PlaythroughView): z.input<typeof PlaythroughJson> => t;
 const questJson = (q: QuestView): z.input<typeof QuestJson> => q;
@@ -305,7 +320,7 @@ const PlaythroughRefInput = {
 
 const BriefingJson = z.object({
   playthrough: PlaythroughJson.nullable().describe("Null when the player has no playthrough yet (of that game)"),
-  lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), url: Url }).nullable(),
+  lastSession: z.object({ id: z.string(), playedOn: Day, summary: z.string(), notes: z.string().nullable(), url: Url }).nullable(),
   openQuests: z.array(QuestJson.extend({ lastLog: EntryJson.nullable() })).describe("Open first, then blocked"),
   build: z.object({
     plan: PlanJson.nullable(),

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/backend";
+import { Notes } from "@/components/Notes";
 import { copy } from "@/components/copy";
 import { orNotFound, pagePlayer } from "../../viewer";
 
@@ -15,6 +16,7 @@ export default async function SessionPage({ params }: PageProps<"/s/[id]">) {
         </Link>
         <h1 className="mt-2 text-2xl font-bold">{s.playedOn}</h1>
         <p className="mt-1 text-muted">{s.summary}</p>
+        <Notes notes={s.notes} />
       </div>
       <h2 className="section-title mt-6 block w-fit">{copy.transcript}</h2>
       <blockquote className="card whitespace-pre-wrap">{s.transcript}</blockquote>
