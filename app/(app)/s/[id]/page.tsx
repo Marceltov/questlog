@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { getSession } from "@/backend";
 import { Notes } from "@/components/Notes";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 import { orNotFound, pagePlayer } from "../../viewer";
 
 export const dynamic = "force-dynamic";
 
 export default async function SessionPage({ params }: PageProps<"/s/[id]">) {
+  const copy = await serverCopy();
   const s = await orNotFound(getSession(await pagePlayer(), (await params).id));
   return (
     <div className="px-4 pt-6 pb-16 lg:px-8">

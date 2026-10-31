@@ -4,7 +4,7 @@
 import { useState } from "react";
 import type { RefusedSignIn } from "@/backend";
 import { authClient } from "./auth-client";
-import { copy } from "./copy";
+import { useCopy } from "./copy/client";
 
 type Methods = { emailCode: boolean; providers: { id: string; label: string }[] };
 
@@ -29,6 +29,7 @@ export function LoginForm({
   onSignedIn?: (email: string) => Promise<void>;
   refused?: RefusedSignIn | null;
 }) {
+  const copy = useCopy();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);

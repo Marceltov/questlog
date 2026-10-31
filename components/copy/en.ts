@@ -1,5 +1,5 @@
-// Every string the web app shows. English first (values V8); a second language would be a second object of the same shape.
-export const copy = {
+// Every string the web app shows, in English: the first language (values V8) and the shape every other one follows (index.ts).
+export const en = {
   appName: "questlog",
   tagline: "A spoiler-free quest log for the games you play.",
 
@@ -22,6 +22,7 @@ export const copy = {
   refused: (provider: string | null, code: string) => `${provider ?? "The sign-in provider"} refused the sign-in: ${code}`,
   signOut: "Sign out",
   updating: "Updating",
+  language: "Language",
 
   // Consent
   consentTitle: "Connect questlog",

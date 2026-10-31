@@ -4,7 +4,7 @@
 // the book just goes.
 import { useState } from "react";
 import type { RefusedSignIn } from "@/backend";
-import { copy } from "./copy";
+import { useCopy } from "./copy/client";
 import { LoginForm } from "./LoginForm";
 
 type Methods = { emailCode: boolean; providers: { id: string; label: string }[] };
@@ -13,6 +13,7 @@ type Methods = { emailCode: boolean; providers: { id: string; label: string }[] 
 const OPENING_MS = 1900;
 
 export function ClosedBook({ methods, next, refused }: { methods: Methods; next: string; refused?: RefusedSignIn | null }) {
+  const copy = useCopy();
   const [open, setOpen] = useState(false);
   const [keeper, setKeeper] = useState("");
 

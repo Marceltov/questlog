@@ -3,13 +3,16 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { clientName, signedInAs } from "@/backend";
 import { ConsentForm } from "@/components/ConsentForm";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 
-export const metadata: Metadata = { title: copy.consentTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await serverCopy()).consentTitle };
+}
 export const dynamic = "force-dynamic";
 
 // Better Auth sends the player here, signed in, with the client and its scopes in a signed query; ConsentForm answers it.
 export default async function ConsentPage({ searchParams }: PageProps<"/consent">) {
+  const copy = await serverCopy();
   const h = await headers();
   const who = await signedInAs(h);
   if (!who) redirect("/login");

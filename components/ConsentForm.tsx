@@ -2,9 +2,10 @@
 // Allow or deny an MCP client. oauthProviderClient sends this page's signed query along, which says what is being consented to.
 import { useState } from "react";
 import { authClient } from "./auth-client";
-import { copy } from "./copy";
+import { useCopy } from "./copy/client";
 
 export function ConsentForm() {
+  const copy = useCopy();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 

@@ -9,7 +9,7 @@
 // it turns ember once it is long enough, and letting go then fetches.
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
-import { copy } from "./copy";
+import { useCopy } from "./copy/client";
 
 const EVERY_MS = 20_000;
 const ARMED_PX = 64;
@@ -25,6 +25,7 @@ function scrolledAncestor(from: EventTarget | null, stop: HTMLElement): Element 
 }
 
 export function Follow({ children }: { children: ReactNode }) {
+  const copy = useCopy();
   const router = useRouter();
   // Two transitions: the quiet fetches show nothing, the one a pull started keeps the ribbon down until it is done.
   const [, startQuiet] = useTransition();

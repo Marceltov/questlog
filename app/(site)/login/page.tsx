@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { refusedSignIn, safeNext, signInMethods } from "@/backend";
 import { ClosedBook } from "@/components/ClosedBook";
-import { copy } from "@/components/copy";
+import { serverCopy } from "@/components/copy/server";
 
-export const metadata: Metadata = { title: copy.signInTitle };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await serverCopy()).signInTitle };
+}
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
