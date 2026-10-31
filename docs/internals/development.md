@@ -22,4 +22,4 @@ The tests that matter most:
 - `backend/tools.test.ts`: each MCP tool and its `next`.
 - `backend/auth/oauth.test.ts`: the whole sign-in over HTTP, from the first 401 on `/mcp` to the tools answering as the player.
 
-Docs: `uvx --with mkdocs-material==9.7.7 --with 'mkdocs<2' mkdocs serve`.
+Docs: `uvx --with mkdocs-material==9.7.7 --with 'mkdocs<2' --with mkdocs-static-i18n==1.3.1 mkdocs serve`.
