@@ -610,3 +610,29 @@ body::before {
 .register-panel [id] {
   scroll-margin-top: 4.5rem;
 }
+
+/* A part's groups at its top (components/Groups.tsx): chips in the part's colour, the one shown filled, bold and underlined, so it
+   differs in more than colour; each with how many it holds. They wrap onto a second line rather than scroll sideways, which would
+   fight the swipe that turns pages. */
+.groups {
+  @apply flex flex-wrap gap-2;
+}
+.group-chip {
+  @apply glass inline-flex items-center gap-1.5 rounded-full border py-1.5 pr-2 pl-3 text-sm font-medium text-ink;
+  border-color: color-mix(in oklab, var(--c, var(--accent)) 45%, var(--surface));
+}
+.group-chip svg {
+  @apply h-4 w-4;
+  color: color-mix(in oklab, var(--c, var(--accent)) 65%, var(--ink));
+}
+.group-chip[aria-pressed="true"] {
+  @apply font-bold underline decoration-2 underline-offset-4;
+  background: color-mix(in oklab, var(--c, var(--accent)) 38%, var(--surface));
+  border-color: color-mix(in oklab, var(--c, var(--accent)) 80%, var(--ink));
+}
+.group-chip:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ink;
+}
+.group-count {
+  @apply inline-block rounded-full bg-surface-2 px-1.5 text-xs font-semibold text-muted tabular-nums no-underline;
+}

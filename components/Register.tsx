@@ -20,6 +20,8 @@ export function Register({ tabs, start, label, children }: { tabs: Tab[]; start:
     const el = document.getElementById(elementId);
     const part = el && root.current?.contains(el) ? el.closest<HTMLElement>("[data-part]")?.dataset.part : null;
     if (!part) return false;
+    // Inside a group the row has hidden (components/Groups.tsx): show them all again first.
+    if (el?.closest("[data-group][hidden]")) el.dispatchEvent(new CustomEvent("questlog:reveal", { bubbles: true }));
     target.current = elementId;
     setAt(part);
     setFollowed((n) => n + 1);

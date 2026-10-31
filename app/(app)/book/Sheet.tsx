@@ -15,6 +15,7 @@ import {
 } from "@/backend";
 import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
+import { Groups } from "@/components/Groups";
 import { Register } from "@/components/Register";
 import { CODEX_ICONS, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
 import { CalendarDays, Crosshair, Footprints, Sparkles, Sword } from "lucide-react";
@@ -51,6 +52,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
   const open = [...threads.filter((q) => q.status === "open"), ...threads.filter((q) => q.status === "blocked")];
   const closed = all.filter((q) => q.status !== "open" && q.status !== "blocked");
   const current = build.snapshots[0];
+  const codexKinds = CODEX_KINDS.filter((k) => codex.some((e) => e.kind === k));
   const last = sessions[0];
   const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes"] as const).map((key) => {
     const Icon = PART_ICONS[key];
@@ -200,7 +202,14 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
         {items.length === 0 ? (
           <p className="card text-muted">{copy.noItems}</p>
         ) : (
-          <div className="space-y-6">
+          <Groups
+            label={copy.itemGroups}
+            all={copy.allGroups}
+            groups={groups.map(([label, key, list]) => {
+              const Icon = itemIcon(key);
+              return { key: key ?? "other", label, count: list.length, icon: <Icon aria-hidden="true" /> };
+            })}
+          >
             {groups.map(([label, key, list]) => (
               <div key={label}>
                 <Heading icon={itemIcon(key)}>{label}</Heading>
@@ -211,16 +220,23 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                 </ul>
               </div>
             ))}
-          </div>
+          </Groups>
         )}
 
         {codex.length === 0 ? (
           <p className="card text-muted">{copy.noCodex}</p>
         ) : (
-          <div className="space-y-6">
-            {CODEX_KINDS.map((k) => {
+          <Groups
+            label={copy.codexGroups}
+            all={copy.allGroups}
+            groups={codexKinds.map((k) => {
+              const Icon = CODEX_ICONS[k];
+              return { key: k, label: copy.codexKinds[k], count: codex.filter((e) => e.kind === k).length, icon: <Icon aria-hidden="true" /> };
+            })}
+          >
+            {codexKinds.map((k) => {
               const entries = codex.filter((e) => e.kind === k);
-              return entries.length === 0 ? null : (
+              return (
                 <div key={k}>
                   <Heading icon={CODEX_ICONS[k]}>{copy.codexKinds[k]}</Heading>
                   <ul className="grid gap-2 lg:grid-cols-2">
@@ -231,7 +247,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                 </div>
               );
             })}
-          </div>
+          </Groups>
         )}
 
         {sessions.length === 0 ? (
