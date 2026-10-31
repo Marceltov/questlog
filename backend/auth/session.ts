@@ -46,6 +46,7 @@ export const openIdConfigRoute = async (req: Request): Promise<Response> => oaut
 
 /** The sign-in methods this instance offers, for the sign-in page. */
 export { signInMethods } from "./methods";
+export { refusedSignIn, type RefusedSignIn } from "./refused";
 
 /** The name of the OAuth client a consent page asks about; null when it isn't known. */
 export async function clientName(headers: Headers, clientId: string): Promise<string | null> {
