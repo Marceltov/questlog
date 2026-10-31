@@ -148,5 +148,9 @@ export interface Schema {
   };
   /** Messages a player sent to the in-app chat on a day, against QUESTLOG_CHAT_DAILY_LIMIT (ADR 0013). */
   chat_usage: { player_id: string; day: string; count: number };
+  /** A game's tags (ADR 0014): one per name, `norm` unique within the game. */
+  tags: { id: string; player_id: string; game_id: string; name: string; norm: string; created_at: number };
+  /** Which item, codex entry or quest carries a tag. */
+  tag_links: { tag_id: string; player_id: string; what: string; row_id: string };
   item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

@@ -11,6 +11,7 @@ import { norm } from "./names";
 import { addNote } from "./notes";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
+import { tagsOf } from "./tags";
 import { CODEX_KINDS, EFFECTS, type CodexKind, type CodexStatus, type Effect, type Player, type Source, type SourceInput, type SpoilerLevel } from "./types";
 import { codexPath, itemPath } from "./urls";
 
@@ -38,6 +39,8 @@ export type CodexView = {
   sources: Source[];
   /** The player's items rated against it, best first (very good to very bad), with how many they have. */
   counters: { item: { id: string; name: string; kind: string | null; quantity: number | null; url: string }; effect: Effect; note: string | null }[];
+  /** Its tags (ADR 0014), by name. */
+  tags: string[];
   url: string;
 };
 
@@ -58,6 +61,8 @@ export type CodexInput = {
   notes?: string;
   spoiler?: SpoilerLevel;
   sources?: SourceInput[];
+  /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
+  tags?: string[];
 };
 
 export type FiledCodex = {
@@ -83,7 +88,13 @@ const union = (before: string[], added: string[] | undefined) => {
 export async function codexOf(
   p: Player,
   playthroughId: string,
-  opts: { kind?: CodexKind; name?: string; reveal?: SpoilerLevel; statuses?: readonly CodexStatus[] } = {},
+  opts: {
+    kind?: CodexKind;
+    name?: string;
+    reveal?: SpoilerLevel;
+    statuses?: readonly CodexStatus[];
+    /** Only entries that carry this tag. */ tag?: string;
+  } = {},
 ): Promise<CodexView[]> {
   await getPlaythrough(p, playthroughId); // NotFoundError for another player's
   const d = await db();
@@ -92,7 +103,14 @@ export async function codexOf(
   if (opts.kind) q = q.where("kind", "=", opts.kind);
   if (opts.statuses) q = q.where("status", "in", [...opts.statuses]);
   const name = opts.name ? norm(opts.name) : "";
-  const rows = (await q.execute()).filter((r) => !name || r.norm.includes(name) || (r.local_name && norm(r.local_name).includes(name)));
+  const named = (await q.execute()).filter((r) => !name || r.norm.includes(name) || (r.local_name && norm(r.local_name).includes(name)));
+  const tags = await tagsOf(
+    d,
+    p,
+    "codex",
+    named.map((r) => r.id),
+  );
+  const rows = opts.tag ? named.filter((r) => (tags.get(r.id) ?? []).some((t) => norm(t) === norm(opts.tag!))) : named;
   const counters = await countersOf(
     d,
     p,
@@ -126,6 +144,7 @@ export async function codexOf(
       counters: counters
         .filter((c) => c.codexId === r.id)
         .map(({ item, effect, note }) => ({ item: { ...item, url: itemPath(playthroughId, item.id) }, effect, note })),
+      tags: tags.get(r.id) ?? [],
       url: codexPath(playthroughId, r.id),
     }));
 }

@@ -12,6 +12,7 @@ import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
 import { addNote } from "./notes";
 import { seen } from "./spoilers";
+import { setTags } from "./tags";
 import { mergeSources, parseSources } from "./sources";
 import type { Attributes, EntryKind, GoalKind, ItemKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
@@ -21,6 +22,8 @@ export type QuestInput = {
   name: string;
   localName?: string;
   giver?: string;
+  /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
+  tags?: string[];
   location?: string;
   status?: QuestStatus;
   /** What the quest is about, as the game puts it; replaces the one it has. */
@@ -45,6 +48,8 @@ export type ItemInput = {
   spoiler?: SpoilerLevel;
   /** Pages its facts come from; merged into those it has, by link. */
   sources?: SourceInput[];
+  /** Its tags by name (ADR 0014): replaces those it has; left out keeps them. */
+  tags?: string[];
   /** How many the player has now. */
   quantity?: number;
   /** Its numbers, by the game's names; merged into those it has. */
@@ -104,6 +109,8 @@ export type Recorded = {
   items: FiledItem[];
   /** Inventory groups this call added to the game, by an item's new kind or by itemKinds. */
   newItemKinds: ItemKind[];
+  /** Tags this call made for the game (ADR 0014). */
+  newTags: string[];
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
   goals: FiledGoal[];
@@ -214,6 +221,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
 
     // The same name twice in one call is one quest (or item): the second mention adds to the first.
     const quests: FiledQuest[] = [];
+    const newTags: string[] = [];
     for (const q of input.quests ?? []) {
       const name = q.name.trim();
       // Look-ups for a write go through the gate too: only the player's own rows, whatever their spoiler level.
@@ -275,6 +283,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             created_at: at,
           })
           .execute();
+      if (q.tags) newTags.push(...(await setTags(trx, p, t.game.id, "quest", id, q.tags)));
       const filed = entries.map((e) => ({ kind: e.kind, spoiler: e.spoiler ?? ("none" as const) }));
       const before = quests.find((x) => x.id === id);
       if (before) {
@@ -342,6 +351,8 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
     }
 
     const codex = input.codex?.length ? await writeCodex(trx, p, t.id, sessionId, playedOn, input.codex) : [];
+    // writeCodex files one entry per input, in order.
+    for (const [n, c] of (input.codex ?? []).entries()) if (c.tags) newTags.push(...(await setTags(trx, p, t.game.id, "codex", codex[n].id, c.tags)));
 
     const kindsBefore = t.game.itemKinds.map((k) => k.key);
     if (input.itemKinds?.length) await setItemKinds(trx, p, t.game.id, input.itemKinds, "merge");
@@ -405,6 +416,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
           .execute();
       }
       if (i.against?.length) await writeUses(trx, p, t.id, id, i.against);
+      if (i.tags) newTags.push(...(await setTags(trx, p, t.game.id, "item", id, i.tags)));
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 
@@ -431,6 +443,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       quests,
       items,
       newItemKinds: itemKinds.filter((k) => !kindsBefore.includes(k.key)),
+      newTags: [...new Set(newTags)],
       stats,
       build: build || goals.length > 0,
       goals,

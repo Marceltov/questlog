@@ -20,8 +20,8 @@ export function Register({ tabs, start, label, children }: { tabs: Tab[]; start:
     const el = document.getElementById(elementId);
     const part = el && root.current?.contains(el) ? el.closest<HTMLElement>("[data-part]")?.dataset.part : null;
     if (!part) return false;
-    // Inside a group the row has hidden (components/Groups.tsx): show them all again first.
-    if (el?.closest("[data-group][hidden]")) el.dispatchEvent(new CustomEvent("questlog:reveal", { bubbles: true }));
+    // On a card a tag hid, or in a group it emptied (components/TagFilter.tsx): show them all again first.
+    if (el?.closest("[data-tags][hidden], [data-tag-scope][hidden]")) el.dispatchEvent(new CustomEvent("questlog:reveal", { bubbles: true }));
     // Inside a folded group: unfold it.
     for (let d = el?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
     target.current = elementId;

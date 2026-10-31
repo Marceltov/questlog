@@ -317,6 +317,43 @@ const migrations: Record<string, Migration> = {
         .execute();
     },
   },
+  "007_tags": {
+    // ADR 0014: a game's tags, made up as they're needed, and which items, codex entries and quests carry them. A link points into one
+    // of three tables, so no foreign key holds it: triggers delete a row's links with the row (also when a playthrough's cascade takes
+    // it), and a tag with no links left.
+    async up(db: Kysely<any>) {
+      await db.schema
+        .createTable("tags")
+        .addColumn("id", "text", (c) => c.primaryKey())
+        .addColumn("player_id", "text", (c) => c.notNull())
+        .addColumn("game_id", "text", (c) => c.notNull().references("games.id").onDelete("cascade"))
+        .addColumn("name", "text", (c) => c.notNull())
+        .addColumn("norm", "text", (c) => c.notNull())
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex("tags_by_name").on("tags").columns(["game_id", "norm"]).unique().execute();
+      await db.schema
+        .createTable("tag_links")
+        .addColumn("tag_id", "text", (c) => c.notNull().references("tags.id").onDelete("cascade"))
+        .addColumn("player_id", "text", (c) => c.notNull())
+        .addColumn("what", "text", (c) => c.notNull().check(oneOf("what", ["item", "codex", "quest"])))
+        .addColumn("row_id", "text", (c) => c.notNull())
+        .addPrimaryKeyConstraint("tag_links_pk", ["tag_id", "what", "row_id"])
+        .execute();
+      await db.schema.createIndex("tag_links_by_row").on("tag_links").columns(["what", "row_id"]).execute();
+      for (const [table, what] of [
+        ["items", "item"],
+        ["codex", "codex"],
+        ["quests", "quest"],
+      ])
+        await sql`create trigger ${sql.raw(`${table}_untag`)} after delete on ${sql.table(table)} begin
+          delete from tag_links where what = ${sql.lit(what)} and row_id = old.id;
+        end`.execute(db);
+      await sql`create trigger tags_unused after delete on tag_links begin
+        delete from tags where id = old.tag_id and not exists (select 1 from tag_links where tag_id = old.tag_id);
+      end`.execute(db);
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

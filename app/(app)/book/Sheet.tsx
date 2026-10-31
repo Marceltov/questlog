@@ -7,6 +7,7 @@ import {
   itemsOf,
   questsOf,
   sessionsOf,
+  tagsInUse,
   type CodexView,
   type ItemView,
   type Player,
@@ -15,7 +16,7 @@ import {
 } from "@/backend";
 import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
-import { Groups } from "@/components/Groups";
+import { TagFilter } from "@/components/TagFilter";
 import { Register } from "@/components/Register";
 import { CODEX_ICONS, Group, Heading, itemIcon, PART_ICONS, QUEST_ICONS, Tile } from "@/components/icons";
 import { TalkAbout } from "@/components/chat/Chat";
@@ -181,75 +182,67 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
           </section>
         </div>
 
-        <div className="space-y-6">
-          <section>
-            <div className="mb-2 flex items-baseline justify-between">
-              <Heading icon={QUEST_ICONS.open} className="mb-0">
-                {copy.openQuests}
-              </Heading>
-              <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
-                {reveal === "hint" ? copy.hideHints : copy.showHints}
-              </Link>
-            </div>
-            {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
-            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} run={t.id} />}
-          </section>
-          {closed.length > 0 && (
-            <section>
-              <Heading icon={QUEST_ICONS.done}>{copy.closedQuests}</Heading>
-              <Quests quests={closed} run={t.id} />
+        <TagFilter tags={tagsInUse([...open, ...closed])} label={copy.tags}>
+          <div className="space-y-6">
+            <section data-tag-scope>
+              <div className="mb-2 flex items-baseline justify-between">
+                <Heading icon={QUEST_ICONS.open} className="mb-0">
+                  {copy.openQuests}
+                </Heading>
+                <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
+                  {reveal === "hint" ? copy.hideHints : copy.showHints}
+                </Link>
+              </div>
+              {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
+              {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} run={t.id} />}
             </section>
-          )}
-        </div>
+            {closed.length > 0 && (
+              <section data-tag-scope>
+                <Heading icon={QUEST_ICONS.done}>{copy.closedQuests}</Heading>
+                <Quests quests={closed} run={t.id} />
+              </section>
+            )}
+          </div>
+        </TagFilter>
 
         {/* The inventory in the game's groups; on a wide screen two columns of cards. */}
         {items.length === 0 ? (
           <p className="card text-muted">{copy.noItems}</p>
         ) : (
-          <Groups
-            label={copy.itemGroups}
-            all={copy.allGroups}
-            groups={groups.map(([label, key, list]) => {
-              const Icon = itemIcon(key);
-              return { key: key ?? "other", label, count: list.length, icon: <Icon aria-hidden="true" /> };
-            })}
-          >
-            {groups.map(([label, key, list]) => (
-              <Group key={label} icon={itemIcon(key)} label={label} count={list.length}>
-                <ul className="grid gap-2 lg:grid-cols-2">
-                  {list.map((i) => (
-                    <Item key={i.id} item={i} run={t.id} />
-                  ))}
-                </ul>
-              </Group>
-            ))}
-          </Groups>
+          <TagFilter tags={tagsInUse(items)} label={copy.tags}>
+            <div className="space-y-6">
+              {groups.map(([label, key, list]) => (
+                <Group key={label} icon={itemIcon(key)} label={label} count={list.length}>
+                  <ul className="grid gap-2 lg:grid-cols-2">
+                    {list.map((i) => (
+                      <Item key={i.id} item={i} run={t.id} />
+                    ))}
+                  </ul>
+                </Group>
+              ))}
+            </div>
+          </TagFilter>
         )}
 
         {codex.length === 0 ? (
           <p className="card text-muted">{copy.noCodex}</p>
         ) : (
-          <Groups
-            label={copy.codexGroups}
-            all={copy.allGroups}
-            groups={codexKinds.map((k) => {
-              const Icon = CODEX_ICONS[k];
-              return { key: k, label: copy.codexKinds[k], count: codex.filter((e) => e.kind === k).length, icon: <Icon aria-hidden="true" /> };
-            })}
-          >
-            {codexKinds.map((k) => {
-              const entries = codex.filter((e) => e.kind === k);
-              return (
-                <Group key={k} icon={CODEX_ICONS[k]} label={copy.codexKinds[k]} count={entries.length}>
-                  <ul className="grid gap-2 lg:grid-cols-2">
-                    {entries.map((e) => (
-                      <CodexEntry key={e.id} entry={e} run={t.id} />
-                    ))}
-                  </ul>
-                </Group>
-              );
-            })}
-          </Groups>
+          <TagFilter tags={tagsInUse(codex)} label={copy.tags}>
+            <div className="space-y-6">
+              {codexKinds.map((k) => {
+                const entries = codex.filter((e) => e.kind === k);
+                return (
+                  <Group key={k} icon={CODEX_ICONS[k]} label={copy.codexKinds[k]} count={entries.length}>
+                    <ul className="grid gap-2 lg:grid-cols-2">
+                      {entries.map((e) => (
+                        <CodexEntry key={e.id} entry={e} run={t.id} />
+                      ))}
+                    </ul>
+                  </Group>
+                );
+              })}
+            </div>
+          </TagFilter>
         )}
 
         {sessions.length === 0 ? (
@@ -380,7 +373,7 @@ async function Quests({ quests, run }: { quests: QuestView[]; run: string }) {
   return (
     <ul className="space-y-2">
       {quests.map((q) => (
-        <li key={q.id} id={`quest-${q.id}`} className="card">
+        <li key={q.id} id={`quest-${q.id}`} className="card" {...tagData(q.tags)}>
           <div className="card-head">
             <Tile icon={QUEST_ICONS[q.status]} muted={q.status !== "open"} />
             <span className="flex-1 font-semibold">
@@ -391,6 +384,7 @@ async function Quests({ quests, run }: { quests: QuestView[]; run: string }) {
             <TalkAbout kind="quest" id={q.id} name={q.name} playthroughId={run} />
           </div>
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
+          <Tags tags={q.tags} />
           <Notes description={q.description} notes={q.notes} />
           {q.entries.length > 0 && (
             <ul className="mt-2 space-y-1 text-sm">
@@ -410,12 +404,28 @@ async function Quests({ quests, run }: { quests: QuestView[]; run: string }) {
   );
 }
 
+// `data-tags` for a card the tag row (components/TagFilter.tsx) filters: its tags, as JSON.
+const tagData = (tags: string[]) => ({ "data-tags": JSON.stringify(tags) });
+
+// A card's tags (ADR 0014), small, after what says where it is.
+function Tags({ tags }: { tags: string[] }) {
+  return (
+    tags.length > 0 && (
+      <ul className="card-tags">
+        {tags.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    )
+  );
+}
+
 // One thing in the inventory: its count, its numbers as the game shows them, and what it is good against.
 async function Item({ item: i, run }: { item: ItemView; run: string }) {
   const copy = await serverCopy();
   const numbers = Object.entries(i.attributes);
   return (
-    <li id={`item-${i.id}`} className="card">
+    <li id={`item-${i.id}`} className="card" {...tagData(i.tags)}>
       <div className="card-head">
         <Tile icon={itemIcon(i.kind)} />
         <span className="flex-1 font-semibold">
@@ -429,6 +439,7 @@ async function Item({ item: i, run }: { item: ItemView; run: string }) {
         <TalkAbout kind="item" id={i.id} name={i.name} playthroughId={run} />
       </div>
       {i.location && <p className="text-sm text-muted">{i.location}</p>}
+      <Tags tags={i.tags} />
       {numbers.length > 0 && (
         <dl className="numbers">
           {numbers.map(([k, v]) => (
@@ -484,7 +495,7 @@ async function CodexEntry({ entry: e, run }: { entry: CodexView; run: string }) 
   const state =
     e.status === "beaten" ? (e.beatenOn ? copy.beatenOn(e.beatenOn) : null) : e.status === "gone" ? copy.gone : e.attempts ? copy.tries(e.attempts) : null;
   return (
-    <li id={`codex-${e.id}`} className={`card ${e.status === "met" ? "" : "opacity-70"}`}>
+    <li id={`codex-${e.id}`} className={`card ${e.status === "met" ? "" : "opacity-70"}`} {...tagData(e.tags)}>
       <div className="card-head">
         <Tile icon={CODEX_ICONS[e.kind]} muted={e.status !== "met"} />
         <span className="flex-1 font-semibold">
@@ -495,6 +506,7 @@ async function CodexEntry({ entry: e, run }: { entry: CodexView; run: string }) 
         <TalkAbout kind="codex" id={e.id} name={e.name} playthroughId={run} />
       </div>
       {e.location && <p className="text-sm text-muted">{e.location}</p>}
+      <Tags tags={e.tags} />
       {(e.weaknesses.length > 0 || e.resistances.length > 0) && (
         <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {e.weaknesses.length > 0 && (

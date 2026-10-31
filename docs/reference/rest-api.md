@@ -10,7 +10,7 @@
 | `GET /api/v1/playthroughs/{id}` | One playthrough |
 | `GET /api/v1/playthroughs/{id}/briefing` | Where the player was; never a spoiler |
 | `GET /api/v1/playthroughs/{id}/quests` | Quests with their logs; `status` (comma-separated) and `reveal` |
-| `GET /api/v1/playthroughs/{id}/items` | Items; `name`, `equipped=true` and `reveal` |
+| `GET /api/v1/playthroughs/{id}/items` | Items with their tags; `name`, `tag`, `equipped=true` and `reveal` |
 | `GET /api/v1/playthroughs/{id}/build` | The build plan and the stat snapshots |
 | `GET /api/v1/playthroughs/{id}/sessions` | The sessions, newest first |
 | `GET /api/v1/playthroughs/{id}/missed` | What may have been missed; `reveal=hint` or `full` is required |
