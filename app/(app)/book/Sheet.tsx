@@ -1,6 +1,20 @@
 import Link from "next/link";
-import { buildOf, itemsOf, questsOf, sessionsOf, type Player, type PlaythroughView, type QuestView } from "@/backend";
+import {
+  buildOf,
+  CODEX_KINDS,
+  EFFECTS,
+  codexOf,
+  itemsOf,
+  questsOf,
+  sessionsOf,
+  type CodexView,
+  type ItemView,
+  type Player,
+  type PlaythroughView,
+  type QuestView,
+} from "@/backend";
 import { copy } from "@/components/copy";
+import { Notes } from "@/components/Notes";
 
 // A link's site, for a source without a title.
 const siteOf = (url: string) => {
@@ -15,13 +29,21 @@ const siteOf = (url: string) => {
 // behind a warning (values V1); full spoilers never do here.
 export async function Sheet({ player: p, playthrough: t, reveal }: { player: Player; playthrough: PlaythroughView; reveal: "none" | "hint" }) {
   const id = t.id;
-  const [threads, all, build, items, sessions] = await Promise.all([
+  const [threads, all, build, items, sessions, codex] = await Promise.all([
     questsOf(p, id, { statuses: ["open", "blocked"], reveal }),
     questsOf(p, id, { reveal: "none" }),
     buildOf(p, id, 1),
     itemsOf(p, id, { reveal: "none" }),
     sessionsOf(p, id),
+    codexOf(p, id, { reveal: "none" }),
   ]);
+  // The inventory by the game's groups, in the player's order, under the game's own name when it has one; an item without one goes last.
+  const kinds = t.game.itemKinds;
+  const known = (k: string | null) => kinds.some((x) => x.key === k);
+  const groups: [string, ItemView[]][] = [
+    ...kinds.map((k): [string, ItemView[]] => [k.localName ?? k.name, items.filter((i) => i.kind === k.key)]),
+    [copy.otherItems, items.filter((i) => !known(i.kind))],
+  ].filter(([, list]) => list.length > 0) as [string, ItemView[]][];
   const open = [...threads.filter((q) => q.status === "open"), ...threads.filter((q) => q.status === "blocked")];
   const closed = all.filter((q) => q.status !== "open" && q.status !== "blocked");
   const current = build.snapshots[0];
@@ -40,6 +62,8 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {t.character.localClass && <span className="text-sm text-muted"> · {t.character.localClass}</span>}
           </p>
         )}
+        <Notes description={t.game.description} notes={t.game.notes} />
+        <Notes notes={t.notes} />
         {t.game.sources.length > 0 && (
           <p className="mt-1 text-sm text-muted">
             {copy.sources}:{" "}
@@ -64,6 +88,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               <Link href={last.url} className="card block hover:border-accent">
                 <span className="text-sm text-muted">{last.playedOn}</span>
                 <p>{last.summary}</p>
+                <Notes notes={last.notes} />
               </Link>
             </section>
           )}
@@ -77,6 +102,26 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
             {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
           </section>
+          {codex.length > 0 && (
+            <section>
+              <h3 className="section-title">{copy.codex}</h3>
+              <div className="space-y-4">
+                {CODEX_KINDS.map((k) => {
+                  const entries = codex.filter((e) => e.kind === k);
+                  return entries.length === 0 ? null : (
+                    <div key={k}>
+                      <h4 className="group-title">{copy.codexKinds[k]}</h4>
+                      <ul className="space-y-2">
+                        {entries.map((e) => (
+                          <CodexEntry key={e.id} entry={e} />
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
           {closed.length > 0 && (
             <section>
               <h3 className="section-title">{copy.closedQuests}</h3>
@@ -125,6 +170,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                         </span>
                       </div>
                       {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
+                      <Notes notes={g.notes} />
                       {(measured || g.status === "reached") && (
                         <div className="goal-track" role="presentation">
                           <div className="goal-fill" style={{ width: `${share * 100}%` }} />
@@ -147,6 +193,7 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
                     {current.takenOn}
                     {current.level !== null ? ` · ${copy.level(current.level)}` : ""}
                   </p>
+                  <Notes notes={current.notes} />
                   <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-1">
                     {current.stats.map((s) => (
                       <div key={s.key} className="flex justify-between gap-2">
@@ -173,34 +220,18 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {items.length === 0 ? (
               <p className="card text-muted">{copy.noItems}</p>
             ) : (
-              <ul className="space-y-2">
-                {items.map((i) => (
-                  <li key={i.id} id={`item-${i.id}`} className="card">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-semibold">
-                        {i.name}
-                        {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
-                      </span>
-                      {i.equipped && <span className="text-xs font-bold text-accent uppercase">{copy.equipped}</span>}
-                    </div>
-                    {(i.kind || i.location) && <p className="text-sm text-muted">{[i.kind, i.location].filter(Boolean).join(" · ")}</p>}
-                    {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
-                    {i.sources.length > 0 && (
-                      <ul className="mt-1 space-y-0.5 text-sm text-muted">
-                        {i.sources.map((x) => (
-                          <li key={x.url}>
-                            {x.facts && <span>{x.facts} · </span>}
-                            <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
-                              {x.title ?? siteOf(x.url)}
-                            </a>
-                            {x.on && <span className="tabular-nums"> · {x.on}</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
+              <div className="space-y-4">
+                {groups.map(([label, list]) => (
+                  <div key={label}>
+                    <h4 className="group-title">{label}</h4>
+                    <ul className="space-y-2">
+                      {list.map((i) => (
+                        <Item key={i.id} item={i} />
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </section>
           {sessions.length > 0 && (
@@ -237,6 +268,7 @@ function Quests({ quests }: { quests: QuestView[] }) {
             <span className="text-xs font-bold text-muted uppercase">{q.status === "blocked" ? copy.waitingOnGame : copy.questStatus[q.status]}</span>
           </div>
           {(q.giver || q.location) && <p className="text-sm text-muted">{[q.giver, q.location].filter(Boolean).join(" · ")}</p>}
+          <Notes description={q.description} notes={q.notes} />
           {q.entries.length > 0 && (
             <ul className="mt-2 space-y-1 text-sm">
               {q.entries.map((e) => (
@@ -252,5 +284,139 @@ function Quests({ quests }: { quests: QuestView[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+// One thing in the inventory: its count, its numbers as the game shows them, and what it is good against.
+function Item({ item: i }: { item: ItemView }) {
+  const numbers = Object.entries(i.attributes);
+  return (
+    <li id={`item-${i.id}`} className="card">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-semibold">
+          {i.name}
+          {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
+        </span>
+        <span className="flex shrink-0 items-baseline gap-2">
+          {i.quantity !== null && <span className="font-semibold tabular-nums">{copy.quantity(i.quantity)}</span>}
+          {i.equipped && <span className="text-xs font-bold text-accent uppercase">{copy.equipped}</span>}
+        </span>
+      </div>
+      {i.location && <p className="text-sm text-muted">{i.location}</p>}
+      {numbers.length > 0 && (
+        <dl className="numbers">
+          {numbers.map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {EFFECTS.map((effect) => {
+        const list = i.against.filter((a) => a.effect === effect);
+        return (
+          list.length > 0 && (
+            <p key={effect} className="mt-1 text-sm">
+              <span className="text-muted">{copy.against[effect]}: </span>
+              {list.map((a, n) => (
+                <span key={a.codex.id}>
+                  {n > 0 && ", "}
+                  <a href={a.codex.url} className="text-accent">
+                    {a.codex.name}
+                  </a>
+                  {a.note && <span className="text-muted"> ({a.note})</span>}
+                </span>
+              ))}
+            </p>
+          )
+        );
+      })}
+      <Notes description={i.description} />
+      {i.verdict && <p className="mt-1 text-sm">{i.verdict}</p>}
+      <Notes notes={i.notes} />
+      {i.sources.length > 0 && (
+        <ul className="mt-1 space-y-0.5 text-sm text-muted">
+          {i.sources.map((x) => (
+            <li key={x.url}>
+              {x.facts && <span>{x.facts} · </span>}
+              <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                {x.title ?? siteOf(x.url)}
+              </a>
+              {x.on && <span className="tabular-nums"> · {x.on}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+// A boss, enemy, NPC or place: what is still in the way stands out, what is beaten or gone is quieter.
+function CodexEntry({ entry: e }: { entry: CodexView }) {
+  const state =
+    e.status === "beaten" ? (e.beatenOn ? copy.beatenOn(e.beatenOn) : null) : e.status === "gone" ? copy.gone : e.attempts ? copy.tries(e.attempts) : null;
+  return (
+    <li id={`codex-${e.id}`} className={`card ${e.status === "met" ? "" : "opacity-70"}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-semibold">
+          {e.name}
+          {e.localName && <span className="font-normal text-muted"> · {e.localName}</span>}
+        </span>
+        {state && <span className={`shrink-0 text-sm tabular-nums ${e.status === "met" ? "text-accent" : "text-muted"}`}>{state}</span>}
+      </div>
+      {e.location && <p className="text-sm text-muted">{e.location}</p>}
+      {(e.weaknesses.length > 0 || e.resistances.length > 0) && (
+        <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {e.weaknesses.length > 0 && (
+            <span>
+              <span className="text-muted">{copy.weakTo}: </span>
+              {e.weaknesses.join(", ")}
+            </span>
+          )}
+          {e.resistances.length > 0 && (
+            <span>
+              <span className="text-muted">{copy.resists}: </span>
+              {e.resistances.join(", ")}
+            </span>
+          )}
+        </p>
+      )}
+      <Notes description={e.description} />
+      {e.strategy && <p className="mt-1 text-sm">{e.strategy}</p>}
+      <Notes notes={e.notes} />
+      {EFFECTS.map((effect) => {
+        const list = e.counters.filter((c) => c.effect === effect);
+        return (
+          list.length > 0 && (
+            <p key={effect} className="mt-1 text-sm">
+              <span className="text-muted">{copy.counters[effect]}: </span>
+              {list.map((c, n) => (
+                <span key={c.item.id}>
+                  {n > 0 && ", "}
+                  <a href={c.item.url} className="text-accent">
+                    {c.item.name}
+                  </a>
+                  {c.item.quantity !== null && <span className="tabular-nums"> {copy.quantity(c.item.quantity)}</span>}
+                  {c.note && <span className="text-muted"> ({c.note})</span>}
+                </span>
+              ))}
+            </p>
+          )
+        );
+      })}
+      {e.sources.length > 0 && (
+        <p className="mt-1 text-sm text-muted">
+          {e.sources.map((x, n) => (
+            <span key={x.url}>
+              {n > 0 && " · "}
+              <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                {x.title ?? siteOf(x.url)}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
+    </li>
   );
 }

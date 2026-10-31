@@ -32,6 +32,8 @@ nav:
       - The REST API's tokens: adr/0007-rest-api-tokens.md
       - Claude looks things up: adr/0008-claude-looks-things-up.md
       - Goals and the character: adr/0009-goals-and-the-character.md
+      - The tracker, inventory and codex: adr/0010-the-tracker.md
+      - Notes and descriptions: adr/0011-notes-and-descriptions.md
 
 theme:
   name: material

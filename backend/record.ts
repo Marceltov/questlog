@@ -1,17 +1,19 @@
 // Filing a play session: the transcript as the player said it (values V3), and what was filed from it: quest entries, a stat snapshot,
-// the build plan, goals, items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
+// the build plan, goals, the codex (bosses, enemies, NPCs, places) and items. One transaction; everything points to the session. Quests and items are matched by id or by their exact name
 // in the playthrough, never by a guess (values V4).
 import { db, newId, now } from "./db";
 import { today } from "./dates";
-import { playthroughForRecord, statNames, type ResolvedPlaythrough } from "./games";
+import { fileItemKind, itemKindsOf, playthroughForRecord, setItemKinds, statNames, type ItemKindInput, type ResolvedPlaythrough } from "./games";
+import { writeCodex, writeUses, type AgainstInput, type CodexInput, type FiledCodex } from "./codex";
 import { carryGoals, goalLabel, reachGoals, writeGoals, type FiledGoal, type GoalInput } from "./goals";
 import type { Transaction } from "kysely";
 import type { Schema } from "./db/schema";
 import { InvalidInputError, NotFoundError } from "./errors";
 import { norm } from "./names";
+import { addNote } from "./notes";
 import { seen } from "./spoilers";
 import { mergeSources, parseSources } from "./sources";
-import type { EntryKind, GoalKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
+import type { Attributes, EntryKind, GoalKind, ItemKind, Player, QuestStatus, SourceInput, SpoilerLevel, StatName } from "./types";
 import { itemPath, questPath, sessionPath } from "./urls";
 
 export type QuestInput = {
@@ -21,6 +23,10 @@ export type QuestInput = {
   giver?: string;
   location?: string;
   status?: QuestStatus;
+  /** What the quest is about, as the game puts it; replaces the one it has. */
+  description?: string;
+  /** The player's own thoughts, added to its notes. */
+  notes?: string;
   entries?: { kind: EntryKind; text: string; spoiler?: SpoilerLevel }[];
 };
 
@@ -28,6 +34,10 @@ export type ItemInput = {
   id?: string;
   name: string;
   localName?: string;
+  /** What it is, as the game describes it; replaces the one it has. */
+  description?: string;
+  /** The player's own thoughts, added to its notes. */
+  notes?: string;
   kind?: string;
   location?: string;
   equipped?: boolean;
@@ -35,6 +45,12 @@ export type ItemInput = {
   spoiler?: SpoilerLevel;
   /** Pages its facts come from; merged into those it has, by link. */
   sources?: SourceInput[];
+  /** How many the player has now. */
+  quantity?: number;
+  /** Its numbers, by the game's names; merged into those it has. */
+  attributes?: Attributes;
+  /** Codex entries it is good (the default) or bad against, by id or exact name, with how. */
+  against?: AgainstInput[];
 };
 
 export type RecordInput = {
@@ -47,10 +63,14 @@ export type RecordInput = {
   summary: string;
   transcript: string;
   quests?: QuestInput[];
-  stats?: { level?: number; values: Record<string, number>; names?: { key: string; name?: string; localName?: string }[] };
+  stats?: { level?: number; values: Record<string, number>; names?: { key: string; name?: string; localName?: string }[]; notes?: string };
+  /** Names the game's inventory groups: a group named by key gets the names, a new one goes at the end. */
+  itemKinds?: ItemKindInput[];
   /** `targets` is short for stat goals of the player's: { vigor: 20 }. */
   build?: { summary?: string; mainStat?: string; targets?: Record<string, number> };
   goals?: GoalInput[];
+  /** Bosses, enemies, NPCs and places met or learned about in this session. */
+  codex?: CodexInput[];
   /** Who the player plays in this run; only the fields given change. */
   character?: { name?: string; class?: string; localClass?: string };
   /** For a new playthrough (NG+): the run to take the character, the build plan and the open goals from. */
@@ -58,6 +78,10 @@ export type RecordInput = {
   items?: ItemInput[];
   /** Pages the player trusts for this game; merged into the game's, by link. */
   sources?: SourceInput[];
+  /** The player's own thoughts on the game, this run or this session, each added to its notes (ADR 0011). */
+  notes?: { game?: string; playthrough?: string; session?: string };
+  /** What the game is; replaces the one it has. */
+  gameDescription?: string;
 };
 
 export type FiledQuest = {
@@ -78,9 +102,12 @@ export type Recorded = {
   playthrough: ResolvedPlaythrough;
   quests: FiledQuest[];
   items: FiledItem[];
+  /** Inventory groups this call added to the game, by an item's new kind or by itemKinds. */
+  newItemKinds: ItemKind[];
   stats: { id: string; level: number | null; values: Record<string, number>; newNames: StatName[] } | null;
   build: boolean;
   goals: FiledGoal[];
+  codex: FiledCodex[];
   /** Labels of the goals this session's snapshot got to. */
   reached: string[];
   character: boolean;
@@ -121,7 +148,16 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
     const at = now();
     await trx
       .insertInto("sessions")
-      .values({ id: sessionId, player_id: p.id, playthrough_id: t.id, played_on: playedOn, summary: input.summary.trim(), transcript, created_at: at })
+      .values({
+        id: sessionId,
+        player_id: p.id,
+        playthrough_id: t.id,
+        played_on: playedOn,
+        summary: input.summary.trim(),
+        transcript,
+        notes: addNote(null, input.notes?.session),
+        created_at: at,
+      })
       .execute();
 
     let carried: number | null = null;
@@ -157,11 +193,22 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
     if (!t.lastPlayedOn || t.lastPlayedOn < playedOn)
       await seen(trx.updateTable("playthroughs"), p, "playthroughs").set({ last_played_on: playedOn }).where("id", "=", t.id).execute();
 
-    if (input.sources?.length) {
-      const game = await seen(trx.selectFrom("games"), p, "games").select("sources").where("id", "=", t.game.id).executeTakeFirstOrThrow();
+    if (input.sources?.length || input.notes?.game?.trim() || input.gameDescription?.trim()) {
+      const game = await seen(trx.selectFrom("games"), p, "games").select(["sources", "notes"]).where("id", "=", t.game.id).executeTakeFirstOrThrow();
       await seen(trx.updateTable("games"), p, "games")
-        .set({ sources: JSON.stringify(mergeSources(parseSources(game.sources), input.sources, playedOn)) })
+        .set({
+          ...(input.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(game.sources), input.sources, playedOn)) } : {}),
+          notes: addNote(game.notes, input.notes?.game),
+          ...(input.gameDescription?.trim() ? { description: input.gameDescription.trim() } : {}),
+        })
         .where("id", "=", t.game.id)
+        .execute();
+    }
+    if (input.notes?.playthrough?.trim()) {
+      const run = await seen(trx.selectFrom("playthroughs"), p, "playthroughs").select("notes").where("id", "=", t.id).executeTakeFirstOrThrow();
+      await seen(trx.updateTable("playthroughs"), p, "playthroughs")
+        .set({ notes: addNote(run.notes, input.notes.playthrough) })
+        .where("id", "=", t.id)
         .execute();
     }
 
@@ -171,7 +218,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       const name = q.name.trim();
       // Look-ups for a write go through the gate too: only the player's own rows, whatever their spoiler level.
       const existing = await seen(trx.selectFrom("quests"), p, "quests", "full")
-        .select(["id", "name", "status"])
+        .select(["id", "name", "status", "notes"])
         .where("playthrough_id", "=", t.id)
         .where((eb) => (q.id ? eb("id", "=", q.id) : eb("norm", "=", norm(name))))
         .executeTakeFirst();
@@ -185,6 +232,8 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
           ...(q.localName ? { local_name: q.localName.trim() } : {}),
           ...(q.giver ? { giver: q.giver.trim() } : {}),
           ...(q.location ? { location: q.location.trim() } : {}),
+          ...(q.description?.trim() ? { description: q.description.trim() } : {}),
+          notes: addNote(existing.notes, q.notes),
         };
         await seen(trx.updateTable("quests"), p, "quests", "full").set(patch).where("id", "=", id).execute();
       } else {
@@ -200,6 +249,8 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             local_name: clean(q.localName),
             giver: clean(q.giver),
             location: clean(q.location),
+            description: clean(q.description),
+            notes: addNote(null, q.notes),
             status,
             // A quest the player tells of is one they found (values V1).
             spoiler: "none",
@@ -266,6 +317,7 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
           taken_on: playedOn,
           level: input.stats.level ?? null,
           stats: JSON.stringify(input.stats.values),
+          notes: addNote(null, input.stats.notes),
           created_at: at,
         })
         .execute();
@@ -289,11 +341,17 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       build = true;
     }
 
+    const codex = input.codex?.length ? await writeCodex(trx, p, t.id, sessionId, playedOn, input.codex) : [];
+
+    const kindsBefore = t.game.itemKinds.map((k) => k.key);
+    if (input.itemKinds?.length) await setItemKinds(trx, p, t.game.id, input.itemKinds, "merge");
     const items: FiledItem[] = [];
     for (const i of input.items ?? []) {
+      const kind = i.kind?.trim() ? (await fileItemKind(trx, p, t.game.id, i.kind)).key : null;
+      if (i.quantity !== undefined && (!Number.isInteger(i.quantity) || i.quantity < 0)) throw new InvalidInputError("items: quantity is a count, 0 or more");
       const name = i.name.trim();
       const existing = await seen(trx.selectFrom("items"), p, "items", "full")
-        .select(["id", "name", "equipped", "spoiler", "sources"])
+        .select(["id", "name", "equipped", "spoiler", "sources", "attributes", "notes"])
         .where("playthrough_id", "=", t.id)
         .where((eb) => (i.id ? eb("id", "=", i.id) : eb("norm", "=", norm(name))))
         .executeTakeFirst();
@@ -308,10 +366,14 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             spoiler,
             updated_at: at,
             ...(i.localName ? { local_name: i.localName.trim() } : {}),
-            ...(i.kind ? { kind: i.kind.trim() } : {}),
+            ...(i.description?.trim() ? { description: i.description.trim() } : {}),
+            notes: addNote(existing.notes, i.notes),
+            ...(kind ? { kind } : {}),
             ...(i.location ? { location: i.location.trim() } : {}),
             ...(i.verdict ? { verdict: i.verdict.trim() } : {}),
             ...(i.sources?.length ? { sources: JSON.stringify(mergeSources(parseSources(existing.sources), i.sources, playedOn)) } : {}),
+            ...(i.quantity !== undefined ? { quantity: i.quantity } : {}),
+            ...(i.attributes ? { attributes: JSON.stringify({ ...(JSON.parse(existing.attributes) as Attributes), ...i.attributes }) } : {}),
           })
           .where("id", "=", id)
           .execute();
@@ -327,17 +389,22 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
             name,
             norm: norm(name),
             local_name: clean(i.localName),
-            kind: clean(i.kind),
+            description: clean(i.description),
+            notes: addNote(null, i.notes),
+            kind,
             location: clean(i.location),
             equipped: equipped ? 1 : 0,
             verdict: clean(i.verdict),
             spoiler,
             sources: JSON.stringify(mergeSources([], i.sources ?? [], playedOn)),
+            quantity: i.quantity ?? null,
+            attributes: JSON.stringify(i.attributes ?? {}),
             created_at: at,
             updated_at: at,
           })
           .execute();
       }
+      if (i.against?.length) await writeUses(trx, p, t.id, id, i.against);
       if (!items.some((x) => x.id === id)) items.push({ id, name: existing?.name ?? name, created: !existing, equipped, spoiler, url: itemPath(t.id, id) });
     }
 
@@ -355,16 +422,19 @@ export async function record(p: Player, input: RecordInput): Promise<Recorded> {
       reached.push(g?.label ?? (await reachedLabel(trx, p, id, t.game.id)));
     }
 
+    const itemKinds = await itemKindsOf(p, t.game.id, trx);
     return {
       sessionId,
       url: sessionPath(sessionId),
       playedOn,
-      playthrough: { ...t, ...(character || carried !== null ? await characterOf(trx, p, t.id) : {}) },
+      playthrough: { ...t, game: { ...t.game, itemKinds }, ...(character || carried !== null ? await characterOf(trx, p, t.id) : {}) },
       quests,
       items,
+      newItemKinds: itemKinds.filter((k) => !kindsBefore.includes(k.key)),
       stats,
       build: build || goals.length > 0,
       goals,
+      codex,
       reached,
       character: !!character || carried !== null,
       carried,

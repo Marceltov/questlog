@@ -215,6 +215,31 @@ body::before {
   @apply bg-muted;
 }
 
+/* A group within a section (weapons, bosses): smaller than the section's title, on the same frosted backing so it reads over the
+   backdrop. */
+/* The player's own notes (ADR 0011): their words, set apart from what the game says, paragraphs kept. */
+.player-note {
+  @apply mt-1 border-l-2 border-accent pl-2 text-sm whitespace-pre-line italic;
+}
+
+.group-title {
+  @apply glass mb-1.5 w-fit rounded-full px-2.5 py-0.5 text-sm font-semibold text-muted;
+}
+
+/* An item's numbers, as on the game's own screen: name left, value right, two columns where there is room. */
+.numbers {
+  @apply mt-1 grid grid-cols-1 gap-x-6 text-sm sm:grid-cols-2;
+}
+.numbers > div {
+  @apply flex justify-between gap-2 border-b border-dotted border-rule py-0.5;
+}
+.numbers dt {
+  @apply text-muted;
+}
+.numbers dd {
+  @apply font-semibold tabular-nums;
+}
+
 /* Pull to fetch (components/Follow.tsx): the icon's bookmark ribbon comes down from under the header, in ink, ember once letting go
    fetches. It follows the finger without easing; let go, it slides back up, and while the pull's fetch runs it hangs and sways. */
 .ribbon-pull {

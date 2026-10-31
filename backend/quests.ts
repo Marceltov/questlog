@@ -14,6 +14,10 @@ export type QuestView = {
   localName: string | null;
   giver: string | null;
   location: string | null;
+  /** What the quest is about, as the game puts it (ADR 0011). */
+  description: string | null;
+  /** The player's own notes. */
+  notes: string | null;
   status: QuestStatus;
   spoiler: SpoilerLevel;
   /** The latest `next` entry the read may show; null when there is none. */
@@ -77,6 +81,8 @@ export async function questsOf(
       localName: x.local_name,
       giver: x.giver,
       location: x.location,
+      description: x.description,
+      notes: x.notes,
       status: x.status as QuestStatus,
       spoiler: x.spoiler as SpoilerLevel,
       nextStep: mine.findLast((e) => e.kind === "next")?.text ?? null,

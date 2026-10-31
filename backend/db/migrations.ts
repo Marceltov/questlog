@@ -207,6 +207,104 @@ const migrations: Record<string, Migration> = {
       }
     },
   },
+  // The tracker (ADR 0010). The inventory: an item's quantity and its numbers as data ({ key: value }, named as the game names them). The
+  // codex: the bosses, enemies, NPCs and places the player met, with weaknesses, resistances and a strategy. What an item is good
+  // against links the two.
+  "004_tracker": {
+    async up(db: Kysely<any>) {
+      const player = (c: any) => c.notNull();
+      const session = (c: any) => c.references("sessions.id").onDelete("set null");
+      const playthrough = (c: any) => c.notNull().references("playthroughs.id").onDelete("cascade");
+      await db.schema.alterTable("items").addColumn("quantity", "integer").execute();
+      await db.schema
+        .alterTable("items")
+        .addColumn("attributes", "text", (c) => c.notNull().defaultTo("{}"))
+        .execute();
+      await db.schema
+        .createTable("codex")
+        .addColumn("id", "text", (c) => c.primaryKey())
+        .addColumn("player_id", "text", player)
+        .addColumn("playthrough_id", "text", playthrough)
+        .addColumn("session_id", "text", session)
+        .addColumn("kind", "text", (c) => c.notNull().check(oneOf("kind", ["boss", "enemy", "npc", "place"])))
+        .addColumn("name", "text", (c) => c.notNull())
+        .addColumn("norm", "text", (c) => c.notNull())
+        .addColumn("local_name", "text")
+        .addColumn("location", "text")
+        .addColumn("status", "text", (c) => c.notNull().check(oneOf("status", ["met", "beaten", "gone"])))
+        .addColumn("attempts", "integer")
+        .addColumn("beaten_on", "text")
+        .addColumn("weaknesses", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("resistances", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("strategy", "text")
+        .addColumn("notes", "text")
+        .addColumn("spoiler", "text", (c) => c.notNull().check(oneOf("spoiler", SPOILER)))
+        .addColumn("sources", "text", (c) => c.notNull().defaultTo("[]"))
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .addColumn("updated_at", "bigint", (c) => c.notNull())
+        .execute();
+      await db.schema.createIndex("codex_by_name").unique().on("codex").columns(["playthrough_id", "kind", "norm"]).execute();
+      await db.schema
+        .createTable("item_uses")
+        .addColumn("item_id", "text", (c) => c.notNull().references("items.id").onDelete("cascade"))
+        .addColumn("codex_id", "text", (c) => c.notNull().references("codex.id").onDelete("cascade"))
+        .addColumn("player_id", "text", player)
+        .addColumn("effect", "text", (c) =>
+          c
+            .notNull()
+            .defaultTo("good")
+            .check(oneOf("effect", ["very good", "good", "neutral", "bad", "very bad"])),
+        )
+        .addColumn("note", "text")
+        .addColumn("created_at", "bigint", (c) => c.notNull())
+        .addPrimaryKeyConstraint("item_uses_pk", ["item_id", "codex_id"])
+        .execute();
+      await db.schema.createIndex("item_uses_by_codex").on("item_uses").columns(["codex_id"]).execute();
+      // A game's inventory groups (ItemKind), seeded from the kinds its items have, in the order the inventory showed them so far.
+      await db.schema
+        .alterTable("games")
+        .addColumn("item_kinds", "text", (c) => c.notNull().defaultTo("[]"))
+        .execute();
+      const NAMES: Record<string, string> = {
+        weapon: "Weapons",
+        blade: "Blades",
+        handle: "Handles",
+        armour: "Armour",
+        amulet: "Amulets",
+        consumable: "Consumables",
+        material: "Upgrade materials",
+        collectible: "Collectibles",
+        key: "Key items",
+      };
+      const ORDER = Object.keys(NAMES);
+      const used = await db
+        .selectFrom("items")
+        .innerJoin("playthroughs", "playthroughs.id", "items.playthrough_id")
+        .select(["playthroughs.game_id", "items.kind"])
+        .distinct()
+        .where("items.kind", "is not", null)
+        .execute();
+      const byGame = new Map<string, string[]>();
+      for (const u of used) byGame.set(u.game_id, [...(byGame.get(u.game_id) ?? []), u.kind]);
+      for (const [gameId, kinds] of byGame) {
+        const rank = (k: string) => (ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length);
+        const list = kinds.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((key) => ({ key, name: NAMES[key] ?? key, localName: null }));
+        await db
+          .updateTable("games")
+          .set({ item_kinds: JSON.stringify(list) })
+          .where("id", "=", gameId)
+          .execute();
+      }
+    },
+  },
+  "005_notes": {
+    // ADR 0011: the player's own notes on everything they keep, and a description of what a thing is.
+    async up(db: Kysely<any>) {
+      for (const table of ["games", "playthroughs", "sessions", "quests", "stat_snapshots", "items", "goals"])
+        await db.schema.alterTable(table).addColumn("notes", "text").execute();
+      for (const table of ["games", "quests", "items", "codex"]) await db.schema.alterTable(table).addColumn("description", "text").execute();
+    },
+  },
 };
 
 export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";

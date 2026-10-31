@@ -35,6 +35,34 @@ export type GoalKind = (typeof GOAL_KINDS)[number];
 export const GOAL_STATUSES = ["open", "reached", "dropped"] as const;
 export type GoalStatus = (typeof GOAL_STATUSES)[number];
 
+/** What the codex keeps (ADR 0010): the bosses, enemies, NPCs and places the player met. */
+export const CODEX_KINDS = ["boss", "enemy", "npc", "place"] as const;
+export type CodexKind = (typeof CODEX_KINDS)[number];
+
+/** `met`: seen, met, reached. `beaten`: a boss or enemy defeated. `gone`: an NPC dead or left, a boss skipped, a place shut. */
+export const CODEX_STATUSES = ["met", "beaten", "gone"] as const;
+export type CodexStatus = (typeof CODEX_STATUSES)[number];
+
+/**
+ * An inventory group of a game, as data like its stats (values V8): games call them differently (amulets in one, rings or talismans in
+ * another). `key` is what an item's kind holds, `name` the group's English name, `localName` the game's own. A game keeps its groups in
+ * the player's order; an item of a kind the game doesn't have yet adds one at the end.
+ */
+export type ItemKind = { key: string; name: string; localName: string | null };
+
+/** The keys Claude reaches for first when a game has no group that fits; any other key is fine. */
+export const ITEM_KINDS = ["weapon", "armour", "amulet", "consumable", "material", "collectible", "key"] as const;
+
+/**
+ * What an item does against a codex entry, on a five-step scale from best to worst: `very good` (its weak spot), `good`, `neutral` (no
+ * better or worse than anything else), `bad` (it resists it), `very bad` (it heals from it, it makes things worse).
+ */
+export const EFFECTS = ["very good", "good", "neutral", "bad", "very bad"] as const;
+export type Effect = (typeof EFFECTS)[number];
+
+/** An item's numbers as the game shows them, by the game's names: { "Physical ATK": 119, "Technique": "C" }. */
+export type Attributes = Record<string, string | number>;
+
 export const PLAYTHROUGH_STATUSES = ["playing", "finished", "dropped"] as const;
 export type PlaythroughStatus = (typeof PLAYTHROUGH_STATUSES)[number];
 

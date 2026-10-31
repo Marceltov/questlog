@@ -4,6 +4,7 @@
 // A goal Claude or a guide suggested is marked so until the player agrees (values V4), and one that names what the player hasn't
 // reached carries a spoiler level like a quest entry (values V1).
 import type { Kysely, Transaction } from "kysely";
+import { addNote } from "./notes";
 import { db, newId, now } from "./db";
 import type { Schema } from "./db/schema";
 import { InvalidInputError, NotFoundError } from "./errors";
@@ -27,6 +28,8 @@ export type GoalView = {
   item: { id: string; name: string; url: string } | null;
   /** A note goal's goal, or why any goal was set. */
   text: string | null;
+  /** The player's own notes on it (ADR 0011). */
+  notes: string | null;
   /** 1 is first. */
   rank: number;
   status: GoalStatus;
@@ -47,6 +50,8 @@ export type GoalInput = {
   /** An item goal's item: its id, or its exact name in the playthrough. */
   item?: string;
   text?: string;
+  /** Added to its notes. */
+  notes?: string;
   suggested?: boolean;
   status?: GoalStatus;
   spoiler?: SpoilerLevel;
@@ -109,6 +114,7 @@ export async function goalsOf(p: Player, playthroughId: string, opts: { reveal?:
         current: r.kind === "stat" && r.stat ? (snap?.values[r.stat] ?? null) : r.kind === "level" ? (snap?.level ?? null) : null,
         item: item ? { id: item.id, name: item.name, url: itemPath(playthroughId, item.id) } : null,
         text: r.text,
+        notes: r.notes,
         rank: r.rank,
         status: r.status as GoalStatus,
         suggested: r.suggested === 1,
@@ -185,6 +191,7 @@ export async function writeGoals(
         .set({
           ...(g.target !== undefined ? { target: g.target } : {}),
           ...(text ? { text } : {}),
+          ...(g.notes?.trim() ? { notes: addNote(row.notes, g.notes) } : {}),
           ...(g.suggested !== undefined ? { suggested: g.suggested ? 1 : 0 } : {}),
           ...(g.spoiler ? { spoiler: g.spoiler } : {}),
           ...(g.rank !== undefined ? { rank: g.rank } : {}),
@@ -241,7 +248,14 @@ export async function writeGoals(
     const spoiler = g.spoiler ?? "none";
     if (before && (g.kind === "item" || before.target === g.target)) {
       await seen(trx.updateTable("goals"), p, "goals", "full")
-        .set({ ...(text ? { text } : {}), suggested: suggested ? 1 : 0, spoiler, ...(g.rank !== undefined ? { rank: g.rank } : {}), updated_at: at })
+        .set({
+          ...(text ? { text } : {}),
+          notes: addNote(before.notes, g.notes),
+          suggested: suggested ? 1 : 0,
+          spoiler,
+          ...(g.rank !== undefined ? { rank: g.rank } : {}),
+          updated_at: at,
+        })
         .where("id", "=", before.id)
         .execute();
       out.push({
@@ -268,6 +282,7 @@ export async function writeGoals(
         target: g.kind === "stat" || g.kind === "level" ? g.target! : null,
         item_id: itemId,
         text: text ?? null,
+        notes: addNote(null, g.notes),
         rank: g.rank ?? before?.rank ?? (await nextRank(trx, p, t.id)),
         status: g.status ?? "open",
         suggested: suggested ? 1 : 0,

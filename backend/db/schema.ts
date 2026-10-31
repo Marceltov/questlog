@@ -7,7 +7,19 @@ type Flag = ColumnType<number, number | undefined, number>;
 type Json = ColumnType<string, string | undefined, string>;
 
 export interface Schema {
-  games: { id: string; player_id: string; title: string; norm: string; platform: string | null; stats: Json; sources: Json; created_at: number };
+  games: {
+    id: string;
+    player_id: string;
+    title: string;
+    norm: string;
+    platform: string | null;
+    stats: Json;
+    item_kinds: Json;
+    sources: Json;
+    created_at: number;
+    description: string | null;
+    notes: string | null;
+  };
   playthroughs: {
     id: string;
     player_id: string;
@@ -20,8 +32,18 @@ export interface Schema {
     character_class: string | null;
     character_local_class: string | null;
     created_at: number;
+    notes: string | null;
   };
-  sessions: { id: string; player_id: string; playthrough_id: string; played_on: string; summary: string; transcript: string; created_at: number };
+  sessions: {
+    id: string;
+    player_id: string;
+    playthrough_id: string;
+    played_on: string;
+    summary: string;
+    transcript: string;
+    created_at: number;
+    notes: string | null;
+  };
   quests: {
     id: string;
     player_id: string;
@@ -36,6 +58,8 @@ export interface Schema {
     session_id: string | null;
     created_at: number;
     updated_at: number;
+    description: string | null;
+    notes: string | null;
   };
   quest_entries: {
     id: string;
@@ -65,6 +89,7 @@ export interface Schema {
     reached_on: string | null;
     created_at: number;
     updated_at: number;
+    notes: string | null;
   };
   stat_snapshots: {
     id: string;
@@ -75,6 +100,7 @@ export interface Schema {
     level: number | null;
     stats: Json;
     created_at: number;
+    notes: string | null;
   };
   items: {
     id: string;
@@ -90,7 +116,35 @@ export interface Schema {
     verdict: string | null;
     spoiler: string;
     sources: Json;
+    quantity: number | null;
+    attributes: Json;
     created_at: number;
     updated_at: number;
+    description: string | null;
+    notes: string | null;
   };
+  codex: {
+    id: string;
+    player_id: string;
+    playthrough_id: string;
+    session_id: string | null;
+    kind: string;
+    name: string;
+    norm: string;
+    local_name: string | null;
+    location: string | null;
+    status: string;
+    attempts: number | null;
+    beaten_on: string | null;
+    weaknesses: Json;
+    resistances: Json;
+    strategy: string | null;
+    notes: string | null;
+    spoiler: string;
+    sources: Json;
+    created_at: number;
+    updated_at: number;
+    description: string | null;
+  };
+  item_uses: { item_id: string; codex_id: string; player_id: string; effect: string; note: string | null; created_at: number };
 }

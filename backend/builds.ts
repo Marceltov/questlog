@@ -7,7 +7,7 @@ import { seen } from "./spoilers";
 import type { Player, SpoilerLevel, StatName } from "./types";
 
 export type StatValue = StatName & { value: number; /** Since the snapshot before; null for the first. */ change: number | null };
-export type SnapshotView = { id: string; takenOn: string; level: number | null; stats: StatValue[] };
+export type SnapshotView = { id: string; takenOn: string; level: number | null; stats: StatValue[]; /** The player's own (ADR 0011). */ notes: string | null };
 export type BuildView = {
   plan: { summary: string | null; mainStat: string | null; targets: Record<string, number> } | null;
   /** Open by rank, then reached; dropped ones only in the full history (goalsOf). */
@@ -40,6 +40,7 @@ export async function buildOf(p: Player, playthroughId: string, limit = 20, reve
       takenOn: r.taken_on,
       level: r.level,
       stats: keys.map((k) => ({ ...named(k), value: r.values[k], change: before && k in before ? r.values[k] - before[k] : null })),
+      notes: r.notes,
     };
   });
   const goals = await goalsOf(p, playthroughId, { reveal, statuses: ["open", "reached"] });

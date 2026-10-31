@@ -21,27 +21,18 @@ items:
       - { label: "#6", url: "https://github.com/Marceltov/questlog/issues/6" }
       - { label: "V7", url: "https://questlog.marceltov.de/values/#v7-self-hosting-has-everything" }
 
-  - id: inventory
-    status: next
-    when: Next
-    icon: bag-personal-outline
-    title: The whole inventory
-    summary: Weapons, armour, consumables, upgrade materials and collectibles, with quantities and an item's numbers as data, grouped by kind.
+  # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: tracker
+    status: done
+    date: 2026-10-30
+    icon: sword-cross
+    title: The tracker, inventory and codex
+    summary: The whole inventory with counts and an item's numbers, in the game's own groups; the bosses, enemies, NPCs and places met, with weaknesses, strategies and tries; and what each item is good or bad against.
     links:
       - { label: "#24", url: "https://github.com/Marceltov/questlog/issues/24" }
-      - { label: "V8", url: "https://questlog.marceltov.de/values/" }
-
-  - id: world
-    status: later
-    when: Later
-    icon: account-group-outline
-    title: Bosses, NPCs and places
-    summary: Kept as the player meets them, not only as names in quest logs; beaten, met, reached, and what is left to do where.
-    links:
       - { label: "#25", url: "https://github.com/Marceltov/questlog/issues/25" }
-      - { label: "V1", url: "https://questlog.marceltov.de/values/" }
+      - { label: "ADR 0010", url: "https://questlog.marceltov.de/adr/0010-the-tracker/" }
 
-  # ---- done ------------------------------------------------------------------------------------------------------------
   - id: goals
     status: done
     date: 2026-10-30
