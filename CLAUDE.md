@@ -27,7 +27,8 @@ questlog: a spoiler-free quest log, build tracker and item list for the games yo
 - Follows Marceltov/engineering-conventions; the rules here win where they differ.
 - AI-native: MCP is the main interface. Every feature works over MCP first (tools, their descriptions, what `next` says); the REST API and the web UI follow.
 - No spoilers: every read goes through `seen()`; nothing the player hasn't found is shown unless they asked for it. A briefing never asks.
-- Code, identifiers, API, tool names/descriptions, logs, docs and the UI are English. Every UI string is in `components/copy.ts`; the sign-in mail's in `backend/auth/copy.ts`.
+- Code, identifiers, API, tool names/descriptions, logs and docs are English. The UI is English and German: every UI string is in `components/copy/en.ts` and `de.ts` (a string missing from one fails the typecheck), the sign-in mail's in `backend/auth/copy.ts`. German docs pages sit next to the English ones.
+- Accessible: keyboard reachable with visible focus, no meaning in colour alone (the register's tabs use the Okabe-Ito colours and their names), a name for every control without text (the flags are named by their language), reduced motion respected.
 - `backend/` is framework-free and the frontend imports it only through `backend/index.ts` (enforced by eslint).
 - Env vars are `QUESTLOG_*`, except `PUBLIC_URL`, `DATA_DIR`, `PORT`, `TZ`. Keep `backend/config.ts`, `.env.example` and `docs/self-hosting/configuration.md` in step; `compose.yaml` reads `.env` whole (`env_file`), so a new setting doesn't touch it.
 - Architectural decisions go to `docs/adr/NNNN-*.md` (MADR). Never commit superpowers artifacts (`.superpowers/`, specs, plans).

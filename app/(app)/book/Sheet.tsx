@@ -15,6 +15,7 @@ import {
 } from "@/backend";
 import { serverCopy } from "@/components/copy/server";
 import { Notes } from "@/components/Notes";
+import { Register } from "@/components/Register";
 
 // A link's site, for a source without a title.
 const siteOf = (url: string) => {
@@ -25,7 +26,7 @@ const siteOf = (url: string) => {
   }
 };
 
-// One playthrough's page of the book: where the player is, then everything else. Hints show only after the player asks on this page,
+// One playthrough's page of the book: its title, then the register (components/Register.tsx), where the player left off first. Hints show only after the player asks on this page,
 // behind a warning (values V1); full spoilers never do here.
 export async function Sheet({ player: p, playthrough: t, reveal }: { player: Player; playthrough: PlaythroughView; reveal: "none" | "hint" }) {
   const copy = await serverCopy();
@@ -49,8 +50,11 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
   const closed = all.filter((q) => q.status !== "open" && q.status !== "blocked");
   const current = build.snapshots[0];
   const last = sessions[0];
+  const tabs = (["overview", "character", "quests", "items", "codex", "sessions", "notes"] as const).map((key) => ({ key, label: copy.tabs[key] }));
+  const equipped = items.filter((i) => i.equipped);
+  const hasNotes = t.game.description || t.game.notes || t.notes || t.game.sources.length > 0;
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="plate">
         <h2 className="text-2xl font-bold">{t.game.title}</h2>
         <p className="text-muted">
@@ -63,125 +67,69 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
             {t.character.localClass && <span className="text-sm text-muted"> · {t.character.localClass}</span>}
           </p>
         )}
-        <Notes description={t.game.description} notes={t.game.notes} />
-        <Notes notes={t.notes} />
-        {t.game.sources.length > 0 && (
-          <p className="mt-1 text-sm text-muted">
-            {copy.sources}:{" "}
-            {t.game.sources.map((x, n) => (
-              <span key={x.url}>
-                {n > 0 && " · "}
-                <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
-                  {x.title ?? siteOf(x.url)}
-                </a>
-              </span>
-            ))}
-          </p>
-        )}
       </div>
 
-      {/* One column on a phone; on a wide screen what is open on the left, the build, items and sessions on the right. */}
-      <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-8 lg:space-y-0">
-        <div className="space-y-8">
+      {/* The rest behind the register's tabs; hints open on the quests, where they are. */}
+      <Register tabs={tabs} start={reveal === "hint" ? "quests" : "overview"} label={copy.tabs.label}>
+        {/* Where the player left off: the last session, what each open quest waits for, the plan's next goals and what is equipped. */}
+        <div className="space-y-6">
           {last && (
             <section>
               <h3 className="section-title">{copy.lastSession}</h3>
-              <Link href={last.url} className="card block hover:border-accent">
-                <span className="text-sm text-muted">{last.playedOn}</span>
-                <p>{last.summary}</p>
-                <Notes notes={last.notes} />
-              </Link>
+              <SessionCard session={last} />
             </section>
           )}
           <section>
-            <div className="mb-2 flex items-baseline justify-between">
-              <h3 className="section-title mb-0">{copy.openQuests}</h3>
-              <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
-                {reveal === "hint" ? copy.hideHints : copy.showHints}
-              </Link>
-            </div>
-            {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
-            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
+            <h3 className="section-title">{copy.nextSteps}</h3>
+            {open.length === 0 ? (
+              <p className="card text-muted">{copy.noOpenQuests}</p>
+            ) : (
+              <ul className="card divide-y divide-rule py-1">
+                {open.map((q) => (
+                  <li key={q.id}>
+                    <a href={`#quest-${q.id}`} className="block py-2 hover:text-accent">
+                      <span className="font-semibold">{q.name}</span>
+                      {q.status === "blocked" ? (
+                        <span className="block text-sm text-muted">{copy.waitingOnGame}</span>
+                      ) : (
+                        q.nextStep && <span className="block text-sm">{q.nextStep}</span>
+                      )}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
-          {codex.length > 0 && (
+          {build.goals.some((g) => g.status === "open") && (
             <section>
-              <h3 className="section-title">{copy.codex}</h3>
-              <div className="space-y-4">
-                {CODEX_KINDS.map((k) => {
-                  const entries = codex.filter((e) => e.kind === k);
-                  return entries.length === 0 ? null : (
-                    <div key={k}>
-                      <h4 className="group-title">{copy.codexKinds[k]}</h4>
-                      <ul className="space-y-2">
-                        {entries.map((e) => (
-                          <CodexEntry key={e.id} entry={e} />
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
+              <h3 className="section-title">{copy.goals}</h3>
+              <Goals goals={build.goals.filter((g) => g.status === "open")} />
             </section>
           )}
-          {closed.length > 0 && (
+          {equipped.length > 0 && (
             <section>
-              <h3 className="section-title">{copy.closedQuests}</h3>
-              <Quests quests={closed} />
+              <h3 className="section-title">{copy.equipped}</h3>
+              <ul className="card divide-y divide-rule py-1">
+                {equipped.map((i) => (
+                  <li key={i.id}>
+                    <a href={`#item-${i.id}`} className="flex items-baseline justify-between gap-3 py-2 hover:text-accent">
+                      <span className="font-semibold">
+                        {i.name}
+                        {i.localName && <span className="font-normal text-muted"> · {i.localName}</span>}
+                      </span>
+                      {i.quantity !== null && <span className="tabular-nums">{copy.quantity(i.quantity)}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
         </div>
-        <div className="space-y-8">
+
+        <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           <section>
             <h3 className="section-title">{copy.goals}</h3>
-            {build.goals.length === 0 ? (
-              <p className="card text-muted">{copy.noGoals}</p>
-            ) : (
-              // The plan is a sequence: the open goals in their order, then what was reached, quieter.
-              <ol className="card space-y-3">
-                {build.goals.map((g) => {
-                  const measured = g.target !== null && g.current !== null;
-                  const share = measured ? Math.min(1, g.current! / g.target!) : g.status === "reached" ? 1 : 0;
-                  return (
-                    <li key={g.id} className={`goal ${g.status === "reached" ? "goal-reached" : ""} ${g.suggested ? "goal-suggested" : ""}`}>
-                      <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-semibold">
-                          {g.kind === "stat" && g.stat ? (
-                            <>
-                              {g.stat.name} {g.target}
-                              {g.stat.localName && <span className="text-sm font-normal text-muted"> · {g.stat.localName}</span>}
-                            </>
-                          ) : g.kind === "level" ? (
-                            copy.level(g.target ?? 0)
-                          ) : g.item ? (
-                            <a href={g.item.url} className="text-accent">
-                              {g.item.name}
-                            </a>
-                          ) : (
-                            g.text
-                          )}
-                        </span>
-                        <span className="shrink-0 text-sm text-muted tabular-nums">
-                          {g.status === "reached" && g.reachedOn
-                            ? copy.reachedOn(g.reachedOn)
-                            : g.suggested
-                              ? copy.suggested
-                              : measured
-                                ? copy.goalProgress(g.current!, g.target!)
-                                : ""}
-                        </span>
-                      </div>
-                      {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
-                      <Notes notes={g.notes} />
-                      {(measured || g.status === "reached") && (
-                        <div className="goal-track" role="presentation">
-                          <div className="goal-fill" style={{ width: `${share * 100}%` }} />
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
+            {build.goals.length === 0 ? <p className="card text-muted">{copy.noGoals}</p> : <Goals goals={build.goals} />}
           </section>
           <section>
             <h3 className="section-title">{copy.build}</h3>
@@ -216,43 +164,177 @@ export async function Sheet({ player: p, playthrough: t, reveal }: { player: Pla
               )}
             </div>
           </section>
+        </div>
+
+        <div className="space-y-6">
           <section>
-            <h3 className="section-title">{copy.items}</h3>
-            {items.length === 0 ? (
-              <p className="card text-muted">{copy.noItems}</p>
-            ) : (
-              <div className="space-y-4">
-                {groups.map(([label, list]) => (
-                  <div key={label}>
-                    <h4 className="group-title">{label}</h4>
-                    <ul className="space-y-2">
-                      {list.map((i) => (
-                        <Item key={i.id} item={i} />
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mb-2 flex items-baseline justify-between">
+              <h3 className="section-title mb-0">{copy.openQuests}</h3>
+              <Link href={reveal === "hint" ? t.url : `${t.url}?hints=1`} className="pill text-sm text-accent">
+                {reveal === "hint" ? copy.hideHints : copy.showHints}
+              </Link>
+            </div>
+            {reveal === "hint" && <p className="glass mb-3 rounded-lg border border-hint px-3 py-2 text-sm text-hint">{copy.hintWarning}</p>}
+            {open.length === 0 ? <p className="card text-muted">{copy.noOpenQuests}</p> : <Quests quests={open} />}
           </section>
-          {sessions.length > 0 && (
+          {closed.length > 0 && (
             <section>
-              <h3 className="section-title">{copy.sessions}</h3>
-              <ul className="card divide-y divide-rule py-1">
-                {sessions.map((s) => (
-                  <li key={s.id}>
-                    <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
-                      <span className="shrink-0 text-sm text-muted tabular-nums">{s.playedOn}</span>
-                      <span>{s.summary}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="section-title">{copy.closedQuests}</h3>
+              <Quests quests={closed} />
             </section>
           )}
         </div>
-      </div>
+
+        {/* The inventory in the game's groups; on a wide screen two columns of cards. */}
+        {items.length === 0 ? (
+          <p className="card text-muted">{copy.noItems}</p>
+        ) : (
+          <div className="space-y-6">
+            {groups.map(([label, list]) => (
+              <div key={label}>
+                <h4 className="group-title">{label}</h4>
+                <ul className="grid gap-2 lg:grid-cols-2">
+                  {list.map((i) => (
+                    <Item key={i.id} item={i} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {codex.length === 0 ? (
+          <p className="card text-muted">{copy.noCodex}</p>
+        ) : (
+          <div className="space-y-6">
+            {CODEX_KINDS.map((k) => {
+              const entries = codex.filter((e) => e.kind === k);
+              return entries.length === 0 ? null : (
+                <div key={k}>
+                  <h4 className="group-title">{copy.codexKinds[k]}</h4>
+                  <ul className="grid gap-2 lg:grid-cols-2">
+                    {entries.map((e) => (
+                      <CodexEntry key={e.id} entry={e} />
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {sessions.length === 0 ? (
+          <p className="card text-muted">{copy.noSessions}</p>
+        ) : (
+          <ul className="card divide-y divide-rule py-1">
+            {sessions.map((s) => (
+              <li key={s.id}>
+                <Link href={s.url} className="flex gap-3 py-2 hover:text-accent">
+                  <span className="shrink-0 text-sm text-muted tabular-nums">{s.playedOn}</span>
+                  <span>{s.summary}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* What the game is, the player's own notes on it and on this run, and the sites they trust for it. */}
+        {!hasNotes ? (
+          <p className="card text-muted">{copy.noNotes}</p>
+        ) : (
+          <div className="card space-y-3">
+            {(t.game.description || t.game.notes) && (
+              <div>
+                <h4 className="font-semibold">{t.game.title}</h4>
+                <Notes description={t.game.description} notes={t.game.notes} />
+              </div>
+            )}
+            {t.notes && (
+              <div>
+                <h4 className="font-semibold">{t.label}</h4>
+                <Notes notes={t.notes} />
+              </div>
+            )}
+            {t.game.sources.length > 0 && (
+              <div>
+                <h4 className="font-semibold">{copy.sources}</h4>
+                <ul className="mt-1 space-y-2 text-sm">
+                  {t.game.sources.map((x) => (
+                    <li key={x.url}>
+                      <a href={x.url} className="text-accent" target="_blank" rel="noopener noreferrer">
+                        {x.title ?? siteOf(x.url)}
+                      </a>
+                      {x.facts && <p className="text-muted">{x.facts}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </Register>
     </div>
+  );
+}
+
+async function SessionCard({ session: s }: { session: { url: string; playedOn: string; summary: string; notes: string | null } }) {
+  return (
+    <Link href={s.url} className="card block hover:border-accent">
+      <span className="text-sm text-muted">{s.playedOn}</span>
+      <p>{s.summary}</p>
+      <Notes notes={s.notes} />
+    </Link>
+  );
+}
+
+// The plan is a sequence: the goals in their order, then what was reached, quieter.
+async function Goals({ goals }: { goals: Awaited<ReturnType<typeof buildOf>>["goals"] }) {
+  const copy = await serverCopy();
+  return (
+    <ol className="card space-y-3">
+      {goals.map((g) => {
+        const measured = g.target !== null && g.current !== null;
+        const share = measured ? Math.min(1, g.current! / g.target!) : g.status === "reached" ? 1 : 0;
+        return (
+          <li key={g.id} className={`goal ${g.status === "reached" ? "goal-reached" : ""} ${g.suggested ? "goal-suggested" : ""}`}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-semibold">
+                {g.kind === "stat" && g.stat ? (
+                  <>
+                    {g.stat.name} {g.target}
+                    {g.stat.localName && <span className="text-sm font-normal text-muted"> · {g.stat.localName}</span>}
+                  </>
+                ) : g.kind === "level" ? (
+                  copy.level(g.target ?? 0)
+                ) : g.item ? (
+                  <a href={g.item.url} className="text-accent">
+                    {g.item.name}
+                  </a>
+                ) : (
+                  g.text
+                )}
+              </span>
+              <span className="shrink-0 text-sm text-muted tabular-nums">
+                {g.status === "reached" && g.reachedOn
+                  ? copy.reachedOn(g.reachedOn)
+                  : g.suggested
+                    ? copy.suggested
+                    : measured
+                      ? copy.goalProgress(g.current!, g.target!)
+                      : ""}
+              </span>
+            </div>
+            {g.kind !== "note" && g.text && <p className="text-sm text-muted">{g.text}</p>}
+            <Notes notes={g.notes} />
+            {(measured || g.status === "reached") && (
+              <div className="goal-track" role="presentation">
+                <div className="goal-fill" style={{ width: `${share * 100}%` }} />
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

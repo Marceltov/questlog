@@ -47,6 +47,20 @@ export const de: Copy = {
   status: { playing: "Läuft", finished: "Durchgespielt", dropped: "Abgebrochen" } as Record<string, string>,
 
   // A playthrough
+  tabs: {
+    label: "Teile dieser Seite",
+    overview: "Überblick",
+    quests: "Quests",
+    character: "Charakter",
+    items: "Inventar",
+    codex: "Kodex",
+    sessions: "Sessions",
+    notes: "Notizen",
+  },
+  nextSteps: "Als Nächstes",
+  noCodex: "Noch niemand und nichts aufgezeichnet. Erzähl Claude, wen du getroffen hast.",
+  noSessions: "Noch keine Sessions.",
+  noNotes: "Noch keine Notizen. Erzähl Claude, was du vom Spiel hältst oder welchen Seiten du dafür vertraust.",
   lastSession: "Letzte Session",
   openQuests: "Offene Quests",
   noOpenQuests: "Keine offenen Quests.",
