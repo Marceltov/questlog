@@ -10,10 +10,12 @@ export {
   authServerMetadataRoute,
   clientName,
   openIdConfigRoute,
+  passkeysOf,
   playerFromHeaders,
   refusedSignIn,
   signedInAs,
   signInMethods,
+  type PasskeyView,
   type RefusedSignIn,
 } from "./auth/session";
 export type { SignInMethods } from "./auth/methods";

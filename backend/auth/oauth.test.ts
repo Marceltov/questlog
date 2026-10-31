@@ -21,6 +21,7 @@ import { authRoute, authServerMetadataRoute, playerFromHeaders } from "./session
 let server: Server;
 let base = "";
 const codes = new Map<string, string>();
+const links = new Map<string, string>();
 
 // The routes of app/, without Next: what each path is answered by.
 function route(req: Request): Promise<Response> {
@@ -75,7 +76,11 @@ beforeAll(async () => {
   vi.stubEnv("QUESTLOG_OIDC_FAKE_ISSUER", `${base}/fake-oidc`);
   vi.stubEnv("QUESTLOG_OIDC_FAKE_CLIENT_ID", "questlog-client");
   resetSecretForTests();
-  setMailerForTests(async (to, code) => void codes.set(to, code));
+  setMailerForTests(async (to, code, link) => {
+    codes.set(to, code);
+    if (link) links.set(to, link);
+    else links.delete(to);
+  });
   await resetDbForTests();
   await resetAuthForTests();
 });
@@ -119,11 +124,13 @@ const rpc = (method: string, params: Record<string, unknown>, headers: Record<st
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: { ...params, _meta: META } }),
   });
 
-/** Signs `email` in through the email code, carrying the signed query of the login page the authorize step sent the browser to. */
+/** Signs `email` in through the email code, carrying the signed query of the login page the authorize step sent the browser to (the
+ * browser's client sends it with every request from that page). */
 async function signIn(email: string, oauthQuery?: string) {
-  const sent = await fetch(`${base}/api/auth/email-otp/send-verification-otp`, json({ email, type: "sign-in" }));
+  const query = oauthQuery ? { oauth_query: oauthQuery } : {};
+  const sent = await fetch(`${base}/api/auth/email-otp/send-verification-otp`, json({ email, type: "sign-in", ...query }));
   expect(sent.status).toBe(200);
-  return fetch(`${base}/api/auth/sign-in/email-otp`, json({ email, otp: codes.get(email), ...(oauthQuery ? { oauth_query: oauthQuery } : {}) }));
+  return fetch(`${base}/api/auth/sign-in/email-otp`, json({ email, otp: codes.get(email), ...query }));
 }
 
 test("an MCP client signs the player in and calls the tools as them; nothing else gets in", async () => {
@@ -182,9 +189,10 @@ test("an MCP client signs the player in and calls the tools as them; nothing els
   expect(stranger.ok).toBe(false);
   expect(codes.has("eve@example.com")).toBe(false);
 
-  // The email code; the mail holds only the code.
+  // The email code; the mail holds only the code, no link: a sign-in someone else started can't be finished by clicking the mail.
   const signed = await signIn("ada@example.com", login.search.slice(1));
   expect(signed.status).toBe(200);
+  expect(links.has("ada@example.com")).toBe(false);
   const cookie = cookieOf(signed);
   const afterLogin = await signed.json();
   const consent = new URL(afterLogin.url, base);
@@ -253,6 +261,50 @@ test("telemetry stays off and codes are stored hashed", async () => {
   const rows = (await ctx.adapter.findMany({ model: "verification" })) as { value: string }[];
   expect(rows.length).toBeGreaterThan(0);
   for (const r of rows) expect(r.value).not.toContain(code);
+});
+
+test("outside an MCP sign-in the mail holds a link as well; it signs the player in once, to the page they wanted, and is stored hashed", async () => {
+  codes.clear();
+  const login = `${base}/login?next=${encodeURIComponent("/p/abc")}`;
+  const sent = await fetch(`${base}/api/auth/email-otp/send-verification-otp`, json({ email: "ada@example.com", type: "sign-in" }, { referer: login }));
+  expect(sent.status).toBe(200);
+  expect(codes.has("ada@example.com")).toBe(true);
+  const link = new URL(links.get("ada@example.com")!);
+  expect(`${link.origin}${link.pathname}`).toBe(`${base}/api/auth/magic-link/verify`);
+  expect(link.searchParams.get("callbackURL")).toBe("/p/abc");
+
+  const ctx = await (await auth()).$context;
+  const rows = (await ctx.adapter.findMany({ model: "verification" })) as { identifier: string; value: string }[];
+  for (const r of rows) expect(`${r.identifier} ${r.value}`).not.toContain(link.searchParams.get("token")!);
+
+  const opened = await fetch(link, { redirect: "manual" });
+  expect(opened.status).toBe(302);
+  expect(new URL(opened.headers.get("location")!, base).pathname).toBe("/p/abc");
+  expect(await playerFromHeaders(new Headers({ cookie: cookieOf(opened) }))).not.toBeNull();
+  const again = await fetch(link, { redirect: "manual" });
+  expect(cookieOf(again)).not.toContain("session_token=");
+
+  // A page that isn't questlog's own can't be where the link leads.
+  await fetch(
+    `${base}/api/auth/email-otp/send-verification-otp`,
+    json({ email: "ada@example.com", type: "sign-in" }, { referer: `${base}/login?next=//evil.example` }),
+  );
+  expect(new URL(links.get("ada@example.com")!).searchParams.get("callbackURL")).toBe("/");
+});
+
+test("passkeys: questlog is the relying party at PUBLIC_URL's host, and only a signed-in player can add one", async () => {
+  const options = await fetch(`${base}/api/auth/passkey/generate-register-options`);
+  expect(options.status).toBe(401);
+  const signed = await signIn("ada@example.com");
+  const cookie = cookieOf(signed);
+  const mine = await fetch(`${base}/api/auth/passkey/generate-register-options`, { headers: { cookie } });
+  expect(mine.status).toBe(200);
+  const body = await mine.json();
+  expect(body.rp).toEqual({ id: "localhost", name: "questlog" });
+  expect(body.user.name).toBe("ada@example.com");
+  expect((await fetch(`${base}/api/auth/passkey/list-user-passkeys`, { headers: { cookie } })).status).toBe(200);
+  const signInOptions = await fetch(`${base}/api/auth/passkey/generate-authenticate-options`);
+  expect((await signInOptions.json()).rpId).toBe("localhost");
 });
 
 test("an OpenID Connect provider from QUESTLOG_OIDC_<NAME>_* sends the browser to it, with PKCE and questlog's callback", async () => {

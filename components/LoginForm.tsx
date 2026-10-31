@@ -1,12 +1,17 @@
 "use client";
-// The sign-in: an email code, or an OpenID Connect provider. When an MCP client sent the player here (the URL carries Better Auth's
-// signed authorize query, which oauthProviderClient sends along), a sign-in continues that authorization instead of opening the app.
-import { useState } from "react";
+// The sign-in: an email code, a passkey, or an OpenID Connect provider. When an MCP client sent the player here (the URL carries Better
+// Auth's signed authorize query, which oauthProviderClient sends along), a sign-in continues that authorization instead of opening the app.
+// A passkey is offered where the browser has them: as a button, and in the address field's autofill.
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { RefusedSignIn } from "@/backend";
 import { authClient } from "./auth-client";
 import { useCopy } from "./copy/client";
 
 type Methods = { emailCode: boolean; providers: { id: string; label: string }[] };
+
+// Whether this browser has passkeys; never on the server, which can't know.
+const hasPasskeys = () => typeof window.PublicKeyCredential === "function";
+const noChange = () => () => {};
 
 // Where a finished sign-in goes: Better Auth's next step of the authorization, or the page the player wanted.
 function go(data: unknown, next: string) {
@@ -35,6 +40,36 @@ export function LoginForm({
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(refused ? copy.refused(refused.provider, refused.code) : null);
+  const passkeys = useSyncExternalStore(noChange, hasPasskeys, () => false);
+
+  // The address field offers the browser's passkeys for this site in its autofill.
+  useEffect(() => {
+    if (!hasPasskeys()) return;
+    void window.PublicKeyCredential.isConditionalMediationAvailable?.().then(async (yes) => {
+      if (!yes) return;
+      const { data, error } = await authClient.signIn.passkey({ autoFill: true });
+      if (!error && data) await signedIn(data, data.user.email);
+    });
+    // Once per page: the autofill request waits until the player picks a passkey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function signedIn(data: unknown, who: string) {
+    await onSignedIn?.(who);
+    go(data, next);
+  }
+
+  async function passkey() {
+    setBusy(true);
+    setError(null);
+    const { data, error } = await authClient.signIn.passkey();
+    if (error || !data) {
+      setBusy(false);
+      setError(copy.passkeyFailed);
+      return;
+    }
+    await signedIn(data, data.user.email);
+  }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -56,8 +91,7 @@ export function LoginForm({
       setError(copy.signInFailed);
       return;
     }
-    await onSignedIn?.(email);
-    go(data, next);
+    await signedIn(data, email);
   }
 
   // genericOAuth registers each provider as a social one; Better Auth carries an MCP client's authorize query through it by itself.
@@ -105,14 +139,19 @@ export function LoginForm({
           <form onSubmit={send} className="space-y-3">
             <label className="block">
               <span className="text-sm font-semibold">{copy.emailLabel}</span>
-              <input className="field mt-1" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input className="field mt-1" type="email" autoComplete="email webauthn" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </label>
             <button className="button-primary w-full" disabled={busy}>
               {copy.sendCode}
             </button>
           </form>
         ))}
-      {methods.emailCode && methods.providers.length > 0 && <p className="text-center text-sm text-muted">{copy.or}</p>}
+      {methods.emailCode && (passkeys || methods.providers.length > 0) && <p className="text-center text-sm text-muted">{copy.or}</p>}
+      {passkeys && (
+        <button type="button" className="button-secondary w-full" disabled={busy} onClick={passkey}>
+          {copy.withPasskey}
+        </button>
+      )}
       {methods.providers.map((p) => (
         <button key={p.id} type="button" className="button-secondary w-full" disabled={busy} onClick={() => provider(p.id)}>
           {copy.withProvider(p.label)}

@@ -21,7 +21,7 @@ To update: `docker compose pull && docker compose up -d`. `:main` follows the ma
 | `TZ` | `Europe/Berlin` | The time zone of "today", the default day of a play session. |
 | `QUESTLOG_SECRET` | generated into `${DATA_DIR}/secret` | Signs session cookies and encrypts the token signing keys. At least 32 bytes (`openssl rand -hex 32`). Changing it signs everyone out. |
 | `QUESTLOG_SIGNUP_ALLOW` | empty: nobody new | Who may become a player: addresses, `@domain` entries or `*`, comma-separated. Players who exist keep signing in. |
-| `QUESTLOG_SMTP_URL` | unset: no email codes | An SMTP server for sign-in codes, `smtp://` or `smtps://user:password@host:port`. |
+| `QUESTLOG_SMTP_URL` | unset: no email codes | An SMTP server for sign-in mails (a code, and outside an MCP sign-in a link), `smtp://` or `smtps://user:password@host:port`. |
 | `QUESTLOG_SMTP_FROM` | (required with SMTP) | The sender address of the codes. |
 | `QUESTLOG_OIDC_<NAME>_ISSUER` | unset | An OpenID Connect provider's issuer URL. `<NAME>` is yours to choose (letters and digits); add one block per provider. |
 | `QUESTLOG_OIDC_<NAME>_CLIENT_ID` | (required with an issuer) | The client id questlog has at that provider. |
@@ -34,7 +34,7 @@ To update: `docker compose pull && docker compose up -d`. `:main` follows the ma
 | `QUESTLOG_TRANSCRIBE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | The model the Whisper server runs. |
 | `QUESTLOG_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug` or `silent`. |
 
-At least one way to sign in is needed: SMTP for email codes, or a provider.
+At least one way to sign in is needed: SMTP for email codes, or a provider. Passkeys need no setting: a signed-in player adds them on the account page. They are bound to the host of `PUBLIC_URL`, so changing that host means adding them again.
 
 ## OpenID Connect providers
 

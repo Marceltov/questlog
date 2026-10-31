@@ -11,7 +11,7 @@ sequenceDiagram
   Q-->>C: 401, see /.well-known/oauth-protected-resource/mcp
   C->>Q: register (or a client metadata document)
   C->>P: open the authorize page
-  P->>Q: sign in with an email code or a provider, then Allow
+  P->>Q: sign in with an email code, a passkey or a provider, then Allow
   Q-->>C: a code, swapped for a 10-minute access token bound to /mcp
   C->>Q: POST /mcp with the token: tools as this player
 ```

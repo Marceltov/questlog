@@ -11,7 +11,7 @@ sequenceDiagram
   Q-->>C: 401, siehe /.well-known/oauth-protected-resource/mcp
   C->>Q: registrieren (oder ein Client-Metadaten-Dokument)
   C->>P: die Autorisierungsseite öffnen
-  P->>Q: mit E-Mail-Code oder Anbieter anmelden, dann Erlauben
+  P->>Q: mit E-Mail-Code, Passkey oder Anbieter anmelden, dann Erlauben
   Q-->>C: ein Code, getauscht gegen ein 10-Minuten-Access-Token für /mcp
   C->>Q: POST /mcp mit dem Token: Werkzeuge als dieser Spieler
 ```
