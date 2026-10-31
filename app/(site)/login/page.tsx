@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { safeNext, signInMethods } from "@/backend";
+import { refusedSignIn, safeNext, signInMethods } from "@/backend";
 import { ClosedBook } from "@/components/ClosedBook";
 import { copy } from "@/components/copy";
 
@@ -7,10 +7,10 @@ export const metadata: Metadata = { title: copy.signInTitle };
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { next } = await searchParams;
+  const query = await searchParams;
   return (
     <main>
-      <ClosedBook methods={signInMethods()} next={safeNext(next)} />
+      <ClosedBook methods={signInMethods()} next={safeNext(query.next)} refused={refusedSignIn(query)} />
     </main>
   );
 }

@@ -2,6 +2,7 @@
 // The sign-in: an email code, or an OpenID Connect provider. When an MCP client sent the player here (the URL carries Better Auth's
 // signed authorize query, which oauthProviderClient sends along), a sign-in continues that authorization instead of opening the app.
 import { useState } from "react";
+import type { RefusedSignIn } from "@/backend";
 import { authClient } from "./auth-client";
 import { copy } from "./copy";
 
@@ -13,13 +14,26 @@ function go(data: unknown, next: string) {
   window.location.assign(url ?? next);
 }
 
-/** `onSignedIn` runs once a sign-in has succeeded, before the browser moves on: the closed book opens there. */
-export function LoginForm({ methods, next, onSignedIn }: { methods: Methods; next: string; onSignedIn?: (email: string) => Promise<void> }) {
+/**
+ * `onSignedIn` runs once a sign-in has succeeded, before the browser moves on: the closed book opens there. `refused`: a provider turned
+ * the last sign-in down, and says why.
+ */
+export function LoginForm({
+  methods,
+  next,
+  onSignedIn,
+  refused,
+}: {
+  methods: Methods;
+  next: string;
+  onSignedIn?: (email: string) => Promise<void>;
+  refused?: RefusedSignIn | null;
+}) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(refused ? copy.refused(refused.provider, refused.code) : null);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -48,7 +62,9 @@ export function LoginForm({ methods, next, onSignedIn }: { methods: Methods; nex
   // genericOAuth registers each provider as a social one; Better Auth carries an MCP client's authorize query through it by itself.
   async function provider(id: string) {
     setBusy(true);
-    const { data, error } = await authClient.signIn.social({ provider: id, callbackURL: next, errorCallbackURL: "/login?error=1" });
+    // Better Auth adds the provider's `error` to this URL; the page shows it (#17).
+    const back = `/login?${new URLSearchParams({ provider: id, next })}`;
+    const { data, error } = await authClient.signIn.social({ provider: id, callbackURL: next, errorCallbackURL: back });
     if (error) {
       setBusy(false);
       setError(copy.signInFailed);

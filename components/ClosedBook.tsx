@@ -3,6 +3,7 @@
 // spine, the desk fades, and the open almanac behind every page (app/globals.css) is what is left; then the app loads. With reduced motion
 // the book just goes.
 import { useState } from "react";
+import type { RefusedSignIn } from "@/backend";
 import { copy } from "./copy";
 import { LoginForm } from "./LoginForm";
 
@@ -11,7 +12,7 @@ type Methods = { emailCode: boolean; providers: { id: string; label: string }[] 
 /** How long the opening takes, in ms; keep in step with the transitions of .book in app/globals.css. */
 const OPENING_MS = 1900;
 
-export function ClosedBook({ methods, next }: { methods: Methods; next: string }) {
+export function ClosedBook({ methods, next, refused }: { methods: Methods; next: string; refused?: RefusedSignIn | null }) {
   const [open, setOpen] = useState(false);
   const [keeper, setKeeper] = useState("");
 
@@ -48,7 +49,7 @@ export function ClosedBook({ methods, next }: { methods: Methods; next: string }
             <div className="book-label">
               <h2 className="text-lg font-bold">{copy.signInTitle}</h2>
               <p className="mt-1 mb-5 text-sm text-muted">{copy.signInLead}</p>
-              <LoginForm methods={methods} next={next} onSignedIn={opening} />
+              <LoginForm methods={methods} next={next} onSignedIn={opening} refused={refused} />
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ export const copy = {
   noMethods: "This instance has no way to sign in yet: set QUESTLOG_SMTP_URL or an OpenID Connect provider (see the configuration docs).",
   signInFailed: "That didn't work. Check the code, or ask for a new one.",
   sendFailed: "No code could be sent. Try again in a minute.",
+  refused: (provider: string | null, code: string) => `${provider ?? "The sign-in provider"} refused the sign-in: ${code}`,
   signOut: "Sign out",
   updating: "Updating",
 

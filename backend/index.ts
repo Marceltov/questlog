@@ -5,7 +5,17 @@ import { db } from "./db";
 import { healthRoute, setDbProbe } from "./http/health";
 
 export { healthRoute };
-export { authRoute, authServerMetadataRoute, clientName, openIdConfigRoute, playerFromHeaders, signedInAs, signInMethods } from "./auth/session";
+export {
+  authRoute,
+  authServerMetadataRoute,
+  clientName,
+  openIdConfigRoute,
+  playerFromHeaders,
+  refusedSignIn,
+  signedInAs,
+  signInMethods,
+  type RefusedSignIn,
+} from "./auth/session";
 export type { SignInMethods } from "./auth/methods";
 export { mcpRoute } from "./mcp";
 export { dispatch as apiRoute } from "./http/api";
