@@ -18,7 +18,7 @@ beforeEach(async () => {
 });
 afterEach(() => {
   vi.unstubAllEnvs();
-  delete process.env.QUESTLOG_CHAT_DAILY_LIMIT;
+  delete process.env.GAMEPANION_CHAT_DAILY_LIMIT;
   setChatModelForTests(null);
   setTranscriberForTests(null);
 });
@@ -102,11 +102,11 @@ test("a tool error goes back to Claude as an error result; an unknown tool too",
 });
 
 test("the daily limit counts messages; a failing API and a refusal end the message with a code", async () => {
-  process.env.QUESTLOG_CHAT_DAILY_LIMIT = "1";
+  process.env.GAMEPANION_CHAT_DAILY_LIMIT = "1";
   expect(await chat(s.a, ask("one"), {}, scripted(say("ok")))).toMatchObject({ reply: "ok" });
   expect(await chat(s.a, ask("two"), {}, scripted(say("ok")))).toEqual({ code: "chat_limit" });
   expect(await chat(s.b, ask("Ben's first"), {}, scripted(say("ok")))).toMatchObject({ reply: "ok" });
-  delete process.env.QUESTLOG_CHAT_DAILY_LIMIT;
+  delete process.env.GAMEPANION_CHAT_DAILY_LIMIT;
   const down: ChatModel = {
     async create() {
       throw new Anthropic.APIConnectionError({ message: "down" });
@@ -122,7 +122,7 @@ test("links are the rows a result names with a url", () => {
 
 test("the routes: 404 without a model, a bearer token or no session is refused", async () => {
   // Looking for a session opens the sign-in database: a fresh one, not the default /data.
-  vi.stubEnv("DATA_DIR", mkdtempSync(join(tmpdir(), "questlog-")));
+  vi.stubEnv("DATA_DIR", mkdtempSync(join(tmpdir(), "gamepanion-")));
   const post = (path: string, headers: Record<string, string> = {}, body = "{}") => new Request(`http://localhost${path}`, { method: "POST", headers, body });
   expect((await chatRoute(post("/api/chat"))).status).toBe(404);
   setChatModelForTests(scripted());

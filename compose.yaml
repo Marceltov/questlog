@@ -1,14 +1,14 @@
 # What a server runs: the image CI published, and every setting from .env (a filled-in copy of .env.example). Nothing is built
 # here; see "Deploying with Docker Compose" in Marceltov/engineering-conventions.
 services:
-  questlog:
+  gamepanion:
     image: ghcr.io/gamepanion/gamepanion:main
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file: .env
     volumes:
-      - questlog-data:/data
+      - gamepanion-data:/data
 
 volumes:
-  questlog-data:
+  gamepanion-data:

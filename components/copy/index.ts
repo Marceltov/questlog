@@ -9,7 +9,7 @@ export const LOCALES = ["en", "de"] as const;
 export type Locale = (typeof LOCALES)[number];
 /** Each language under its own name, for the switch. */
 export const LOCALE_NAMES: Record<Locale, string> = { en: "English", de: "Deutsch" };
-export const LOCALE_COOKIE = "questlog-lang";
+export const LOCALE_COOKIE = "gamepanion-lang";
 
 const BY: Record<Locale, Copy> = { en, de };
 

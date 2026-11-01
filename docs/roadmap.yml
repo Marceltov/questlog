@@ -13,6 +13,17 @@
 items:
   # ---- open ------------------------------------------------------------------------------------------------------------
   # ---- done ------------------------------------------------------------------------------------------------------------
+  - id: name
+    status: done
+    date: 2026-11-01
+    icon: rename-box
+    title: The name Gamepanion
+    title_de: Der Name Gamepanion
+    summary: questlog becomes Gamepanion, the companion you talk to while you play, with its own org, image and domain.
+    summary_de: Aus questlog wird Gamepanion, der Begleiter, mit dem du beim Spielen redest, mit eigener Organisation, eigenem Image und eigener Domain.
+    links:
+      - { label: "ADR 0017", url: "https://questlog.marceltov.de/adr/0017-the-name-gamepanion/" }
+      - { label: "#52", url: "https://github.com/gamepanion/gamepanion/pull/52" }
   - id: settings
     status: done
     date: 2026-11-01
@@ -49,8 +60,8 @@ items:
     icon: chat-processing-outline
     title: Talk to Claude in the app
     title_de: Mit Claude in der App sprechen
-    summary: Ask, tell or correct without leaving questlog, typed or spoken, from any card with that card as what you mean.
-    summary_de: Fragen, erzählen oder korrigieren, ohne questlog zu verlassen, getippt oder gesprochen, von jeder Karte aus mit dieser Karte als Bezug.
+    summary: Ask, tell or correct without leaving Gamepanion, typed or spoken, from any card with that card as what you mean.
+    summary_de: Fragen, erzählen oder korrigieren, ohne Gamepanion zu verlassen, getippt oder gesprochen, von jeder Karte aus mit dieser Karte als Bezug.
     links:
       - { label: "#35", url: "https://github.com/gamepanion/gamepanion/pull/35" }
       - { label: "#34", url: "https://github.com/gamepanion/gamepanion/issues/34" }
@@ -135,8 +146,8 @@ items:
     icon: web
     title: Claude looks things up
     title_de: Claude schlägt nach
-    summary: questlog keeps the sites you trust for a game and the facts Claude found there, with their links; Claude does the reading, questlog never fetches.
-    summary_de: questlog merkt sich die Seiten, denen du für ein Spiel vertraust, und die Fakten, die Claude dort gefunden hat, mit ihren Links; Claude liest, questlog ruft nie selbst etwas ab.
+    summary: Gamepanion keeps the sites you trust for a game and the facts Claude found there, with their links; Claude does the reading, Gamepanion never fetches.
+    summary_de: Gamepanion merkt sich die Seiten, denen du für ein Spiel vertraust, und die Fakten, die Claude dort gefunden hat, mit ihren Links; Claude liest, Gamepanion ruft nie selbst etwas ab.
     links:
       - { label: "#22", url: "https://github.com/gamepanion/gamepanion/pull/22" }
       - { label: "ADR 0008", url: "https://questlog.marceltov.de/adr/0008-claude-looks-things-up/" }
@@ -199,7 +210,7 @@ items:
     icon: compass-outline
     title: Values and the first decisions
     title_de: Werte und die ersten Entscheidungen
-    summary: What questlog stands for, and ADRs for the app, lookups and sign-in.
-    summary_de: Wofür questlog steht, und ADRs für die App, das Nachschlagen und die Anmeldung.
+    summary: What Gamepanion stands for, and ADRs for the app, lookups and sign-in.
+    summary_de: Wofür Gamepanion steht, und ADRs für die App, das Nachschlagen und die Anmeldung.
     links:
       - { label: "#1", url: "https://github.com/gamepanion/gamepanion/pull/1" }

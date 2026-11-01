@@ -2,7 +2,7 @@
 // The tags in use on a part, in a row at its top (ADR 0014): tapping one shows only the cards that carry it, across the part's folding
 // groups; tapping it again shows them all. Every card is rendered on the server and only hidden here: a card without the tag, then a
 // group or section (data-tag-scope) left without a card, whose count (data-tag-count) shows what is left. A link to a hidden card
-// (components/Register.tsx sends questlog:reveal) shows everything again.
+// (components/Register.tsx sends gamepanion:reveal) shows everything again.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Tag } from "lucide-react";
 
@@ -16,8 +16,8 @@ export function TagFilter({ tags, label, children }: { tags: TagCount[]; label: 
     const el = root.current;
     if (!el) return;
     const reveal = () => setTag(null);
-    el.addEventListener("questlog:reveal", reveal);
-    return () => el.removeEventListener("questlog:reveal", reveal);
+    el.addEventListener("gamepanion:reveal", reveal);
+    return () => el.removeEventListener("gamepanion:reveal", reveal);
   }, []);
 
   // A tag no card carries any more (a refresh after a correction) is let go.

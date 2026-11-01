@@ -124,7 +124,7 @@ const migrations: Record<string, Migration> = {
     },
   },
   // Sources (ADR 0008): the pages the player trusts for a game, and the pages an item's facts come from, each a JSON list of
-  // { url, title, facts, on }. questlog never fetches them; Claude reads them in the conversation.
+  // { url, title, facts, on }. Gamepanion never fetches them; Claude reads them in the conversation.
   "002_sources": {
     async up(db: Kysely<any>) {
       await db.schema
@@ -407,7 +407,7 @@ const migrations: Record<string, Migration> = {
   },
 };
 
-export const NEWER = "the database was made by a newer questlog than this one; upgrade questlog, do not point an older one at it";
+export const NEWER = "the database was made by a newer Gamepanion than this one; upgrade Gamepanion, do not point an older one at it";
 
 export async function migrate(db: Kysely<any>): Promise<void> {
   const migrator = new Migrator({ db, provider: { getMigrations: async () => migrations } });

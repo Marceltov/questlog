@@ -1,8 +1,8 @@
-# questlog
+# Gamepanion
 
-A quest log, build tracker and item list for the games you play. You talk to Claude while you play; questlog remembers where you are, and tells you what you left open when you pick the game up again.
+A quest log, build tracker and item list for the games you play. You talk to Claude while you play; Gamepanion remembers where you are, and tells you what you left open when you pick the game up again.
 
-Capture happens through a built-in MCP endpoint (`/mcp`), so there is nothing to fill in by hand: say "I just talked to Toma" or share a screenshot of your stat screen, and Claude files it. The web UI is for looking things up on your phone next to the console. Everything is spoiler-aware: questlog only shows you what you have already found.
+Capture happens through a built-in MCP endpoint (`/mcp`), so there is nothing to fill in by hand: say "I just talked to Toma" or share a screenshot of your stat screen, and Claude files it. The web UI is for looking things up on your phone next to the console. Everything is spoiler-aware: Gamepanion only shows you what you have already found.
 
 Next.js and SQLite, one container, one file of data. Licensed AGPL-3.0-only.
 
@@ -18,4 +18,4 @@ Next.js and SQLite, one container, one file of data. Licensed AGPL-3.0-only.
 
 ## How it relates to freundebuch
 
-questlog follows [freundebuch](https://github.com/Marceltov/freundebuch): the same stack, the same AI-first design (MCP first, every tool result tells Claude what to do next, the session transcript as its own record) and the same self-hosting promise.
+Gamepanion follows [freundebuch](https://github.com/Marceltov/freundebuch): the same stack, the same AI-first design (MCP first, every tool result tells Claude what to do next, the session transcript as its own record) and the same self-hosting promise.

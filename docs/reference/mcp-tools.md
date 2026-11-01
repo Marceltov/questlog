@@ -8,7 +8,7 @@ Files one play session: the player's words verbatim as `transcript`, a `summary`
 
 Anything kept takes the player's own `notes` ([ADR 0011](../adr/0011-notes-and-descriptions.md)): their thoughts in their words, added as a new paragraph to the notes it has. A game, quest, item or codex entry also takes a `description`, what it is as the game says, which replaces the one it has.
 
-- **Which playthrough:** `playthroughId`, or `game` (a title). An unknown title starts a game and its playthrough `NG`; a `label` such as `NG+` picks or starts that playthrough. Two playthroughs being played and no label: questlog refuses and asks Claude to ask.
+- **Which playthrough:** `playthroughId`, or `game` (a title). An unknown title starts a game and its playthrough `NG`; a `label` such as `NG+` picks or starts that playthrough. Two playthroughs being played and no label: Gamepanion refuses and asks Claude to ask.
 - **`quests`:** each by `id` or exact `name` in the playthrough (otherwise a new quest), with `localName`, `giver`, `location`, `status` (`open`, `blocked`, `done`, `failed`, `dropped`) and `entries`: `log`, `next` (a vague next step) or `decision`, each with a `spoiler` level (`none` by default; `hint` or `full` for what the player hasn't reached).
 - **`stats`:** a snapshot, `{ level, values: { key: number } }`; a key the game hasn't had gets its English and its own name through `names`.
 - **`build`:** the plan: `summary`, `mainStat`, and `targets` as a short way to set stat goals (`{ vigor: 20 }`).
@@ -37,7 +37,7 @@ The quests that are open or waiting on the game, each with its whole log. Withou
 
 The player's items in one playthrough: one by `name` (part of it is enough, in English or the game's own language), or all of them, with the build plan, the latest stats and what is equipped, so Claude can say whether a new find fits. `tag` keeps only the items that carry it ("what do I have against fire?"); `tags` lists the tags in use. Items marked as spoilers show only with a `reveal`. A name the player hasn't filed returns nothing, and `next` asks Claude to file it with `record` rather than describe it from its own knowledge.
 
-questlog never fetches a page ([ADR 0008](../adr/0008-claude-looks-things-up.md)). When the player wants to know more, `next` tells Claude to look it up with its own web tools on the game's sources, only about what the player has found, and to file the facts in its own words with the link. Without sources, it tells Claude to suggest a site and ask whether to keep it.
+Gamepanion never fetches a page ([ADR 0008](../adr/0008-claude-looks-things-up.md)). When the player wants to know more, `next` tells Claude to look it up with its own web tools on the game's sources, only about what the player has found, and to file the facts in its own words with the link. Without sources, it tells Claude to suggest a site and ask whether to keep it.
 
 ## codex
 
@@ -55,7 +55,7 @@ The ids come from `briefing`, `open_threads`, `item` and `record`. `next` asks C
 
 ## missed
 
-"Did I miss anything?", only when the player asks, after Claude warned them, and at the level they agreed to: `reveal` is required, `hint` or `full`. questlog knows only the player's own log (values V6), so it returns:
+"Did I miss anything?", only when the player asks, after Claude warned them, and at the level they agreed to: `reveal` is required, `hint` or `full`. Gamepanion knows only the player's own log (values V6), so it returns:
 
 - **`leftBehind`:** open quests that haven't changed in the playthrough's last three sessions, in the player's own words.
 - **`hidden`:** the open quests' entries above `none`, the hints and spoilers Claude filed that other reads leave out.

@@ -7,7 +7,7 @@ import type * as z from "zod";
 import { auth } from "./auth/auth";
 import { playerById } from "./auth/session";
 import { config } from "./config";
-import { QuestlogError } from "./errors";
+import { GamepanionError } from "./errors";
 import { logger } from "./log";
 import { TOOLS } from "./tools";
 import type { Player } from "./types";
@@ -15,11 +15,11 @@ import { absoluteUrls, jwksUrl, mcpResource } from "./urls";
 
 const log = logger("mcp");
 
-export const INSTRUCTIONS = `questlog keeps track of where the player is in the games they play: the quests they started, their build and the items they found. They tell you while they play; you file it with record, one play session at a time, their words verbatim as the transcript. When they pick a game up again ("where was I?"), give them the briefing; for "what is still open?", open_threads; for an item they have, or whether a new one fits their build, item. When they say something filed is wrong, fix it with correct.
+export const INSTRUCTIONS = `Gamepanion keeps track of where the player is in the games they play: the quests they started, their build and the items they found. They tell you while they play; you file it with record, one play session at a time, their words verbatim as the transcript. When they pick a game up again ("where was I?"), give them the briefing; for "what is still open?", open_threads; for an item they have, or whether a new one fits their build, item. When they say something filed is wrong, fix it with correct.
 Tags cut across a game's groups (fire on a sword, a resistance pot and a boss): file them on items, codex entries and quests when they help the player find things again. Reuse the tags briefing, item and codex list; make a new one only for an idea none of them covers, one tag per idea.
-Each playthrough has two settings the player chose, and you follow them without exception: spoilers (none, hint or full) is what you may show without asking, and the reads already give you that much; background (none, light, useful or everything) is how much you add on your own after filing, as record's next says. Above the spoiler setting you never spoil on your own: say only what questlog returns, never add quest steps, places, bosses, items or outcomes from your own knowledge, and never hint at what the player hasn't found. When next says there is more, you may offer it once; only after a yes ask again with reveal, and warn before you read it out. A player who wants other settings changes them on the playthrough's page or tells you (correct, playthrough). "Did I miss anything?" is missed: warn first that the answer may give things away, and ask whether they want hints or full spoilers.
+Each playthrough has two settings the player chose, and you follow them without exception: spoilers (none, hint or full) is what you may show without asking, and the reads already give you that much; background (none, light, useful or everything) is how much you add on your own after filing, as record's next says. Above the spoiler setting you never spoil on your own: say only what Gamepanion returns, never add quest steps, places, bosses, items or outcomes from your own knowledge, and never hint at what the player hasn't found. When next says there is more, you may offer it once; only after a yes ask again with reveal, and warn before you read it out. A player who wants other settings changes them on the playthrough's page or tells you (correct, playthrough). "Did I miss anything?" is missed: warn first that the answer may give things away, and ask whether they want hints or full spoilers.
 File only what the player said happened, and ask when you aren't sure: which quest they mean, whether they finished something or only started it, which choice they made. A screenshot they share reaches you but no tool: write what it shows (stats, an item's numbers) into the transcript and the fields of record.
-questlog never searches the web: when the player wants to know more about something they found, you look it up with your own tools, on the sites they keep as sources for the game, and file the facts with the link (next says where).
+Gamepanion never searches the web: when the player wants to know more about something they found, you look it up with your own tools, on the sites they keep as sources for the game, and file the facts with the link (next says where).
 Keep the game's own names: a German stat or quest name goes into localName next to the English one.
 Every tool result carries next: what to do now, worked out from what the call did. Follow it before you answer. Every playthrough, session, quest and item comes with a url in the web app; give the player the link when they may want to look.`;
 
@@ -30,14 +30,14 @@ function result<S extends z.ZodType>(schema: S, body: unknown) {
   return { structuredContent: out, content: [{ type: "text" as const, text: JSON.stringify(out) }] };
 }
 
-// QuestlogErrors are refusals the model can read. Any other throw would carry its message to the client (a database error could name a
+// GamepanionErrors are refusals the model can read. Any other throw would carry its message to the client (a database error could name a
 // table or a value), so it is logged here and the client gets "internal error".
 function guard<A, R>(f: (args: A) => Promise<R>) {
   return async (args: A) => {
     try {
       return await f(args);
     } catch (e) {
-      if (e instanceof QuestlogError) return { isError: true as const, content: [{ type: "text" as const, text: e.message }] };
+      if (e instanceof GamepanionError) return { isError: true as const, content: [{ type: "text" as const, text: e.message }] };
       log.error({ err: e }, "tool failed");
       return { isError: true as const, content: [{ type: "text" as const, text: "internal error" }] };
     }
@@ -45,7 +45,7 @@ function guard<A, R>(f: (args: A) => Promise<R>) {
 }
 
 export function server(p: Player): McpServer {
-  const s = new McpServer({ name: "questlog", version: "0.1.0" }, { instructions: INSTRUCTIONS });
+  const s = new McpServer({ name: "gamepanion", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   for (const t of TOOLS)
     s.registerTool(
       t.name,

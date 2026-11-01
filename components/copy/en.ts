@@ -1,12 +1,12 @@
 // Every string the web app shows, in English: the first language (values V8) and the shape every other one follows (index.ts).
 export const en = {
-  appName: "questlog",
+  appName: "Gamepanion",
   tagline: "A spoiler-free quest log for the games you play.",
 
   // Sign-in
   almanac: "An almanac of your playthroughs",
   keptBy: (email: string) => `Kept by ${email}`,
-  signInTitle: "Sign in to questlog",
+  signInTitle: "Sign in to Gamepanion",
   signInLead: "Your quest log, build and items, as you told them to Claude.",
   emailLabel: "Email",
   sendCode: "Send me a code",
@@ -18,7 +18,7 @@ export const en = {
   withPasskey: "Sign in with a passkey",
   passkeyFailed: "No passkey signed you in. Try again, or sign in another way.",
   or: "or",
-  noMethods: "This instance has no way to sign in yet: set QUESTLOG_SMTP_URL or an OpenID Connect provider (see the configuration docs).",
+  noMethods: "This instance has no way to sign in yet: set GAMEPANION_SMTP_URL or an OpenID Connect provider (see the configuration docs).",
   signInFailed: "That didn't work. Check the code, or ask for a new one.",
   sendFailed: "No code could be sent. Try again in a minute.",
   refused: (provider: string | null, code: string) => `${provider ?? "The sign-in provider"} refused the sign-in: ${code}`,
@@ -27,7 +27,7 @@ export const en = {
   // Passkeys, on the account page
   passkeys: "Passkeys",
   passkeysLead:
-    "Sign in with your fingerprint, face or screen lock instead of a code. The passkey stays on your device or in your password manager; questlog keeps only its public key.",
+    "Sign in with your fingerprint, face or screen lock instead of a code. The passkey stays on your device or in your password manager; Gamepanion keeps only its public key.",
   noPasskeys: "No passkeys yet.",
   passkeyName: "Name (optional)",
   passkeyNameHint: "Which device or password manager it's on",
@@ -40,7 +40,7 @@ export const en = {
   language: "Language",
 
   // Consent
-  consentTitle: "Connect questlog",
+  consentTitle: "Connect Gamepanion",
   consentLead: (client: string) => `${client} wants to read and write your quest log: your games, sessions, quests, builds and items.`,
   consentWho: (name: string) => `Signed in as ${name}.`,
   allow: "Allow",

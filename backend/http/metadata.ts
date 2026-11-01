@@ -8,5 +8,5 @@ export const apiResourceMetadataRoute = (): Response =>
     resource: apiResource(),
     authorization_servers: [issuer()],
     bearer_methods_supported: ["header"],
-    resource_name: "questlog API",
+    resource_name: "Gamepanion API",
   });

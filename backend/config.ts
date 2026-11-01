@@ -5,10 +5,10 @@ const env = (name: string) => process.env[name] ?? "";
 export const LOG_LEVELS = ["error", "warn", "info", "debug", "silent"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
-/** One OpenID Connect provider, from QUESTLOG_OIDC_<NAME>_*. `id` is the name in lower case; it is part of the callback URL. */
+/** One OpenID Connect provider, from GAMEPANION_OIDC_<NAME>_*. `id` is the name in lower case; it is part of the callback URL. */
 export type OidcProvider = { id: string; label: string; issuer: string; clientId: string; clientSecret: string };
 
-const OIDC_VAR = /^QUESTLOG_OIDC_([A-Z0-9]+)_(ISSUER|CLIENT_ID|CLIENT_SECRET|LABEL)$/;
+const OIDC_VAR = /^GAMEPANION_OIDC_([A-Z0-9]+)_(ISSUER|CLIENT_ID|CLIENT_SECRET|LABEL)$/;
 
 // Every provider that has an issuer. A provider with an issuer but no client id is a mistake, and fails loudly at start-up.
 function oidcProviders(): OidcProvider[] {
@@ -19,15 +19,15 @@ function oidcProviders(): OidcProvider[] {
   }
   return [...names]
     .sort()
-    .filter((name) => env(`QUESTLOG_OIDC_${name}_ISSUER`).trim())
+    .filter((name) => env(`GAMEPANION_OIDC_${name}_ISSUER`).trim())
     .map((name) => {
-      const v = (field: string) => env(`QUESTLOG_OIDC_${name}_${field}`).trim();
-      if (!v("CLIENT_ID")) throw new Error(`QUESTLOG_OIDC_${name}_ISSUER is set, so QUESTLOG_OIDC_${name}_CLIENT_ID must be too`);
+      const v = (field: string) => env(`GAMEPANION_OIDC_${name}_${field}`).trim();
+      if (!v("CLIENT_ID")) throw new Error(`GAMEPANION_OIDC_${name}_ISSUER is set, so GAMEPANION_OIDC_${name}_CLIENT_ID must be too`);
       const issuer = v("ISSUER").replace(/\/+$/, "");
       try {
         new URL(issuer);
       } catch {
-        throw new Error(`QUESTLOG_OIDC_${name}_ISSUER must be a URL, got "${issuer}"`);
+        throw new Error(`GAMEPANION_OIDC_${name}_ISSUER must be a URL, got "${issuer}"`);
       }
       return {
         id: name.toLowerCase(),
@@ -47,11 +47,11 @@ function publicUrl(): string {
     try {
       new URL(v);
     } catch {
-      throw new Error(`PUBLIC_URL must be a URL such as https://questlog.example.com, got "${v}"`);
+      throw new Error(`PUBLIC_URL must be a URL such as https://gamepanion.example.com, got "${v}"`);
     }
     return v;
   }
-  if (process.env.NODE_ENV === "production") throw new Error("PUBLIC_URL must be set: the address players and Claude reach questlog at");
+  if (process.env.NODE_ENV === "production") throw new Error("PUBLIC_URL must be set: the address players and Claude reach Gamepanion at");
   return `http://localhost:${port()}`;
 }
 
@@ -72,45 +72,46 @@ function timeZone(): string {
 }
 
 export const config = {
-  // Where questlog.sqlite, auth.sqlite and the generated secret live.
+  // Where gamepanion.sqlite, auth.sqlite and the generated secret live.
   dataDir: () => env("DATA_DIR") || "/data",
   publicUrl,
   port,
   timeZone,
-  // Empty means unset: compose passes ${QUESTLOG_SECRET:-}.
-  secret: (): string | undefined => env("QUESTLOG_SECRET") || undefined,
+  // Empty means unset: compose passes ${GAMEPANION_SECRET:-}.
+  secret: (): string | undefined => env("GAMEPANION_SECRET") || undefined,
   oidcProviders,
   // Email codes: on only with an SMTP server to send them through.
   smtp: (): { url: string; from: string } | undefined => {
-    const url = env("QUESTLOG_SMTP_URL").trim();
+    const url = env("GAMEPANION_SMTP_URL").trim();
     if (!url) return undefined;
-    const from = env("QUESTLOG_SMTP_FROM").trim();
-    if (!from) throw new Error("QUESTLOG_SMTP_URL is set, so QUESTLOG_SMTP_FROM must be too (the sender address of the codes)");
+    const from = env("GAMEPANION_SMTP_FROM").trim();
+    if (!from) throw new Error("GAMEPANION_SMTP_URL is set, so GAMEPANION_SMTP_FROM must be too (the sender address of the codes)");
     return { url, from };
   },
   // Who may become a player: comma-separated addresses, @domain entries or *, trimmed and lowercased. Empty: nobody new; players who
   // exist keep signing in.
   signupAllow: (): string[] =>
-    env("QUESTLOG_SIGNUP_ALLOW")
+    env("GAMEPANION_SIGNUP_ALLOW")
       .split(",")
       .map((n) => n.trim().toLowerCase())
       .filter(Boolean),
   // The in-app chat (ADR 0013): on only with an API key. The model is settable; the daily limit counts messages per player.
-  anthropicKey: (): string | undefined => env("QUESTLOG_ANTHROPIC_API_KEY").trim() || undefined,
-  anthropicModel: (): string => env("QUESTLOG_ANTHROPIC_MODEL").trim() || "claude-opus-5-5",
+  anthropicKey: (): string | undefined => env("GAMEPANION_ANTHROPIC_API_KEY").trim() || undefined,
+  anthropicModel: (): string => env("GAMEPANION_ANTHROPIC_MODEL").trim() || "claude-opus-5-5",
   chatDailyLimit: (): number => {
-    const n = Number.parseInt(env("QUESTLOG_CHAT_DAILY_LIMIT").trim(), 10);
+    const n = Number.parseInt(env("GAMEPANION_CHAT_DAILY_LIMIT").trim(), 10);
     return Number.isInteger(n) && n > 0 ? n : 100;
   },
   // Speaking into the chat: a Whisper server with the OpenAI-compatible POST /v1/audio/transcriptions (such as speaches); no trailing
   // slash. Unset: the chat takes typing only.
-  transcribeUrl: (): string | undefined => env("QUESTLOG_TRANSCRIBE_URL").trim().replace(/\/+$/, "") || undefined,
-  transcribeModel: (): string => env("QUESTLOG_TRANSCRIBE_MODEL").trim() || "deepdml/faster-whisper-large-v3-turbo-ct2",
+  transcribeUrl: (): string | undefined => env("GAMEPANION_TRANSCRIBE_URL").trim().replace(/\/+$/, "") || undefined,
+  transcribeModel: (): string => env("GAMEPANION_TRANSCRIBE_MODEL").trim() || "deepdml/faster-whisper-large-v3-turbo-ct2",
   // Unset, empty or not a level → info.
-  logLevel: (): LogLevel => ((l) => ((LOG_LEVELS as readonly string[]).includes(l) ? (l as LogLevel) : "info"))(env("QUESTLOG_LOG_LEVEL").trim().toLowerCase()),
+  logLevel: (): LogLevel =>
+    ((l) => ((LOG_LEVELS as readonly string[]).includes(l) ? (l as LogLevel) : "info"))(env("GAMEPANION_LOG_LEVEL").trim().toLowerCase()),
 };
 
-/** Whether `email` may become a player under QUESTLOG_SIGNUP_ALLOW. */
+/** Whether `email` may become a player under GAMEPANION_SIGNUP_ALLOW. */
 export function mayJoin(email: string, allow: string[] = config.signupAllow()): boolean {
   const e = email.trim().toLowerCase();
   const domain = e.slice(e.lastIndexOf("@"));

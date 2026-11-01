@@ -68,13 +68,13 @@ beforeAll(async () => {
   base = `http://localhost:${port}`;
   vi.stubEnv("PORT", String(port));
   vi.stubEnv("PUBLIC_URL", base);
-  vi.stubEnv("DATA_DIR", mkdtempSync(join(tmpdir(), "questlog-")));
-  vi.stubEnv("QUESTLOG_SECRET", "s".repeat(40));
-  vi.stubEnv("QUESTLOG_SMTP_URL", "smtp://mail.invalid");
-  vi.stubEnv("QUESTLOG_SMTP_FROM", "questlog@example.com");
-  vi.stubEnv("QUESTLOG_SIGNUP_ALLOW", "ada@example.com");
-  vi.stubEnv("QUESTLOG_OIDC_FAKE_ISSUER", `${base}/fake-oidc`);
-  vi.stubEnv("QUESTLOG_OIDC_FAKE_CLIENT_ID", "questlog-client");
+  vi.stubEnv("DATA_DIR", mkdtempSync(join(tmpdir(), "gamepanion-")));
+  vi.stubEnv("GAMEPANION_SECRET", "s".repeat(40));
+  vi.stubEnv("GAMEPANION_SMTP_URL", "smtp://mail.invalid");
+  vi.stubEnv("GAMEPANION_SMTP_FROM", "Gamepanion@example.com");
+  vi.stubEnv("GAMEPANION_SIGNUP_ALLOW", "ada@example.com");
+  vi.stubEnv("GAMEPANION_OIDC_FAKE_ISSUER", `${base}/fake-oidc`);
+  vi.stubEnv("GAMEPANION_OIDC_FAKE_CLIENT_ID", "gamepanion-client");
   resetSecretForTests();
   setMailerForTests(async (to, code, link) => {
     codes.set(to, code);
@@ -284,7 +284,7 @@ test("outside an MCP sign-in the mail holds a link as well; it signs the player 
   const again = await fetch(link, { redirect: "manual" });
   expect(cookieOf(again)).not.toContain("session_token=");
 
-  // A page that isn't questlog's own can't be where the link leads.
+  // A page that isn't Gamepanion's own can't be where the link leads.
   await fetch(
     `${base}/api/auth/email-otp/send-verification-otp`,
     json({ email: "ada@example.com", type: "sign-in" }, { referer: `${base}/login?next=//evil.example` }),
@@ -292,7 +292,7 @@ test("outside an MCP sign-in the mail holds a link as well; it signs the player 
   expect(new URL(links.get("ada@example.com")!).searchParams.get("callbackURL")).toBe("/");
 });
 
-test("passkeys: questlog is the relying party at PUBLIC_URL's host, and only a signed-in player can add one", async () => {
+test("passkeys: Gamepanion is the relying party at PUBLIC_URL's host, and only a signed-in player can add one", async () => {
   const options = await fetch(`${base}/api/auth/passkey/generate-register-options`);
   expect(options.status).toBe(401);
   const signed = await signIn("ada@example.com");
@@ -300,19 +300,19 @@ test("passkeys: questlog is the relying party at PUBLIC_URL's host, and only a s
   const mine = await fetch(`${base}/api/auth/passkey/generate-register-options`, { headers: { cookie } });
   expect(mine.status).toBe(200);
   const body = await mine.json();
-  expect(body.rp).toEqual({ id: "localhost", name: "questlog" });
+  expect(body.rp).toEqual({ id: "localhost", name: "Gamepanion" });
   expect(body.user.name).toBe("ada@example.com");
   expect((await fetch(`${base}/api/auth/passkey/list-user-passkeys`, { headers: { cookie } })).status).toBe(200);
   const signInOptions = await fetch(`${base}/api/auth/passkey/generate-authenticate-options`);
   expect((await signInOptions.json()).rpId).toBe("localhost");
 });
 
-test("an OpenID Connect provider from QUESTLOG_OIDC_<NAME>_* sends the browser to it, with PKCE and questlog's callback", async () => {
+test("an OpenID Connect provider from GAMEPANION_OIDC_<NAME>_* sends the browser to it, with PKCE and Gamepanion's callback", async () => {
   const r = await fetch(`${base}/api/auth/sign-in/social`, json({ provider: "fake", callbackURL: "/" }));
   expect(r.status).toBe(200);
   const to = new URL((await r.json()).url);
   expect(`${to.origin}${to.pathname}`).toBe(`${base}/fake-oidc/authorize`);
-  expect(to.searchParams.get("client_id")).toBe("questlog-client");
+  expect(to.searchParams.get("client_id")).toBe("gamepanion-client");
   expect(to.searchParams.get("redirect_uri")).toBe(`${base}/api/auth/callback/fake`);
   expect(to.searchParams.get("code_challenge_method")).toBe("S256");
 });

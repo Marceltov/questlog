@@ -276,7 +276,7 @@ export function openApiDocument(serverUrl: string): Json {
   return {
     openapi: "3.1.1",
     info: {
-      title: "questlog API",
+      title: "Gamepanion API",
       version: "1",
       description:
         "A spoiler-free quest log, build tracker and item list for the games you play. The MCP endpoint (/mcp) comes first; this API follows it, over the same data and the same rules: only the signed-in player's own log, and no spoiler unless a request asks for it.\n\n" +
