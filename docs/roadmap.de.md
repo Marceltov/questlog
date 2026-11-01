@@ -3,22 +3,22 @@ hide:
   - toc
 ---
 
-# Wohin questlog geht
+# Wohin Gamepanion geht
 
-questlog begann am 30.10.2026, aus einem Questlog, einer Build-Seite und einer Mechanik-Seite, die Claude in einem Trilium-Wiki geführt hat, während Marcel Lies of P spielte. Es wird zu dem Ort, an dem Claude eine Spielsession ablegt und „Wo war ich?" wieder ausliest, für jedes Spiel, ohne Spoiler.
+Gamepanion begann am 30.10.2026, aus einem Questlog, einer Build-Seite und einer Mechanik-Seite, die Claude in einem Trilium-Wiki geführt hat, während Marcel Lies of P spielte. Es wird zu dem Ort, an dem Claude eine Spielsession ablegt und „Wo war ich?" wieder ausliest, für jedes Spiel, ohne Spoiler.
 
 Diese Seite sagt, was geplant ist und warum, innerhalb der [Werte](values.md), und was schon erschienen ist. Jeder Schritt verlinkt sein Issue und den Wert, dem er dient. Geplante Schritte haben kein Datum, nur jetzt, als Nächstes oder später; erschienene tragen den Tag, an dem sie erschienen sind.
 
 ## Die Idee hinter allem
 
-Beim Spielen erzählen ist die Bedienung; questlog behält, was für deinen Durchlauf stimmt, und zeigt nur, was du gefunden hast.
+Beim Spielen erzählen ist die Bedienung; Gamepanion behält, was für deinen Durchlauf stimmt, und zeigt nur, was du gefunden hast.
 
 <!-- roadmap -->
 
 ## Zurückgestellt
 
 - **Ein gemeinsames Log oder eines für den Haushalt**: zwei Spieler, die demselben Durchlauf folgen. Heute gehört jedes Log allein seinem Spieler ([V2](values.md#v2-dein-log-gehort-dir-allein)); Teilen wäre eine bewusste Wahl, keine Voreinstellung.
-- **Screenshots als Dateien**: ein geteilter Screenshot wird gelesen und als Text und Zahlen abgelegt ([V3](values.md#v3-dein-fortschritt-deine-worte)); questlog speichert ihn nicht.
+- **Screenshots als Dateien**: ein geteilter Screenshot wird gelesen und als Text und Zahlen abgelegt ([V3](values.md#v3-dein-fortschritt-deine-worte)); Gamepanion speichert ihn nicht.
 
 ## Dagegen entschieden
 

@@ -21,7 +21,7 @@ export function Register({ tabs, start, label, children }: { tabs: Tab[]; start:
     const part = el && root.current?.contains(el) ? el.closest<HTMLElement>("[data-part]")?.dataset.part : null;
     if (!part) return false;
     // On a card a tag hid, or in a group it emptied (components/TagFilter.tsx): show them all again first.
-    if (el?.closest("[data-tags][hidden], [data-tag-scope][hidden]")) el.dispatchEvent(new CustomEvent("questlog:reveal", { bubbles: true }));
+    if (el?.closest("[data-tags][hidden], [data-tag-scope][hidden]")) el.dispatchEvent(new CustomEvent("gamepanion:reveal", { bubbles: true }));
     // Inside a folded group: unfold it.
     for (let d = el?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
     target.current = elementId;

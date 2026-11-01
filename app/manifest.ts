@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { en as copy } from "@/components/copy/en";
 
-// Added to a home screen, questlog opens as an app of its own: no browser bar, the journal's paper behind it while it loads. The icons
+// Added to a home screen, Gamepanion opens as an app of its own: no browser bar, the journal's paper behind it while it loads. The icons
 // come from scripts/icons.mjs.
 export default function manifest(): MetadataRoute.Manifest {
   return {

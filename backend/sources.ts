@@ -1,4 +1,4 @@
-// Sources (ADR 0008): links the player keeps, with the facts Claude took from them. questlog stores them and never fetches them.
+// Sources (ADR 0008): links the player keeps, with the facts Claude took from them. Gamepanion stores them and never fetches them.
 import type { Source, SourceInput } from "./types";
 
 const key = (url: string) => url.trim().replace(/\/+$/, "");

@@ -41,7 +41,7 @@ export const SourceJson = z
     facts: z.string().nullable().describe("What was taken from the page, for an item"),
     on: Day.nullable().describe("When it was added"),
   })
-  .meta({ id: "Source", description: "A page outside questlog, which questlog never fetches (ADR 0008)" });
+  .meta({ id: "Source", description: "A page outside Gamepanion, which Gamepanion never fetches (ADR 0008)" });
 
 export const PlaythroughJson = z
   .object({

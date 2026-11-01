@@ -73,7 +73,7 @@ export type PlaythroughStatus = (typeof PLAYTHROUGH_STATUSES)[number];
 export type StatName = { key: string; name: string; localName: string | null };
 
 /**
- * A page outside questlog (ADR 0008): one the player trusts for a game, or one an item's facts come from. questlog never fetches it;
+ * A page outside Gamepanion (ADR 0008): one the player trusts for a game, or one an item's facts come from. Gamepanion never fetches it;
  * Claude reads it in the conversation and files `facts` (never the page's text) with the link. `on` is the day it was added.
  */
 export type Source = { url: string; title: string | null; facts: string | null; on: string | null };

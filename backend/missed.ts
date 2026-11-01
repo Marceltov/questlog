@@ -1,4 +1,4 @@
-// "Did I miss anything?" (values V1): only when the player asked, never in a briefing. What questlog can say comes from the player's own
+// "Did I miss anything?" (values V1): only when the player asked, never in a briefing. What Gamepanion can say comes from the player's own
 // log, not from a game database (V6): the hints and spoilers Claude filed and the reads so far left out, and the open quests the player
 // hasn't touched for a while. Hidden rows are read through the gate at the level the player asked for; nothing else is.
 import { db } from "./db";

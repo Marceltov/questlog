@@ -1,4 +1,4 @@
-// The server secret: Better Auth signs session cookies and encrypts its signing keys with it. QUESTLOG_SECRET, or else 32 random bytes
+// The server secret: Better Auth signs session cookies and encrypts its signing keys with it. GAMEPANION_SECRET, or else 32 random bytes
 // generated once and kept in ${DATA_DIR}/secret (mode 0600), so a restart keeps every player and client signed in.
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -40,7 +40,7 @@ function loadOrCreate(): Buffer {
 export function secret(): Buffer {
   if (state.secret) return state.secret;
   const env = config.secret();
-  if (env) return (state.secret = strong(Buffer.from(env), "QUESTLOG_SECRET"));
+  if (env) return (state.secret = strong(Buffer.from(env), "GAMEPANION_SECRET"));
   return (state.secret = strong(loadOrCreate(), secretPath()));
 }
 

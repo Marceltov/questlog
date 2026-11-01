@@ -1,4 +1,4 @@
-// Run questlog as the owner of /data, so the database on a bind mount belongs to the host user. PUID/PGID override
+// Run Gamepanion as the owner of /data, so the database on a bind mount belongs to the host user. PUID/PGID override
 // that. A root-owned /data (Docker created the bind-mount folder) falls back to uid/gid 1000. Only /data itself is
 // chowned, never the files in it.
 // A Node script, because the image has no shell: the server is loaded into this process once it has given up root.

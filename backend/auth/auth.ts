@@ -57,7 +57,7 @@ async function signInLink(email: string, headers: Headers | undefined): Promise<
   return slot.url;
 }
 
-// QUESTLOG_SECRET as given, else the generated one (secret.ts checks either is at least 32 bytes).
+// GAMEPANION_SECRET as given, else the generated one (secret.ts checks either is at least 32 bytes).
 const authSecret = (): string => {
   const bytes = secret();
   return config.secret() ?? bytes.toString("hex");
@@ -67,7 +67,7 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
   const publicUrl = config.publicUrl();
   const providers = config.oidcProviders();
   return {
-    appName: "questlog",
+    appName: "Gamepanion",
     baseURL: publicUrl,
     basePath: AUTH_PATH,
     secret: authSecret(),
@@ -85,7 +85,7 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
     databaseHooks: {
       user: {
         create: {
-          // Who may become a player: QUESTLOG_SIGNUP_ALLOW.
+          // Who may become a player: GAMEPANION_SIGNUP_ALLOW.
           before: async (user: { email: string }) => {
             if (!mayJoin(user.email)) throw new APIError("FORBIDDEN", { message: "This address may not sign up here" });
           },
@@ -119,7 +119,7 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
         sendVerificationOTP: async ({ email, otp, type }, ctx) => {
           if (type !== "sign-in") return;
           if (!config.smtp()) throw new APIError("BAD_REQUEST", { message: "Email codes are off on this instance" });
-          // No mail to an address that may not sign up and isn't a player: nobody can use questlog to send mail to strangers.
+          // No mail to an address that may not sign up and isn't a player: nobody can use Gamepanion to send mail to strangers.
           if (!mayJoin(email) && !(await ctx?.context.internalAdapter.findUserByEmail(email))) return;
           // During an MCP or script sign-in (the login page's signed query came along) the mail holds only the code: a link would sign in
           // whichever browser opens it, not the one the authorization waits in (ADR 0004).
@@ -134,8 +134,8 @@ function options(database: Awaited<ReturnType<typeof openSqlite>>) {
           if (slot) slot.url = url;
         },
       }),
-      // Added on the account page while signed in; questlog is the relying party at PUBLIC_URL's host.
-      passkey({ rpID: new URL(publicUrl).hostname, rpName: "questlog", origin: new URL(publicUrl).origin }),
+      // Added on the account page while signed in; Gamepanion is the relying party at PUBLIC_URL's host.
+      passkey({ rpID: new URL(publicUrl).hostname, rpName: "Gamepanion", origin: new URL(publicUrl).origin }),
       genericOAuth({
         config: providers.map((p) => ({
           providerId: p.id,
@@ -162,7 +162,7 @@ const state = processState("auth", () => ({ auth: undefined as Promise<Auth> | u
 async function open(file: string): Promise<Auth> {
   const database = await openSqlite(file);
   try {
-    // Better Auth's own tables, created and extended as its version and plugins need; nothing of questlog's is in this file.
+    // Better Auth's own tables, created and extended as its version and plugins need; nothing of Gamepanion's is in this file.
     const { runMigrations } = await getMigrations(options(database));
     await runMigrations();
     return create(database);

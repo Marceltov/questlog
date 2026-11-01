@@ -1,5 +1,5 @@
 // The one logger: pino, one JSON object per line on stdout (level label, ISO time, component, msg, fields), no
-// transports. QUESTLOG_LOG_LEVEL sets the level. Never log what players said (transcripts, quests, items), names,
+// transports. GAMEPANION_LOG_LEVEL sets the level. Never log what players said (transcripts, quests, items), names,
 // tokens, secrets, codes, state, nonce, cookies, e-mail addresses, claim values, client IP
 // addresses, request headers or bodies. An Error goes in `err`, which errorFields() scrubs. The redaction below is
 // only a safety net.

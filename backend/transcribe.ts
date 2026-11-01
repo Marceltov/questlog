@@ -1,5 +1,5 @@
 // Speaking into the chat: Claude takes no audio, so a spoken message goes to a Whisper server the instance runs itself
-// (QUESTLOG_TRANSCRIBE_URL, any server with the OpenAI-compatible POST /v1/audio/transcriptions, such as speaches), and its words are
+// (GAMEPANION_TRANSCRIBE_URL, any server with the OpenAI-compatible POST /v1/audio/transcriptions, such as speaches), and its words are
 // what is sent as the player's message. The recording is never stored and never leaves the instance's own servers. Behind Transcriber,
 // so tests stand in for Whisper.
 import type { Logger } from "pino";

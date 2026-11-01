@@ -1,5 +1,5 @@
-site_name: questlog
-site_description: A spoiler-free quest log, build tracker and item list for the games you play. You tell Claude while you play; questlog remembers, and never shows what you haven't found.
+site_name: Gamepanion
+site_description: A spoiler-free quest log, build tracker and item list for the games you play. You tell Claude while you play; Gamepanion remembers, and never shows what you haven't found.
 site_url: https://questlog.marceltov.de/
 repo_url: https://github.com/gamepanion/gamepanion
 repo_name: gamepanion/gamepanion
@@ -26,11 +26,11 @@ plugins:
         - locale: de
           name: Deutsch
           build: true
-          site_description: Ein spoilerfreies Questlog, Build-Tracker und Inventar für die Spiele, die du spielst. Du erzählst es Claude beim Spielen; questlog merkt es sich und zeigt nie, was du noch nicht gefunden hast.
+          site_description: Ein spoilerfreies Questlog, Build-Tracker und Inventar für die Spiele, die du spielst. Du erzählst es Claude beim Spielen; Gamepanion merkt es sich und zeigt nie, was du noch nicht gefunden hast.
           nav_translations:
             Home: Start
-            What questlog stands for: Wofür questlog steht
-            Where questlog is going: Wohin questlog geht
+            What Gamepanion stands for: Wofür Gamepanion steht
+            Where Gamepanion is going: Wohin Gamepanion geht
             Self-hosting: Selbst hosten
             Configuration: Konfiguration
             Connect Claude: Claude verbinden
@@ -43,8 +43,8 @@ plugins:
 
 nav:
   - Home: index.md
-  - What questlog stands for: values.md
-  - Where questlog is going: roadmap.md
+  - What Gamepanion stands for: values.md
+  - Where Gamepanion is going: roadmap.md
   - Self-hosting:
       - Configuration: self-hosting/configuration.md
       - Connect Claude: self-hosting/connect-claude.md
@@ -71,6 +71,7 @@ nav:
       - Tags across groups: adr/0014-tags.md
       - Passkeys and sign-in links: adr/0015-passkeys-and-sign-in-links.md
       - Background and spoiler settings: adr/0016-background-and-spoilers.md
+      - The name Gamepanion: adr/0017-the-name-gamepanion.md
 
 theme:
   name: material

@@ -1,4 +1,4 @@
-// A player is Better Auth's user (ADR 0004). Their log lives in questlog.sqlite with their id on every row; this is what goes when they go.
+// A player is Better Auth's user (ADR 0004). Their log lives in gamepanion.sqlite with their id on every row; this is what goes when they go.
 import { db } from "./db";
 import { seen } from "./spoilers";
 import type { Player } from "./types";

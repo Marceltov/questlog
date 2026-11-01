@@ -1,11 +1,11 @@
 # Connect Claude
 
-questlog's MCP endpoint is `${PUBLIC_URL}/mcp`. In claude.ai, open _Settings → Connectors → Add custom connector_ and give it that address. Claude registers itself, sends you to questlog's sign-in page, and asks you to allow the connection.
+Gamepanion's MCP endpoint is `${PUBLIC_URL}/mcp`. In claude.ai, open _Settings → Connectors → Add custom connector_ and give it that address. Claude registers itself, sends you to Gamepanion's sign-in page, and asks you to allow the connection.
 
 ```mermaid
 sequenceDiagram
   participant C as claude.ai
-  participant Q as questlog
+  participant Q as Gamepanion
   participant P as Player (browser)
   C->>Q: POST /mcp, no token
   Q-->>C: 401, see /.well-known/oauth-protected-resource/mcp

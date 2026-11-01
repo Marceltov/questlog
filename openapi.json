@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "questlog API",
+    "title": "Gamepanion API",
     "version": "1",
     "description": "A spoiler-free quest log, build tracker and item list for the games you play. The MCP endpoint (/mcp) comes first; this API follows it, over the same data and the same rules: only the signed-in player's own log, and no spoiler unless a request asks for it.\n\nEvery error is JSON, `{\"error\": \"...\", \"code\": \"...\"}`. Besides the responses listed per operation, an unknown path answers 404 (`not_found`), a method an operation doesn't have answers 405 with `Allow`, and a failure on the server's side answers 500 (`internal`) without details.",
     "license": {
@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://questlog.example/api/v1"
+      "url": "https://gamepanion.example/api/v1"
     }
   ],
   "tags": [
@@ -2313,7 +2313,7 @@
           "on"
         ],
         "additionalProperties": false,
-        "description": "A page outside questlog, which questlog never fetches (ADR 0008)"
+        "description": "A page outside Gamepanion, which Gamepanion never fetches (ADR 0008)"
       },
       "Playthrough": {
         "type": "object",

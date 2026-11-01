@@ -2,13 +2,13 @@
 import type { Copy } from ".";
 
 export const de: Copy = {
-  appName: "questlog",
+  appName: "Gamepanion",
   tagline: "Ein spoilerfreies Questlog für die Spiele, die du spielst.",
 
   // Sign-in
   almanac: "Ein Almanach deiner Durchläufe",
   keptBy: (email: string) => `Geführt von ${email}`,
-  signInTitle: "Bei questlog anmelden",
+  signInTitle: "Bei Gamepanion anmelden",
   signInLead: "Dein Questlog, dein Build und deine Gegenstände, so wie du sie Claude erzählt hast.",
   emailLabel: "E-Mail",
   sendCode: "Schick mir einen Code",
@@ -20,7 +20,7 @@ export const de: Copy = {
   withPasskey: "Mit einem Passkey anmelden",
   passkeyFailed: "Kein Passkey hat dich angemeldet. Versuch es noch einmal oder melde dich anders an.",
   or: "oder",
-  noMethods: "Diese Instanz hat noch keine Anmeldung: setze QUESTLOG_SMTP_URL oder einen OpenID-Connect-Anbieter (siehe die Doku zur Konfiguration).",
+  noMethods: "Diese Instanz hat noch keine Anmeldung: setze GAMEPANION_SMTP_URL oder einen OpenID-Connect-Anbieter (siehe die Doku zur Konfiguration).",
   signInFailed: "Das hat nicht geklappt. Prüf den Code oder fordere einen neuen an.",
   sendFailed: "Es konnte kein Code verschickt werden. Versuch es in einer Minute noch einmal.",
   refused: (provider: string | null, code: string) => `${provider ?? "Der Anmeldedienst"} hat die Anmeldung abgelehnt: ${code}`,
@@ -29,7 +29,7 @@ export const de: Copy = {
   // Passkeys, auf der Kontoseite
   passkeys: "Passkeys",
   passkeysLead:
-    "Melde dich mit Fingerabdruck, Gesicht oder Bildschirmsperre an statt mit einem Code. Der Passkey bleibt auf deinem Gerät oder in deinem Passwortmanager; questlog kennt nur seinen öffentlichen Schlüssel.",
+    "Melde dich mit Fingerabdruck, Gesicht oder Bildschirmsperre an statt mit einem Code. Der Passkey bleibt auf deinem Gerät oder in deinem Passwortmanager; Gamepanion kennt nur seinen öffentlichen Schlüssel.",
   noPasskeys: "Noch keine Passkeys.",
   passkeyName: "Name (optional)",
   passkeyNameHint: "Auf welchem Gerät oder in welchem Passwortmanager er liegt",
@@ -42,7 +42,7 @@ export const de: Copy = {
   language: "Sprache",
 
   // Consent
-  consentTitle: "questlog verbinden",
+  consentTitle: "Gamepanion verbinden",
   consentLead: (client: string) => `${client} möchte dein Questlog lesen und schreiben: deine Spiele, Sessions, Quests, Builds und Gegenstände.`,
   consentWho: (name: string) => `Angemeldet als ${name}.`,
   allow: "Erlauben",

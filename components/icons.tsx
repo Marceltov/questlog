@@ -43,7 +43,7 @@ export const PART_ICONS: Record<string, LucideIcon> = {
   settings: SlidersHorizontal,
 };
 
-// By the keys questlog suggests (backend ITEM_KINDS) and a few a game may use; any other group gets the box.
+// By the keys Gamepanion suggests (backend ITEM_KINDS) and a few a game may use; any other group gets the box.
 const ITEM_ICONS: Record<string, LucideIcon> = {
   weapon: Sword,
   armour: Shield,

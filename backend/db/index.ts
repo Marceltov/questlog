@@ -23,10 +23,10 @@ async function open(file: string): Promise<Kysely<Schema>> {
   return d;
 }
 
-/** The database; the first call opens `${DATA_DIR}/questlog.sqlite` and migrates it. A failed open is not remembered, so the next call retries. */
+/** The database; the first call opens `${DATA_DIR}/gamepanion.sqlite` and migrates it. A failed open is not remembered, so the next call retries. */
 export function db(): Promise<Kysely<Schema>> {
   if (!state.db) {
-    const p = open(join(config.dataDir(), "questlog.sqlite"));
+    const p = open(join(config.dataDir(), "gamepanion.sqlite"));
     state.db = p;
     p.catch(() => {
       if (state.db === p) state.db = undefined;

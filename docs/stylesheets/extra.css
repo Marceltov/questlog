@@ -1,4 +1,4 @@
-/* questlog: ember and lamplight on night ink, the colours of the web app (app/globals.css). White pages, a hairline header. */
+/* Gamepanion: ember and lamplight on night ink, the colours of the web app (app/globals.css). White pages, a hairline header. */
 
 :root > * {
   --ql-ember: #b4532a;
@@ -85,7 +85,7 @@
   background-color: var(--ql-mist);
 }
 
-/* Home page: the journal mark and what questlog does. */
+/* Home page: the journal mark and what Gamepanion does. */
 .ql-hero {
   padding: 0.6rem 0 0.4rem;
 }

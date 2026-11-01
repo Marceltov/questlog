@@ -1,6 +1,6 @@
 # Configuration
 
-questlog runs as one container with one volume, from the image `ghcr.io/gamepanion/gamepanion`. A server needs two files and no checkout: [`compose.yaml`](https://github.com/gamepanion/gamepanion/blob/main/compose.yaml), which runs the image, and a `.env` file next to it with every setting, a filled-in copy of [`.env.example`](https://github.com/gamepanion/gamepanion/blob/main/.env.example). Settings are environment variables: `QUESTLOG_*`, plus the shared `PUBLIC_URL`, `DATA_DIR`, `PORT` and `TZ`.
+Gamepanion runs as one container with one volume, from the image `ghcr.io/gamepanion/gamepanion`. A server needs two files and no checkout: [`compose.yaml`](https://github.com/gamepanion/gamepanion/blob/main/compose.yaml), which runs the image, and a `.env` file next to it with every setting, a filled-in copy of [`.env.example`](https://github.com/gamepanion/gamepanion/blob/main/.env.example). Settings are environment variables: `GAMEPANION_*`, plus the shared `PUBLIC_URL`, `DATA_DIR`, `PORT` and `TZ`.
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/gamepanion/gamepanion/main/compose.yaml
@@ -15,47 +15,47 @@ To update: `docker compose pull && docker compose up -d`. `:main` follows the ma
 
 | Variable | Default | What it does |
 |---|---|---|
-| `PUBLIC_URL` | `http://localhost:${PORT}` outside production; **required** in production | The address players and Claude reach questlog at. The sign-in's issuer and the MCP resource (`${PUBLIC_URL}/mcp`) are built from it. |
-| `DATA_DIR` | `/data` | Holds `questlog.sqlite` (the log), `auth.sqlite` (sign-in) and, if generated, `secret`. |
+| `PUBLIC_URL` | `http://localhost:${PORT}` outside production; **required** in production | The address players and Claude reach Gamepanion at. The sign-in's issuer and the MCP resource (`${PUBLIC_URL}/mcp`) are built from it. |
+| `DATA_DIR` | `/data` | Holds `gamepanion.sqlite` (the log), `auth.sqlite` (sign-in) and, if generated, `secret`. |
 | `PORT` | `3000` | The port the server listens on. `/mcp` also reads the sign-in's keys from `127.0.0.1:${PORT}`. |
 | `TZ` | `Europe/Berlin` | The time zone of "today", the default day of a play session. |
-| `QUESTLOG_SECRET` | generated into `${DATA_DIR}/secret` | Signs session cookies and encrypts the token signing keys. At least 32 bytes (`openssl rand -hex 32`). Changing it signs everyone out. |
-| `QUESTLOG_SIGNUP_ALLOW` | empty: nobody new | Who may become a player: addresses, `@domain` entries or `*`, comma-separated. Players who exist keep signing in. |
-| `QUESTLOG_SMTP_URL` | unset: no email codes | An SMTP server for sign-in mails (a code, and outside an MCP sign-in a link), `smtp://` or `smtps://user:password@host:port`. |
-| `QUESTLOG_SMTP_FROM` | (required with SMTP) | The sender address of the codes. |
-| `QUESTLOG_OIDC_<NAME>_ISSUER` | unset | An OpenID Connect provider's issuer URL. `<NAME>` is yours to choose (letters and digits); add one block per provider. |
-| `QUESTLOG_OIDC_<NAME>_CLIENT_ID` | (required with an issuer) | The client id questlog has at that provider. |
-| `QUESTLOG_OIDC_<NAME>_CLIENT_SECRET` | empty | Its secret, for a confidential client. |
-| `QUESTLOG_OIDC_<NAME>_LABEL` | the name | The button's text: "Continue with `<LABEL>`". |
-| `QUESTLOG_ANTHROPIC_API_KEY` | unset: no chat | A Claude API key: turns on the chat in the web app ([ADR 0013](../adr/0013-in-app-chat.md)). The instance owner pays for its messages. |
-| `QUESTLOG_ANTHROPIC_MODEL` | `claude-opus-5-5` | The model the chat uses. |
-| `QUESTLOG_CHAT_DAILY_LIMIT` | `100` | How many chat messages a player may send a day. |
-| `QUESTLOG_TRANSCRIBE_URL` | unset: typing only | A Whisper server for speaking into the chat, with the OpenAI-compatible `/v1/audio/transcriptions`, such as [speaches](https://speaches.ai). No trailing slash. |
-| `QUESTLOG_TRANSCRIBE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | The model the Whisper server runs. |
-| `QUESTLOG_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug` or `silent`. |
+| `GAMEPANION_SECRET` | generated into `${DATA_DIR}/secret` | Signs session cookies and encrypts the token signing keys. At least 32 bytes (`openssl rand -hex 32`). Changing it signs everyone out. |
+| `GAMEPANION_SIGNUP_ALLOW` | empty: nobody new | Who may become a player: addresses, `@domain` entries or `*`, comma-separated. Players who exist keep signing in. |
+| `GAMEPANION_SMTP_URL` | unset: no email codes | An SMTP server for sign-in mails (a code, and outside an MCP sign-in a link), `smtp://` or `smtps://user:password@host:port`. |
+| `GAMEPANION_SMTP_FROM` | (required with SMTP) | The sender address of the codes. |
+| `GAMEPANION_OIDC_<NAME>_ISSUER` | unset | An OpenID Connect provider's issuer URL. `<NAME>` is yours to choose (letters and digits); add one block per provider. |
+| `GAMEPANION_OIDC_<NAME>_CLIENT_ID` | (required with an issuer) | The client id Gamepanion has at that provider. |
+| `GAMEPANION_OIDC_<NAME>_CLIENT_SECRET` | empty | Its secret, for a confidential client. |
+| `GAMEPANION_OIDC_<NAME>_LABEL` | the name | The button's text: "Continue with `<LABEL>`". |
+| `GAMEPANION_ANTHROPIC_API_KEY` | unset: no chat | A Claude API key: turns on the chat in the web app ([ADR 0013](../adr/0013-in-app-chat.md)). The instance owner pays for its messages. |
+| `GAMEPANION_ANTHROPIC_MODEL` | `claude-opus-5-5` | The model the chat uses. |
+| `GAMEPANION_CHAT_DAILY_LIMIT` | `100` | How many chat messages a player may send a day. |
+| `GAMEPANION_TRANSCRIBE_URL` | unset: typing only | A Whisper server for speaking into the chat, with the OpenAI-compatible `/v1/audio/transcriptions`, such as [speaches](https://speaches.ai). No trailing slash. |
+| `GAMEPANION_TRANSCRIBE_MODEL` | `deepdml/faster-whisper-large-v3-turbo-ct2` | The model the Whisper server runs. |
+| `GAMEPANION_LOG_LEVEL` | `info` | `error`, `warn`, `info`, `debug` or `silent`. |
 
 At least one way to sign in is needed: SMTP for email codes, or a provider. Passkeys need no setting: a signed-in player adds them on the account page. They are bound to the host of `PUBLIC_URL`, so changing that host means adding them again.
 
 ## OpenID Connect providers
 
-Register questlog at the provider (authentik, Google, any OpenID Connect provider) with the redirect URI `${PUBLIC_URL}/api/auth/callback/<name>`, where `<name>` is `<NAME>` in lower case. For authentik:
+Register Gamepanion at the provider (authentik, Google, any OpenID Connect provider) with the redirect URI `${PUBLIC_URL}/api/auth/callback/<name>`, where `<name>` is `<NAME>` in lower case. For authentik:
 
 ```bash
-QUESTLOG_OIDC_AUTHENTIK_ISSUER=https://authentik.example.com/application/o/questlog/
-QUESTLOG_OIDC_AUTHENTIK_CLIENT_ID=...
-QUESTLOG_OIDC_AUTHENTIK_CLIENT_SECRET=...
-QUESTLOG_OIDC_AUTHENTIK_LABEL=authentik
+GAMEPANION_OIDC_AUTHENTIK_ISSUER=https://authentik.example.com/application/o/gamepanion/
+GAMEPANION_OIDC_AUTHENTIK_CLIENT_ID=...
+GAMEPANION_OIDC_AUTHENTIK_CLIENT_SECRET=...
+GAMEPANION_OIDC_AUTHENTIK_LABEL=authentik
 ```
 
 A sign-in through a provider joins an existing player with the same address only when the provider says the address is verified ([ADR 0006](../adr/0006-better-auth-wiring.md)).
 
-When a provider refuses a sign-in, the login page shows its error code, and questlog's log has a line for it.
+When a provider refuses a sign-in, the login page shows its error code, and Gamepanion's log has a line for it.
 
 ## The chat in the web app
 
-With `QUESTLOG_ANTHROPIC_API_KEY` set, every page has an **Ask Claude** button, and every card a small one that opens the chat about that card. The chat uses the same tools as Claude over MCP, as the signed-in player, so it sees nothing the player couldn't, and nothing they haven't found ([ADR 0013](../adr/0013-in-app-chat.md)). The conversation stays on the player's device.
+With `GAMEPANION_ANTHROPIC_API_KEY` set, every page has an **Ask Claude** button, and every card a small one that opens the chat about that card. The chat uses the same tools as Claude over MCP, as the signed-in player, so it sees nothing the player couldn't, and nothing they haven't found ([ADR 0013](../adr/0013-in-app-chat.md)). The conversation stays on the player's device.
 
-To speak into it, run a Whisper server next to questlog and point `QUESTLOG_TRANSCRIBE_URL` at it. The recording goes only there and is never stored. With speaches on the compose network:
+To speak into it, run a Whisper server next to Gamepanion and point `GAMEPANION_TRANSCRIBE_URL` at it. The recording goes only there and is never stored. With speaches on the compose network:
 
 ```yaml
   whisper:
@@ -68,12 +68,12 @@ To speak into it, run a Whisper server next to questlog and point `QUESTLOG_TRAN
       - whisper-models:/home/ubuntu/.cache/huggingface/hub
 ```
 
-and `QUESTLOG_TRANSCRIBE_URL=http://whisper:8000` in `.env`. The first transcription downloads the model.
+and `GAMEPANION_TRANSCRIBE_URL=http://whisper:8000` in `.env`. The first transcription downloads the model.
 
 ## Data and backups
 
-Back up `DATA_DIR`. `questlog.sqlite` is the log; `auth.sqlite` holds accounts, sessions and the connected clients, so a copy of the log alone holds no tokens ([ADR 0004](../adr/0004-sign-in-with-better-auth.md)). Losing `auth.sqlite` signs everyone out and loses who is who: keep both.
+Back up `DATA_DIR`. `gamepanion.sqlite` is the log; `auth.sqlite` holds accounts, sessions and the connected clients, so a copy of the log alone holds no tokens ([ADR 0004](../adr/0004-sign-in-with-better-auth.md)). Losing `auth.sqlite` signs everyone out and loses who is who: keep both.
 
-SQLite runs in WAL mode: new data sits in `questlog.sqlite-wal` for a while. Back up the whole directory, or copy with `sqlite3 questlog.sqlite ".backup copy.sqlite"`; the main file alone can be nearly empty.
+SQLite runs in WAL mode: new data sits in `gamepanion.sqlite-wal` for a while. Back up the whole directory, or copy with `sqlite3 gamepanion.sqlite ".backup copy.sqlite"`; the main file alone can be nearly empty.
 
 `GET /health` answers `{"status":"ok"}` while the database answers; the image's `HEALTHCHECK` uses it.

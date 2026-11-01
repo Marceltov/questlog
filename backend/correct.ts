@@ -303,7 +303,7 @@ async function game(trx: Trx, p: Player, c: Correction): Promise<Corrected> {
   if (title) {
     const clash = await seen(trx.selectFrom("games"), p, "games").select("id").where("norm", "=", norm(title)).where("id", "!=", c.id).executeTakeFirst();
     if (clash)
-      throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). questlog doesn't merge games: ask the player what they want`);
+      throw new AmbiguousError(`The player already has a game called ${title} (id ${clash.id}). Gamepanion doesn't merge games: ask the player what they want`);
   }
   const set = given({
     title,

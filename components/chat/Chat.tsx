@@ -20,7 +20,7 @@ type Turn = { role: "user" | "assistant"; content: string; links?: ChatLink[]; f
 const ChatContext = createContext<{ enabled: boolean; open: (about?: About) => void }>({ enabled: false, open: () => {} });
 
 // One chat per player on this device. Storage can be blocked or throw (private windows); the chat then lasts while the page is open.
-const keyOf = (playerId: string) => `questlog.chat.${playerId}`;
+const keyOf = (playerId: string) => `gamepanion.chat.${playerId}`;
 const isTurn = (t: unknown): t is Turn =>
   !!t && typeof t === "object" && ((t as Turn).role === "user" || (t as Turn).role === "assistant") && typeof (t as Turn).content === "string";
 function load(playerId: string): Turn[] {

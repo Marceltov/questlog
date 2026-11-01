@@ -295,7 +295,7 @@ function recordNext(r: Recorded): Next {
   const t = r.playthrough;
   if (t.createdGame)
     next.push(
-      `questlog had no game called ${t.game.title}: a new game was started, with the playthrough ${t.label}. Tell the player, so a misspelt title can be fixed.`,
+      `Gamepanion had no game called ${t.game.title}: a new game was started, with the playthrough ${t.label}. Tell the player, so a misspelt title can be fixed.`,
     );
   else if (t.createdPlaythrough) next.push(`A new playthrough of ${t.game.title} was started: ${t.label}. Tell the player.`);
   const parts = [
@@ -392,7 +392,7 @@ function briefingNext(b: Briefing, more: boolean): Next {
     return [
       b.others.length
         ? `No playthrough matches. The player has: ${b.others.map((t) => `${t.game.title} ${t.label} (id ${t.id})`).join(", ")}. Ask which one they mean.`
-        : "questlog has no game for this player yet. Ask what they are playing, and file their first session with record.",
+        : "Gamepanion has no game for this player yet. Ask what they are playing, and file their first session with record.",
     ];
   const next: Next = [];
   const t = b.playthrough;
@@ -458,13 +458,13 @@ const ItemLookupJson = z.object({
   equipped: z.array(ItemDetailJson).describe("What the player has equipped now, to compare with"),
 });
 
-// Where Claude looks things up (ADR 0008): questlog never fetches a page; it says where the player wants Claude to look, and keeps what
+// Where Claude looks things up (ADR 0008): Gamepanion never fetches a page; it says where the player wants Claude to look, and keeps what
 // Claude found with its link.
 function lookupNext(t: PlaythroughView): string {
   const where = t.game.sources.map((x) => (x.title ? `${x.title} (${x.url})` : x.url)).join(", ");
   return where
-    ? `If the player wants to know more than questlog holds, look it up yourself with your web tools, on their sources for ${t.game.title}: ${where}. Only about what they have found. File the facts in your own words, never the page's text, with the link: correct (item, sources) or record (items with sources). If a source refuses you, say so and suggest another.`
-    : `questlog has no sources for ${t.game.title} yet. If the player wants to know more than questlog holds, suggest a site you know for this game, look it up there with your web tools, and ask whether to keep it as a source (record or correct with game sources). Only about what they have found; file the facts in your own words with the link.`;
+    ? `If the player wants to know more than Gamepanion holds, look it up yourself with your web tools, on their sources for ${t.game.title}: ${where}. Only about what they have found. File the facts in your own words, never the page's text, with the link: correct (item, sources) or record (items with sources). If a source refuses you, say so and suggest another.`
+    : `Gamepanion has no sources for ${t.game.title} yet. If the player wants to know more than Gamepanion holds, suggest a site you know for this game, look it up there with your web tools, and ask whether to keep it as a source (record or correct with game sources). Only about what they have found; file the facts in your own words with the link.`;
 }
 
 function itemNext(t: PlaythroughView | null, name: string | undefined, items: ItemView[], reveal: SpoilerLevel, more = false): Next {
@@ -510,7 +510,7 @@ function codexNext(t: PlaythroughView | null, name: string | undefined, entries:
   const bare = entries.filter((e) => (e.kind === "boss" || e.kind === "enemy") && !e.weaknesses.length && !e.strategy);
   if (bare.length)
     next.push(
-      `Nothing is known yet about how to beat ${bare.map((e) => e.name).join(", ")}. ${lookupNext(t).replace("If the player wants to know more than questlog holds, look", "If the player wants help, look")} File weaknesses and the strategy with record (codex, by id), marked hint when they give away more than the player has seen.`,
+      `Nothing is known yet about how to beat ${bare.map((e) => e.name).join(", ")}. ${lookupNext(t).replace("If the player wants to know more than Gamepanion holds, look", "If the player wants help, look")} File weaknesses and the strategy with record (codex, by id), marked hint when they give away more than the player has seen.`,
     );
   else next.push(lookupNext(t));
   if (more) next.push(offerMore(t));
@@ -581,9 +581,9 @@ function missedNext(m: Missed): Next {
       `The rest gives away more than the player found (${m.reveal === "hint" ? "hints" : "hints and full spoilers"}). Read out only what they asked about, one quest at a time, and stop when they say so.`,
     );
   if (!m.leftBehind.length && !m.hidden.length && !m.hiddenItems.length)
-    next.push(`questlog has nothing hidden or left behind in ${t.game.title} ${t.label}. Tell the player.`);
+    next.push(`Gamepanion has nothing hidden or left behind in ${t.game.title} ${t.label}. Tell the player.`);
   next.push(
-    `questlog knows only the player's own log, not the game. If they want more, you may answer from your own knowledge, as they asked for ${m.reveal === "hint" ? "hints" : "spoilers"}: say it is your knowledge, not their log, and stay at that level (a hint names a place or a person, never an outcome). File it only if they ask, marked ${m.reveal}.`,
+    `Gamepanion knows only the player's own log, not the game. If they want more, you may answer from your own knowledge, as they asked for ${m.reveal === "hint" ? "hints" : "spoilers"}: say it is your knowledge, not their log, and stay at that level (a hint names a place or a person, never an outcome). File it only if they ask, marked ${m.reveal}.`,
   );
   return next;
 }

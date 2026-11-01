@@ -5,7 +5,7 @@ import { openApiDocument } from "./api";
 
 // The committed description. `npm run generate` rewrites it (UPDATE_OPENAPI=1); CI fails when it's stale.
 const FILE = join(import.meta.dirname, "../../openapi.json");
-const URL = "https://questlog.example/api/v1";
+const URL = "https://gamepanion.example/api/v1";
 const generated = () => JSON.stringify(openApiDocument(URL), null, 2) + "\n";
 
 test("openapi.json is up to date with the route table", async () => {
