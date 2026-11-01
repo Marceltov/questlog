@@ -23,7 +23,7 @@ items:
     summary_de: Aus questlog wird Gamepanion, der Begleiter, mit dem du beim Spielen redest, mit eigener Organisation, eigenem Image und eigener Domain.
     links:
       - { label: "ADR 0017", url: "https://questlog.marceltov.de/adr/0017-the-name-gamepanion/" }
-      - { label: "#51", url: "https://github.com/gamepanion/gamepanion/issues/51" }
+      - { label: "#52", url: "https://github.com/gamepanion/gamepanion/pull/52" }
   - id: settings
     status: done
     date: 2026-11-01
