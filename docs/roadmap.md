@@ -27,4 +27,4 @@ Talking while you play is the interface; questlog keeps what is true for your pl
 
 ## Keep it true
 
-The timeline is rendered from [`docs/roadmap.yml`](https://github.com/Marceltov/questlog/blob/main/docs/roadmap.yml); on GitHub, read that file. Finish a step in the pull request that finishes it: set `status: done`, replace `when` with a `date`, add the link to its pull request, and move it to the top of the shipped entries. Change the file in the pull request that changes the plan.
+The timeline is rendered from [`docs/roadmap.yml`](https://github.com/gamepanion/gamepanion/blob/main/docs/roadmap.yml); on GitHub, read that file. Finish a step in the pull request that finishes it: set `status: done`, replace `when` with a `date`, add the link to its pull request, and move it to the top of the shipped entries. Change the file in the pull request that changes the plan.

@@ -1,8 +1,8 @@
 site_name: questlog
 site_description: A spoiler-free quest log, build tracker and item list for the games you play. You tell Claude while you play; questlog remembers, and never shows what you haven't found.
 site_url: https://questlog.marceltov.de/
-repo_url: https://github.com/Marceltov/questlog
-repo_name: Marceltov/questlog
+repo_url: https://github.com/gamepanion/gamepanion
+repo_name: gamepanion/gamepanion
 edit_uri: edit/main/docs/
 copyright: Copyright &copy; 2026 Marcel Bruckner. Licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0</a>
 

@@ -2,7 +2,7 @@
 # here; see "Deploying with Docker Compose" in Marceltov/engineering-conventions.
 services:
   questlog:
-    image: ghcr.io/marceltov/questlog:main
+    image: ghcr.io/gamepanion/gamepanion:main
     restart: unless-stopped
     ports:
       - "3000:3000"

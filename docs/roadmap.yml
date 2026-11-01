@@ -52,8 +52,8 @@ items:
     summary: Ask, tell or correct without leaving questlog, typed or spoken, from any card with that card as what you mean.
     summary_de: Fragen, erzählen oder korrigieren, ohne questlog zu verlassen, getippt oder gesprochen, von jeder Karte aus mit dieser Karte als Bezug.
     links:
-      - { label: "#35", url: "https://github.com/Marceltov/questlog/pull/35" }
-      - { label: "#34", url: "https://github.com/Marceltov/questlog/issues/34" }
+      - { label: "#35", url: "https://github.com/gamepanion/gamepanion/pull/35" }
+      - { label: "#34", url: "https://github.com/gamepanion/gamepanion/issues/34" }
       - { label: "ADR 0013", url: "https://questlog.marceltov.de/adr/0013-in-app-chat/" }
 
   - id: game-cards
@@ -65,8 +65,8 @@ items:
     summary: The start page shows where you are in each playthrough; icons on the tabs, headings and cards say what each thing is.
     summary_de: Die Startseite zeigt, wo du in jedem Durchlauf stehst; Symbole auf Reitern, Überschriften und Karten zeigen, was etwas ist.
     links:
-      - { label: "#33", url: "https://github.com/Marceltov/questlog/pull/33" }
-      - { label: "#32", url: "https://github.com/Marceltov/questlog/issues/32" }
+      - { label: "#33", url: "https://github.com/gamepanion/gamepanion/pull/33" }
+      - { label: "#32", url: "https://github.com/gamepanion/gamepanion/issues/32" }
 
   - id: register
     status: done
@@ -77,7 +77,7 @@ items:
     summary: Coloured tabs, readable with colour blindness, split a playthrough's page into overview, character, quests, items, codex, sessions and notes; flags switch the language.
     summary_de: Farbige Reiter, auch bei Farbenblindheit lesbar, teilen die Seite eines Durchlaufs in Überblick, Charakter, Quests, Inventar, Kodex, Sessions und Notizen; Flaggen wechseln die Sprache.
     links:
-      - { label: "#31", url: "https://github.com/Marceltov/questlog/pull/31" }
+      - { label: "#31", url: "https://github.com/gamepanion/gamepanion/pull/31" }
 
   - id: languages
     status: done
@@ -88,8 +88,8 @@ items:
     summary: The web app in English and German, picked from your browser or the switch in the header; the docs in German next to English.
     summary_de: Die Web-App auf Englisch und Deutsch, je nach Browser oder Umschalter in der Kopfzeile; die Doku auf Deutsch neben Englisch.
     links:
-      - { label: "#29", url: "https://github.com/Marceltov/questlog/pull/29" }
-      - { label: "#10", url: "https://github.com/Marceltov/questlog/issues/10" }
+      - { label: "#29", url: "https://github.com/gamepanion/gamepanion/pull/29" }
+      - { label: "#10", url: "https://github.com/gamepanion/gamepanion/issues/10" }
       - { label: "V8", url: "https://questlog.marceltov.de/values/#v8-any-game-any-language" }
 
   - id: tracker
@@ -101,8 +101,8 @@ items:
     summary: The whole inventory with counts and an item's numbers, in the game's own groups; the bosses, enemies, NPCs and places met, with weaknesses, strategies and tries; and what each item is good or bad against.
     summary_de: Das ganze Inventar mit Anzahl und den Werten eines Gegenstands, in den Gruppen des Spiels; die Bosse, Gegner, NSCs und Orte, denen du begegnet bist, mit Schwächen, Strategien und Versuchen; und wogegen jeder Gegenstand gut oder schlecht ist.
     links:
-      - { label: "#24", url: "https://github.com/Marceltov/questlog/issues/24" }
-      - { label: "#25", url: "https://github.com/Marceltov/questlog/issues/25" }
+      - { label: "#24", url: "https://github.com/gamepanion/gamepanion/issues/24" }
+      - { label: "#25", url: "https://github.com/gamepanion/gamepanion/issues/25" }
       - { label: "ADR 0010", url: "https://questlog.marceltov.de/adr/0010-the-tracker/" }
 
   - id: goals
@@ -114,7 +114,7 @@ items:
     summary: Long-term goals apart from what happened, in order, reached on their own when the stats get there, suggestions kept apart until agreed; the character is the playthrough's and can go along to NG+.
     summary_de: Langfristige Ziele getrennt von dem, was passiert ist, in Reihenfolge, von selbst erreicht, wenn die Werte so weit sind, Vorschläge getrennt, bis du zustimmst; der Charakter gehört zum Durchlauf und kann mit ins NG+.
     links:
-      - { label: "#26", url: "https://github.com/Marceltov/questlog/pull/26" }
+      - { label: "#26", url: "https://github.com/gamepanion/gamepanion/pull/26" }
       - { label: "ADR 0009", url: "https://questlog.marceltov.de/adr/0009-goals-and-the-character/" }
 
   - id: trilium-import
@@ -126,7 +126,7 @@ items:
     summary: The quest log, build and mechanics pages Claude kept in Trilium, filed through record as the first playthrough, each page word for word as a session's transcript.
     summary_de: Die Questlog-, Build- und Mechanik-Seiten, die Claude in Trilium geführt hat, über record als erster Durchlauf abgelegt, jede Seite wörtlich als Transkript einer Session.
     links:
-      - { label: "#8", url: "https://github.com/Marceltov/questlog/issues/8" }
+      - { label: "#8", url: "https://github.com/gamepanion/gamepanion/issues/8" }
       - { label: "V3", url: "https://questlog.marceltov.de/values/#v3-your-progress-your-words" }
 
   - id: lookups
@@ -138,7 +138,7 @@ items:
     summary: questlog keeps the sites you trust for a game and the facts Claude found there, with their links; Claude does the reading, questlog never fetches.
     summary_de: questlog merkt sich die Seiten, denen du für ein Spiel vertraust, und die Fakten, die Claude dort gefunden hat, mit ihren Links; Claude liest, questlog ruft nie selbst etwas ab.
     links:
-      - { label: "#22", url: "https://github.com/Marceltov/questlog/pull/22" }
+      - { label: "#22", url: "https://github.com/gamepanion/gamepanion/pull/22" }
       - { label: "ADR 0008", url: "https://questlog.marceltov.de/adr/0008-claude-looks-things-up/" }
       - { label: "V6", url: "https://questlog.marceltov.de/values/#v6-your-state-not-the-internets" }
 
@@ -151,7 +151,7 @@ items:
     summary: /api/v1 over the same domain, with tokens bound to it, and the OpenAPI description generated from its route table.
     summary_de: /api/v1 über dieselbe Domäne, mit daran gebundenen Tokens, und die OpenAPI-Beschreibung aus ihrer Routentabelle erzeugt.
     links:
-      - { label: "#21", url: "https://github.com/Marceltov/questlog/pull/21" }
+      - { label: "#21", url: "https://github.com/gamepanion/gamepanion/pull/21" }
       - { label: "ADR 0007", url: "https://questlog.marceltov.de/adr/0007-rest-api-tokens/" }
       - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
 
@@ -164,7 +164,7 @@ items:
     summary: One page per playthrough, swiped sideways on the phone, with a contents page first.
     summary_de: Eine Seite pro Durchlauf, auf dem Handy seitlich gewischt, mit einem Inhaltsverzeichnis vorneweg.
     links:
-      - { label: "#20", url: "https://github.com/Marceltov/questlog/pull/20" }
+      - { label: "#20", url: "https://github.com/gamepanion/gamepanion/pull/20" }
       - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
 
   - id: more-tools
@@ -176,7 +176,7 @@ items:
     summary: Compare an item with the build, fix what was filed, and a list of what you may have missed, only when you ask.
     summary_de: Einen Gegenstand mit dem Build vergleichen, Abgelegtes korrigieren, und eine Liste dessen, was du verpasst haben könntest, nur wenn du fragst.
     links:
-      - { label: "#19", url: "https://github.com/Marceltov/questlog/pull/19" }
+      - { label: "#19", url: "https://github.com/gamepanion/gamepanion/pull/19" }
       - { label: "V1", url: "https://questlog.marceltov.de/values/#v1-no-spoilers-you-didnt-ask-for" }
       - { label: "V5", url: "https://questlog.marceltov.de/values/#v5-claude-first" }
 
@@ -189,7 +189,7 @@ items:
     summary: Sign-in, one log per player, the spoiler gate, the tools record, briefing and open_threads, and the image deployed with Docker Compose.
     summary_de: Anmeldung, ein Log pro Spieler, die Spoiler-Schranke, die Werkzeuge record, briefing und open_threads, und das Image mit Docker Compose ausgerollt.
     links:
-      - { label: "#9", url: "https://github.com/Marceltov/questlog/pull/9" }
+      - { label: "#9", url: "https://github.com/gamepanion/gamepanion/pull/9" }
       - { label: "V1", url: "https://questlog.marceltov.de/values/#v1-no-spoilers-you-didnt-ask-for" }
       - { label: "V2", url: "https://questlog.marceltov.de/values/#v2-your-log-is-yours-alone" }
 
@@ -202,4 +202,4 @@ items:
     summary: What questlog stands for, and ADRs for the app, lookups and sign-in.
     summary_de: Wofür questlog steht, und ADRs für die App, das Nachschlagen und die Anmeldung.
     links:
-      - { label: "#1", url: "https://github.com/Marceltov/questlog/pull/1" }
+      - { label: "#1", url: "https://github.com/gamepanion/gamepanion/pull/1" }
