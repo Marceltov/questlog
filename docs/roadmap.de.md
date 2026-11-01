@@ -27,4 +27,4 @@ Beim Spielen erzählen ist die Bedienung; questlog behält, was für deinen Durc
 
 ## Aktuell halten
 
-Die Zeitleiste wird aus [`docs/roadmap.yml`](https://github.com/Marceltov/questlog/blob/main/docs/roadmap.yml) erzeugt; auf GitHub lies diese Datei. Die deutschen Texte stehen dort als `title_de` und `summary_de`.
+Die Zeitleiste wird aus [`docs/roadmap.yml`](https://github.com/gamepanion/gamepanion/blob/main/docs/roadmap.yml) erzeugt; auf GitHub lies diese Datei. Die deutschen Texte stehen dort als `title_de` und `summary_de`.

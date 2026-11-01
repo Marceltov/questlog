@@ -1,10 +1,10 @@
 # Konfiguration
 
-questlog läuft als ein Container mit einem Volume, aus dem Image `ghcr.io/marceltov/questlog`. Ein Server braucht zwei Dateien und keinen Checkout: [`compose.yaml`](https://github.com/Marceltov/questlog/blob/main/compose.yaml), das das Image startet, und daneben eine `.env`-Datei mit allen Einstellungen, eine ausgefüllte Kopie von [`.env.example`](https://github.com/Marceltov/questlog/blob/main/.env.example). Einstellungen sind Umgebungsvariablen: `QUESTLOG_*`, dazu die gemeinsamen `PUBLIC_URL`, `DATA_DIR`, `PORT` und `TZ`.
+questlog läuft als ein Container mit einem Volume, aus dem Image `ghcr.io/gamepanion/gamepanion`. Ein Server braucht zwei Dateien und keinen Checkout: [`compose.yaml`](https://github.com/gamepanion/gamepanion/blob/main/compose.yaml), das das Image startet, und daneben eine `.env`-Datei mit allen Einstellungen, eine ausgefüllte Kopie von [`.env.example`](https://github.com/gamepanion/gamepanion/blob/main/.env.example). Einstellungen sind Umgebungsvariablen: `QUESTLOG_*`, dazu die gemeinsamen `PUBLIC_URL`, `DATA_DIR`, `PORT` und `TZ`.
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Marceltov/questlog/main/compose.yaml
-curl -fsSL -o .env https://raw.githubusercontent.com/Marceltov/questlog/main/.env.example
+curl -fsSLO https://raw.githubusercontent.com/gamepanion/gamepanion/main/compose.yaml
+curl -fsSL -o .env https://raw.githubusercontent.com/gamepanion/gamepanion/main/.env.example
 chmod 600 .env   # dann ausfüllen
 docker compose up -d
 ```
